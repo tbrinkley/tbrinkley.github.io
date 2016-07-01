@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://tbrinkley.github.io/images/mit%20app%20inventory%202.jpg</loc>
+    <lastmod>2016-07-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://tbrinkley.github.io/images/arrows-mn_close.png</loc>
+    <lastmod>2016-07-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://tbrinkley.github.io/index.html</loc>
+    <lastmod>2016-07-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" media="only screen and (max-width: 370px)" href="https://tbrinkley.github.io/phone/index.html"/>
+  </url>
+</urlset>
