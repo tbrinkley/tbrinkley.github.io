@@ -1,8 +1,8 @@
-<manifest alg="2" build="2015.1.2.344" opt="false" iceEnabled="true" iceMarkupVersion="2" iceEnabledOptions="link,responsive" exportTarget="other" domain="https://tbrinkley.github.io" resolutions="1x" timestamp="1467393904131">
+<manifest alg="2" build="2015.1.2.344" opt="false" iceEnabled="true" iceMarkupVersion="2" iceEnabledOptions="link,responsive" exportTarget="other" domain="https://tbrinkley.github.io" resolutions="1x" timestamp="1467394396477">
   <folder name="css">
     <file name="site_global.css" crc="303421102"/>
     <file name="master_a-master.css" crc="3979847762" ref="index"/>
-    <file name="index.css" crc="4147357771" ref="index"/>
+    <file name="index.css" crc="4283944563" ref="index"/>
   </folder>
   <folder name="scripts">
     <file name="jquery-1.8.3.min.js" crc="207176553" ref="phone>index:index"/>
@@ -21,16 +21,16 @@
     <file name="musewpslideshow.js" crc="394033048" ref="index"/>
     <file name="jquery.museoverlay.js" crc="4265131668" ref="index"/>
     <file name="touchswipe.js" crc="497316881" ref="index"/>
-    <file name="form-u340.php" crc="4236636037" ref="index"/>
+    <file name="form-u340.php" crc="4094534193" ref="index"/>
   </folder>
   <folder name="images">
     <file name="bkg_01.jpg" crc="4249309889" ref="phone>index:index"/>
-    <file name="speaker_01-u973-fr.png" crc="3807737923" ref="phone>index:index"/>
+    <file name="speaker_01-u973-fr.png" crc="3807737923" ref="phone>index"/>
     <file name="speaker_03-u971-fr.png" crc="4220311394" ref="phone>index"/>
     <file name="speaker_02-u972-fr.png" crc="287574460" ref="phone>index"/>
-    <file name="gallery_03-u710-fr.png" crc="15474422" ref="phone>index:index"/>
-    <file name="gallery_02-u711-fr.png" crc="114773680" ref="phone>index:index"/>
-    <file name="gallery_01-u712-fr.png" crc="3862423621" ref="phone>index:index"/>
+    <file name="gallery_03-u710-fr.png" crc="15474422" ref="phone>index"/>
+    <file name="gallery_02-u711-fr.png" crc="114773680" ref="phone>index"/>
+    <file name="gallery_01-u712-fr.png" crc="3862423621" ref="phone>index"/>
     <file name="u1864-17.png" crc="532403934" ref="phone>index"/>
     <file name="u1864-17-r.png" crc="235939021" ref="phone>index"/>
     <file name="u1864-17-m.png" crc="235939021" ref="phone>index"/>
@@ -53,10 +53,10 @@
     <file name="mit app inventory 2.jpg" crc="515301850" seo="true" ref="index"/>
     <file name="speaker_03-u1674-fr.png" crc="4220311394" ref="index"/>
     <file name="arrows-mn_close.png" crc="236761104" seo="true" ref="index"/>
-    <file name="u347-17.png" crc="4069240070" ref="index"/>
-    <file name="u347-17-r.png" crc="281374165" ref="index"/>
-    <file name="u347-17-m.png" crc="281374165" ref="index"/>
-    <file name="u347-17-fs.png" crc="4069240070" ref="index"/>
+    <file name="u347-17.png" crc="4141852522" ref="index"/>
+    <file name="u347-17-r.png" crc="4209879325" ref="index"/>
+    <file name="u347-17-m.png" crc="4209879325" ref="index"/>
+    <file name="u347-17-fs.png" crc="4141852522" ref="index"/>
     <file name="radiobuttonunchecked.png" crc="3976871150" ref="index"/>
     <file name="radiobuttonuncheckedrollover.png" crc="4276313674" ref="index"/>
     <file name="radiobuttonuncheckedmousedown.png" crc="54863585" ref="index"/>
@@ -69,6 +69,10 @@
     <file name="u2882-r.png" crc="6355749" ref="index"/>
     <file name="u2889.png" crc="4227836380" ref="index"/>
     <file name="u2889-r.png" crc="241677610" ref="index"/>
+    <file name="speaker_01-u212-fr.png" crc="3807737923" ref="index"/>
+    <file name="gallery_03-u1008-3-fr.png" crc="15474422" ref="index"/>
+    <file name="gallery_02-u1029-4-fr.png" crc="114773680" ref="index"/>
+    <file name="gallery_01-u1032-3-fr.png" crc="3862423621" ref="index"/>
   </folder>
   <folder name="phone">
     <folder name="css">
@@ -77,5 +81,5 @@
     </folder>
     <file name="index.html" crc="75261907" seo="true" mt="1467265089077" redirect="true"/>
   </folder>
-  <file name="index.html" crc="4107886132" seo="true" mt="1467388985200" redirect="true"/>
+  <file name="index.html" crc="495525160" seo="true" mt="1467394375810" redirect="true"/>
 </manifest>

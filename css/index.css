@@ -1,7 +1,7 @@
 .version.index /* version checker */
 {
-	color: #0000F7;
-	background-color: #33A84B;
+	color: #0000FF;
+	background-color: #57CE73;
 }
 
 #muse_css_mq
@@ -144,7 +144,7 @@
 	border-width: 0px 0px 4px;
 }
 
-#u172-6
+#u172-4
 {
 	z-index: 530;
 	width: 116px;
@@ -162,7 +162,7 @@
 	margin-left: -223px;
 }
 
-#u172-6:hover
+#u172-4:hover
 {
 	border-width: 0px;
 	opacity: 0.5;
@@ -175,7 +175,7 @@
 	margin: 0px 0px 0px -223px;
 }
 
-#u172-6.MuseLinkActive
+#u172-4.MuseLinkActive
 {
 	border-style: solid;
 	border-color: #000000;
@@ -192,7 +192,7 @@
 
 #u173-6
 {
-	z-index: 536;
+	z-index: 534;
 	width: 102px;
 	min-height: 57px;
 	background-color: transparent;
@@ -236,13 +236,13 @@
 	border-width: 0px 0px 4px;
 }
 
-#u168-6.MuseLinkActive p,#u182-4.MuseLinkActive p,#u172-6.MuseLinkActive p,#u173-6.MuseLinkActive p
+#u168-6.MuseLinkActive p,#u182-4.MuseLinkActive p,#u172-4.MuseLinkActive p,#u173-6.MuseLinkActive p
 {
 	color: #000000;
 	visibility: inherit;
 }
 
-#u168-4,#u182-2,#u172-4,#u173-4
+#u168-4,#u182-2,#u172-2,#u173-4
 {
 	padding-top: 21px;
 }
@@ -499,7 +499,7 @@
 	position: relative;
 	margin-right: -10000px;
 	padding: 7px 7px 10px 20px;
-	background: #989898 url("../images/speaker_01-u973-fr.png") no-repeat left top;
+	background: #989898 url("../images/speaker_01-u212-fr.png") no-repeat left top;
 	background-color: rgba(127,127,127,0.8);
 	background-size: cover;
 }
@@ -2191,7 +2191,7 @@
 	z-index: 21;
 	min-height: 463px;
 	text-align: center;
-	background: #4C4C4C url("../images/gallery_03-u710-fr.png") no-repeat right center;
+	background: #4C4C4C url("../images/gallery_03-u1008-3-fr.png") no-repeat right center;
 	background-color: rgba(0,0,0,0.7);
 	background-size: cover;
 }
@@ -2224,7 +2224,7 @@
 	z-index: 24;
 	min-height: 463px;
 	text-align: center;
-	background: #4C4C4C url("../images/gallery_02-u711-fr.png") no-repeat center center;
+	background: #4C4C4C url("../images/gallery_02-u1029-4-fr.png") no-repeat center center;
 	background-color: rgba(0,0,0,0.7);
 	background-size: cover;
 }
@@ -2263,7 +2263,7 @@
 	z-index: 28;
 	min-height: 463px;
 	text-align: center;
-	background: #4C4C4C url("../images/gallery_01-u712-fr.png") no-repeat center center;
+	background: #4C4C4C url("../images/gallery_01-u1032-3-fr.png") no-repeat center center;
 	background-color: rgba(0,0,0,0.7);
 	background-size: cover;
 }

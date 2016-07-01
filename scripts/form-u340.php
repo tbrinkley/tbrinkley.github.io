@@ -25,8 +25,8 @@ $form = array(
 		'unknown_method' => 'Unknown server request method'
 	),
 	'email' => array(
-		'from' => 'muse@adobe.com',
-		'to' => 'muse@adobe.com'
+		'from' => 'mrhahsbrinkley@busdk12.com',
+		'to' => 'mrhahsbrinkley@busdk12.com'
 	),
 	'fields' => array(
 		'custom_U348' => array(
