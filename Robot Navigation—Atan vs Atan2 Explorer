@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Navigation: Atan vs Atan2 Explorer</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-color: #e2e8f0;
+            --accent-blue: #3b82f6; /* Opposite / Y */
+            --accent-green: #10b981; /* Adjacent / X */
+            --accent-red: #ef4444; /* Glitch */
+            --accent-success: #22c55e; /* Correct */
+            --grid-line: #334155;
+            --heading-color: #f59e0b;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            width: 100%;
+            background-color: var(--panel-bg);
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; color: var(--heading-color); }
+        p.subtitle { margin: 5px 0 0; color: #94a3b8; font-size: 0.9rem; }
+
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            padding: 20px;
+            width: 100%;
+            max-width: 1200px;
+            box-sizing: border-box;
+        }
+
+        /* Canvas Container */
+        .canvas-wrapper {
+            position: relative;
+            background: #171717;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            cursor: crosshair;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            touch-action: none; /* Prevents scrolling while dragging on mobile */
+        }
+
+        .quadrant-label {
+            position: absolute;
+            font-weight: bold;
+            background: rgba(0,0,0,0.6);
+            padding: 4px 8px;
+            border-radius: 4px;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        /* Controls Panel */
+        .controls-panel {
+            flex: 1;
+            min-width: 300px;
+            max-width: 450px;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-header {
+            font-size: 1.2rem;
+            border-bottom: 2px solid var(--grid-line);
+            padding-bottom: 10px;
+            margin-bottom: 5px;
+        }
+
+        .coord-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .coord-box {
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .coord-box.x-val { border-left: 4px solid var(--accent-green); }
+        .coord-box.y-val { border-left: 4px solid var(--accent-blue); }
+
+        .math-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid var(--grid-line);
+            transition: all 0.2s ease;
+        }
+
+        .math-card.disabled {
+            opacity: 0.5;
+            pointer-events: none; /* Optional: prevents interaction but usually we just dim */
+        }
+
+        .math-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .math-title {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #475569;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--heading-color); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .formula {
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+        }
+
+        .result {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 8px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: sans-serif;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .status-error { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+        .status-success { background: rgba(34, 197, 94, 0.2); color: var(--accent-success); border: 1px solid var(--accent-success); }
+        
+        .instruction {
+            text-align: center;
+            color: #94a3b8;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            canvas { width: 100%; height: auto; }
+            .canvas-wrapper { width: 100%; height: 350px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🤖 Robot Navigation Explorer</h1>
+        <p class="subtitle">Why robots crash if you use <code>atan()</code> instead of <code>atan2()</code></p>
+    </header>
+
+    <div class="main-container">
+        
+        <!-- VISUALIZATION AREA -->
+        <div class="canvas-wrapper" id="canvasContainer">
+            <canvas id="trigCanvas" width="600" height="600"></canvas>
+            <!-- Quadrant Label (Dynamic) -->
+            <div id="quadrantLabel" class="quadrant-label" style="top: 20px; right: 20px;">QUADRANT 1</div>
+        </div>
+
+        <!-- CONTROLS AREA -->
+        <div class="controls-panel">
+            <div class="panel-header">Navigation Data</div>
+
+            <!-- Coordinate Display -->
+            <div class="coord-display">
+                <div class="coord-box x-val">
+                    <div style="font-size:0.8rem; color:#94a3b8;">ADJACENT (X)</div>
+                    <div id="valX">0</div>
+                </div>
+                <div class="coord-box y-val">
+                    <div style="font-size:0.8rem; color:#94a3b8;">OPPOSITE (Y)</div>
+                    <div id="valY">0</div>
+                </div>
+            </div>
+
+            <!-- Option A: The Ratio -->
+            <div class="math-card">
+                <div class="math-header">
+                    <div class="math-title">A. The Ratio (tan)</div>
+                    <label class="switch">
+                        <input type="checkbox" id="checkTan" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="contentTan">
+                    <div class="formula">tan(θ) = Opp / Adj</div>
+                    <div class="result">
+                        <span id="calcRatio">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Option B: The Glitch -->
+            <div class="math-card" id="cardAtan">
+                <div class="math-header">
+                    <div class="math-title">B. The Glitch (atan)</div>
+                    <label class="switch">
+                        <input type="checkbox" id="checkAtan" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="contentAtan">
+                    <div class="formula">θ = Math.atan(y / x)</div>
+                    <div class="result">
+                        <span id="calcAtan">0°</span>
+                        <span id="statusAtan" class="status-badge status-error" style="display:none;">⚠️ GLITCH</span>
+                    </div>
+                    <div style="font-size: 0.85rem; margin-top:5px; color:#ef4444; display:none;" id="glitchExplain">
+                        Calculated angle points opposite to the robot!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Option C: The Solution -->
+            <div class="math-card">
+                <div class="math-header">
+                    <div class="math-title">C. The Solution (atan2)</div>
+                    <label class="switch">
+                        <input type="checkbox" id="checkAtan2" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="contentAtan2">
+                    <div class="formula">θ = Math.atan2(y, x)</div>
+                    <div class="result">
+                        <span id="calcAtan2">0°</span>
+                        <span class="status-badge status-success">✅ CORRECT</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="instruction">
+                Drag the orange vector tip to rotate the robot!
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const canvas = document.getElementById('trigCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvasContainer');
+        
+        // Dimensions & State
+        const width = 600;
+        const height = 600;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const circleRadius = 200;
+        
+        // State
+        let angle = -Math.PI / 4; // Start in Quadrant 1 (Remember Math Y is up, Canvas Y is down)
+        let isDragging = false;
+        
+        // Elements to update
+        const elValX = document.getElementById('valX');
+        const elValY = document.getElementById('valY');
+        const elQuadLabel = document.getElementById('quadrantLabel');
+        
+        const checkTan = document.getElementById('checkTan');
+        const contentTan = document.getElementById('contentTan');
+        const calcRatio = document.getElementById('calcRatio');
+
+        const checkAtan = document.getElementById('checkAtan');
+        const contentAtan = document.getElementById('contentAtan');
+        const cardAtan = document.getElementById('cardAtan');
+        const calcAtan = document.getElementById('calcAtan');
+        const statusAtan = document.getElementById('statusAtan');
+        const glitchExplain = document.getElementById('glitchExplain');
+
+        const checkAtan2 = document.getElementById('checkAtan2');
+        const contentAtan2 = document.getElementById('contentAtan2');
+        const calcAtan2 = document.getElementById('calcAtan2');
+
+        // --- Event Listeners ---
+        
+        // Toggle Visibility logic
+        function updateToggles() {
+            contentTan.style.opacity = checkTan.checked ? '1' : '0.2';
+            contentAtan.style.opacity = checkAtan.checked ? '1' : '0.2';
+            contentAtan2.style.opacity = checkAtan2.checked ? '1' : '0.2';
+        }
+        [checkTan, checkAtan, checkAtan2].forEach(el => el.addEventListener('change', updateToggles));
+
+        // Drag Logic
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            // Handle Touch or Mouse
+            const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+            const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleStart(evt) {
+            const pos = getMousePos(evt);
+            // Calculate distance from center
+            const dx = pos.x - centerX;
+            const dy = pos.y - centerY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // Allow dragging if clicking anywhere reasonably close to center or circle
+            if (dist < 300) {
+                isDragging = true;
+                updateAngle(pos);
+            }
+        }
+
+        function handleMove(evt) {
+            if (!isDragging) return;
+            evt.preventDefault(); // Prevent scrolling on touch
+            const pos = getMousePos(evt);
+            updateAngle(pos);
+        }
+
+        function handleEnd() {
+            isDragging = false;
+        }
+
+        function updateAngle(pos) {
+            const dx = pos.x - centerX;
+            const dy = pos.y - centerY;
+            angle = Math.atan2(dy, dx);
+            draw();
+            updateStats();
+        }
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+
+        // Touch Events
+        canvas.addEventListener('touchstart', handleStart);
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', handleEnd);
+
+
+        // --- Drawing Logic ---
+
+        function draw() {
+            // Clear
+            ctx.clearRect(0, 0, width, height);
+            
+            // Calculate Tip Position (Visual Coordinates)
+            const tipX = centerX + Math.cos(angle) * circleRadius;
+            const tipY = centerY + Math.sin(angle) * circleRadius;
+            
+            // Math Coordinates (Normal Cartesian: Up is +, Right is +)
+            // Visual Y is inverted relative to Math Y
+            const mathX = Math.cos(angle); 
+            const mathY = -Math.sin(angle); // Invert because canvas Y increases downwards
+
+            // 1. Draw Background Highlights for Quadrants
+            ctx.save();
+            // Determine Quadrant
+            let qColor = '';
+            let qText = '';
+            
+            if (mathX >= 0 && mathY >= 0) { // Q1
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.fillRect(centerX, 0, width/2, height/2);
+                qText = "QUADRANT 1 (+X, +Y)";
+            } else if (mathX < 0 && mathY >= 0) { // Q2
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.1)'; // Highlight for "Tricky" quadrants
+                ctx.fillRect(0, 0, width/2, height/2);
+                qText = "QUADRANT 2 (-X, +Y)";
+            } else if (mathX < 0 && mathY < 0) { // Q3
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.1)'; // Highlight for "Tricky" quadrants
+                ctx.fillRect(0, centerY, width/2, height/2);
+                qText = "QUADRANT 3 (-X, -Y)";
+            } else { // Q4
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.fillRect(centerX, centerY, width/2, height/2);
+                qText = "QUADRANT 4 (+X, -Y)";
+            }
+            elQuadLabel.innerText = qText;
+            ctx.restore();
+
+            // 2. Draw Grid & Circle
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            // X Axis
+            ctx.moveTo(0, centerY); ctx.lineTo(width, centerY);
+            // Y Axis
+            ctx.moveTo(centerX, 0); ctx.lineTo(centerX, height);
+            ctx.stroke();
+
+            // Unit Circle
+            ctx.strokeStyle = '#475569';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 3. Draw The Triangle
+            // Adjacent (Green) - Along X axis
+            ctx.beginPath();
+            ctx.strokeStyle = '#10b981'; // Green
+            ctx.lineWidth = 4;
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(tipX, centerY);
+            ctx.stroke();
+
+            // Opposite (Blue) - Vertical from X axis to Tip
+            ctx.beginPath();
+            ctx.strokeStyle = '#3b82f6'; // Blue
+            ctx.lineWidth = 4;
+            ctx.moveTo(tipX, centerY);
+            ctx.lineTo(tipX, tipY);
+            ctx.stroke();
+
+            // 4. Robot Heading Vector
+            ctx.beginPath();
+            ctx.strokeStyle = '#f59e0b'; // Orange
+            ctx.lineWidth = 5;
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(tipX, tipY);
+            ctx.stroke();
+
+            // 5. Drag Handle
+            ctx.beginPath();
+            ctx.fillStyle = '#f59e0b';
+            ctx.arc(tipX, tipY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 6. Labels on Triangle
+            ctx.font = "14px Arial";
+            ctx.fillStyle = "#10b981";
+            ctx.fillText("x", centerX + (tipX-centerX)/2, centerY + 20); // X Label
+            
+            ctx.fillStyle = "#3b82f6";
+            ctx.fillText("y", tipX + 10, centerY + (tipY-centerY)/2); // Y Label
+
+        }
+
+        // --- Math & UI Logic ---
+
+        function toDegrees(rad) {
+            return (rad * 180 / Math.PI).toFixed(1);
+        }
+
+        function updateStats() {
+            // Get raw coordinates (normalized to radius 1 for simplicity in display, or use pixels)
+            // Let's use pixels relative to center
+            let rawX = Math.cos(angle) * 100; // Scale up for readable numbers
+            let rawY = -Math.sin(angle) * 100; // Invert Y for standard math coordinates
+
+            // Fix floating point noise near zero
+            if (Math.abs(rawX) < 0.1) rawX = 0;
+            if (Math.abs(rawY) < 0.1) rawY = 0;
+
+            elValX.innerText = rawX.toFixed(1);
+            elValY.innerText = rawY.toFixed(1);
+
+            // A. The Ratio (Tan)
+            let ratio = 0;
+            if (rawX === 0) {
+                calcRatio.innerText = (rawY > 0) ? "+∞" : "-∞";
+            } else {
+                ratio = rawY / rawX;
+                calcRatio.innerText = ratio.toFixed(3);
+            }
+
+            // B. The Glitch (Atan)
+            // Math.atan returns values between -PI/2 and PI/2 (-90 to 90)
+            let atanRad = Math.atan(rawY / rawX);
+            let atanDeg = (atanRad * 180 / Math.PI);
+            
+            // Handle undefined X case for atan
+            if (rawX === 0) {
+                atanDeg = (rawY > 0) ? 90 : -90;
+            }
+
+            calcAtan.innerText = atanDeg.toFixed(1) + "°";
+
+            // Detect Glitch:
+            // Calculate the actual visual angle (0 to 360 standard)
+            // Standard Math Angle: 0 is Right, 90 is Up.
+            let trueAngleRad = Math.atan2(rawY, rawX);
+            let trueAngleDeg = trueAngleRad * 180 / Math.PI;
+
+            // Normalize logic checks
+            // Atan is glitchy if X is negative (Quadrants 2 and 3)
+            // Or if the calculated direction is roughly 180 deg off from true direction
+            
+            // Vector difference check
+            // We compare a vector pointing at atanDeg vs a vector pointing at trueAngleDeg
+            const v1x = Math.cos(atanRad);
+            const v1y = Math.sin(atanRad);
+            const v2x = Math.cos(trueAngleRad);
+            const v2y = Math.sin(trueAngleRad);
+            
+            // Dot product to check alignment
+            const dot = v1x*v2x + v1y*v2y;
+            
+            // If dot product is negative, they point in opposite directions -> Glitch
+            if (rawX < 0) { // Simplest check: Atan fails when X is negative
+                statusAtan.style.display = "inline-block";
+                glitchExplain.style.display = "block";
+                cardAtan.style.borderColor = "#ef4444";
+            } else {
+                statusAtan.style.display = "none";
+                glitchExplain.style.display = "none";
+                cardAtan.style.borderColor = "var(--grid-line)";
+            }
+
+            // C. The Solution (Atan2)
+            calcAtan2.innerText = trueAngleDeg.toFixed(1) + "°";
+        }
+
+        // Init
+        draw();
+        updateStats();
+
+    </script>
+</body>
+</html>
