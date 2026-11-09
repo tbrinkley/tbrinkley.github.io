@@ -1,0 +1,3144 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sausage Pizza Subnetting Lab | BCC CBIS 15</title>
+  <meta name="description" content="Sausage Pizza Subnetting Lab (SP-SL) for Barstow Community College CBIS 15 Information Networking, based on Todd Lammle Chapter 8." />
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg-arcade: #080a10;
+      --bg-panel: #10141f;
+      --bg-card: #151b2b;
+      --sauce-red: #ef4444;
+      --cheese-amber: #f59e0b;
+      --crust-green: #10b981;
+      --cyber-cyan: #06b6d4;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background-color: var(--bg-arcade);
+      color: #f8fafc;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    @keyframes dashFlow {
+      to { stroke-dashoffset: -24; }
+    }
+    .arrow-flow {
+      stroke-dasharray: 6 4;
+      animation: dashFlow 1.2s linear infinite;
+    }
+
+    @keyframes sliceGlow {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.45)); }
+      50% { filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.75)); }
+    }
+    .pizza-glow {
+      animation: sliceGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Scanlines clipped directly INSIDE the student's name text on screen */
+    .scanline-text {
+      background-image: repeating-linear-gradient(
+        to bottom,
+        #fbbf24 0px,
+        #fbbf24 3px,
+        #78350f 3px,
+        #f59e0b 5px
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.35));
+    }
+
+    /* Per-box mini speaker button styling */
+    .box-speaker-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      color: #67e8f9;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .box-speaker-btn:hover {
+      background: rgba(6, 182, 212, 0.2);
+      border-color: #22d3ee;
+      transform: scale(1.08);
+    }
+    .box-speaker-btn.speaking-active {
+      background: #f59e0b;
+      color: #080a10;
+      border-color: #fde047;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar-thumb { background: #2e3b59; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+  </style>
+</head>
+<body class="min-h-screen bg-[#080a10] text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950">
+
+  <!-- FULL-SCREEN CONFETTI CANVAS OVERLAY -->
+  <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full"></canvas>
+
+  <!-- STICKY HEADER & HORIZONTALLY CENTERED 10-TAB PROGRESS BAR -->
+  <header class="sticky top-0 z-40 bg-[#0b0e17]/95 backdrop-blur border-b border-slate-800 px-3 py-2">
+    <div class="max-w-[1600px] mx-auto flex flex-col gap-2">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-amber-500 flex items-center justify-center shadow-md text-lg font-bold" aria-hidden="true">
+            🍕
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base sm:text-lg font-bold tracking-tight text-white font-display">
+                Sausage Pizza Subnetting Lab <span class="text-amber-400">(SP-SL)</span>
+              </h1>
+              <span class="hidden md:inline-block text-xs font-mono-code uppercase px-2 py-0.5 rounded bg-slate-800 text-cyan-400 border border-cyan-500/30">
+                Barstow Community College • CBIS 15 • Lammle Ch. 8
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lab Progress & Audio Controls -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="text-xs font-mono-code px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 flex items-center gap-1.5">
+            <span>🔓 Unlocked Tab:</span>
+            <span id="unlocked-tab-indicator" class="text-amber-400 font-bold">0 / 9</span>
+            <span class="text-slate-400">| Completed:</span>
+            <span id="completed-steps-count" class="text-emerald-400 font-bold">0 / 9</span>
+          </div>
+
+          <button id="btn-read-aloud" data-speaker-btn="true" onclick="toggleSpeechCurrentSection(event)"
+            class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+            <span id="speaker-icon">🔊</span> <span id="speaker-label">Read Tab Summary</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 10-TAB NAVIGATION BAR (Automatically scrolls active tab to horizontal center!) -->
+      <nav id="tabs-scroll-container" class="flex items-center gap-1.5 overflow-x-auto pb-1 scroll-smooth" role="tablist" aria-label="Subnetting Lab Steps">
+        <button id="tab-btn-0" role="tab" aria-selected="true" onclick="trySwitchTab(0)"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0">
+          🌐 0. Benefits &amp; Rules
+        </button>
+        <button id="tab-btn-1" role="tab" aria-selected="false" onclick="trySwitchTab(1)"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0">
+          🔒 1. Pizza Calculator &amp; AI
+        </button>
+        <button id="tab-btn-2" role="tab" aria-selected="false" onclick="trySwitchTab(2)"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0">
+          🔒 2. Guess CIDR
+        </button>
+        <button id="tab-btn-3" role="tab" aria-selected="false" onclick="trySwitchTab(3)"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0">
+          🔒 3. Subnets (2ˣ)
+        </button>
+        <button id="tab-btn-4" role="tab" aria-selected="false" onclick="trySwitchTab(4)"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0">
+          🔒 4. Hosts (2ʸ - 2)
+        </button>
+        <button id="tab-btn-5" role="tab" aria-selected="false" onclick="trySwitchTab(5)"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0">
+          🔒 5. Valid Subnets (256-M)
+        </button>
+        <button id="tab-btn-6" role="tab" aria-selected="false" onclick="trySwitchTab(6)"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0">
+          🔒 6. Net ID &amp; Broadcast
+        </button>
+        <button id="tab-btn-7" role="tab" aria-selected="false" onclick="trySwitchTab(7)"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0">
+          🔒 7. Valid Host Range
+        </button>
+        <button id="tab-btn-8" role="tab" aria-selected="false" onclick="trySwitchTab(8)"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0">
+          🔒 8. All 6 Final Boss
+        </button>
+        <button id="tab-btn-9" role="tab" aria-selected="false" onclick="trySwitchTab(9)"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0">
+          🔒 9. Certificate
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Toast Banner when clicking a locked tab -->
+  <div id="locked-tab-toast" class="hidden fixed bottom-4 right-4 z-50 max-w-md bg-red-950 border-2 border-red-400 text-red-100 px-4 py-3 rounded-xl shadow-2xl text-xs sm:text-sm font-mono-code animate-pop">
+    🔒 <span id="locked-tab-msg">Please complete the current tab's task first to unlock the next tab!</span>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 0: BENEFITS vs. DRAWBACKS, REAL-WORLD /30 WAN & LAB PROGRESSION RULES -->
+  <!-- ========================================================================= -->
+  <section id="panel-0" class="max-w-[1600px] mx-auto px-3 py-4 space-y-4">
+
+    <!-- IMPORTANT STUDENT PROGRESSION & IP RULES CALLOUT BANNER -->
+    <div data-speakable-box class="bg-gradient-to-r from-amber-950/70 via-[#151b2b] to-cyan-950/70 border-2 border-amber-400 rounded-2xl p-4 sm:p-5 shadow-xl relative">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="space-y-2 max-w-4xl">
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-amber-500 text-slate-950 font-mono-code text-xs font-bold uppercase">
+              📌 Official Lab Instructions &amp; IP Address Rules — Read Before Starting!
+            </span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white font-display">
+            How Your IP Addresses &amp; Tab Progression Work in This Lab
+          </h2>
+          <ul class="space-y-1.5 text-xs sm:text-sm text-slate-200 leading-relaxed list-disc list-inside">
+            <li>
+              <strong class="text-amber-300">Sequential Tab Unlocking:</strong> Each tab unlocks only after you complete the task on the current tab. When you switch tabs, the page scrolls to the top and centers the active tab in the navigation bar.
+            </li>
+            <li>
+              <strong class="text-cyan-300">Same IP Allowed on Tabs 2 Through 7:</strong> You are allowed to use the <strong>exact same IPv4 address</strong> all the way from <strong>Tab 2 up to Tab 7</strong> if you want (so you can solve each step of the same network one piece at a time), or you can try different IPs.
+            </li>
+            <li>
+              <strong class="text-emerald-300">New IP Required on Tab 8 (Boss Level) + Unlimited Verify Checks:</strong> When you reach <strong>Tab 8 (Final Boss Level)</strong>, you must enter a <strong>different IPv4 address</strong> (one you haven't used on earlier tabs or examples) to solve all 6 parts. On Tab 8, you can <strong>check your answers each time with the Verify button below</strong> until all 6 parts are green!
+            </li>
+            <li>
+              <strong class="text-amber-200">🔊 Read-Aloud Speakers in Every Box:</strong> Click the little <code>🔊</code> speaker button inside any box to hear that box read aloud (as Todd Lammle says on page 288: <em>"Try saying it out loud, which helps you memorize things!"</em>). Clicking anywhere away automatically stops the audio.
+            </li>
+          </ul>
+        </div>
+        <button onclick="completeTab0AndUnlockTab1()"
+          class="px-5 py-3.5 rounded-xl font-display font-bold text-sm bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 shadow-lg transition-transform hover:scale-105 shrink-0">
+          ✅ I Understand! Unlock Tab 1 (Pizza Calculator) ➔
+        </button>
+      </div>
+    </div>
+
+    <!-- Side-by-Side Comparison: Drawbacks of NOT Subnetting vs. Benefits of Subnetting -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- LEFT: DRAWBACKS OF NOT SUBNETTING -->
+      <div data-speakable-box class="bg-[#10141f] border-2 border-red-500/40 rounded-2xl p-5 space-y-3.5 shadow-lg relative">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 pr-8">
+          <div>
+            <h3 class="text-lg font-bold text-red-400 font-display">
+              🚨 Drawbacks of NOT Subnetting (One Giant Flat Network)
+            </h3>
+            <p class="text-xs text-slate-400">What happens when you leave an entire network as a single uncut pizza (p. 274)</p>
+          </div>
+          <span class="px-2.5 py-1 rounded bg-red-950 text-red-300 font-mono-code text-xs border border-red-800">1 Giant Broadcast Domain</span>
+        </div>
+
+        <div class="bg-[#0b0e17] border border-red-900/40 rounded-xl p-3">
+          <svg viewBox="0 0 500 125" class="w-full h-auto">
+            <rect x="10" y="8" width="480" height="108" rx="10" fill="rgba(239, 68, 68, 0.08)" stroke="#ef4444" stroke-dasharray="5 4" />
+            <text x="250" y="26" text-anchor="middle" fill="#f87171" font-size="11" font-weight="bold" font-family="Space Grotesk, sans-serif">
+              ⚠️ GIANT UNSUBNETTED BROADCAST DOMAIN (No Router Stopping Broadcasts!)
+            </text>
+            <line x1="70" y1="62" x2="430" y2="62" stroke="#ef4444" stroke-width="2.5" class="arrow-flow" />
+            <g transform="translate(45, 44)"><rect width="50" height="32" rx="4" fill="#1e293b" stroke="#ef4444" /><text x="25" y="19" text-anchor="middle" fill="#fca5a5" font-size="9" font-family="JetBrains Mono">📢 ARP!</text></g>
+            <g transform="translate(135, 44)"><rect width="50" height="32" rx="4" fill="#1e293b" stroke="#ef4444" /><text x="25" y="19" text-anchor="middle" fill="#fca5a5" font-size="9" font-family="JetBrains Mono">🔥 CPU!</text></g>
+            <g transform="translate(225, 44)"><rect width="50" height="32" rx="4" fill="#1e293b" stroke="#ef4444" /><text x="25" y="19" text-anchor="middle" fill="#fca5a5" font-size="9" font-family="JetBrains Mono">🔥 CPU!</text></g>
+            <g transform="translate(315, 44)"><rect width="50" height="32" rx="4" fill="#1e293b" stroke="#ef4444" /><text x="25" y="19" text-anchor="middle" fill="#fca5a5" font-size="9" font-family="JetBrains Mono">🔥 CPU!</text></g>
+            <g transform="translate(405, 44)"><rect width="50" height="32" rx="4" fill="#1e293b" stroke="#ef4444" /><text x="25" y="19" text-anchor="middle" fill="#fca5a5" font-size="9" font-family="JetBrains Mono">🔥 CPU!</text></g>
+            <text x="250" y="104" text-anchor="middle" fill="#fda4af" font-size="10">
+              Without routers, packet traffic and broadcast "shouts" can grind the entire network to a near standstill!
+            </text>
+          </svg>
+        </div>
+
+        <ul class="space-y-2 text-xs sm:text-sm text-slate-300">
+          <li><strong class="text-red-300">1. Packet Traffic Grinds to a Standstill (p. 274):</strong> Every broadcast "shout" (ARP requests, DHCP discovery) is heard by every machine in the broadcast domain, consuming bandwidth and CPU interrupts.</li>
+          <li><strong class="text-red-300">2. Difficult Problem Isolation:</strong> Identifying and isolating network problems inside one gigantic flat network is far harder than in smaller connected subnets.</li>
+          <li><strong class="text-red-300">3. Wasted IPv4 Addresses (p. 286):</strong> Putting a default Class C <code>/24</code> (<code>255.255.255.0</code> = 254 hosts) on a point-to-point WAN link that only has 2 routers wastes <strong>252 host addresses</strong> per link!</li>
+          <li><strong class="text-red-300">4. Inefficient WAN Spanning:</strong> Spanning one single large network across slow, expensive long-distance WAN links floods remote offices with local broadcasts.</li>
+        </ul>
+      </div>
+
+      <!-- RIGHT: BENEFITS OF SUBNETTING (Lammle p. 274, Fig 8.2 p. 283 & Real World p. 286) -->
+      <div data-speakable-box class="bg-[#10141f] border-2 border-emerald-500/40 rounded-2xl p-5 space-y-3.5 shadow-lg relative">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 pr-8">
+          <div>
+            <h3 class="text-lg font-bold text-emerald-400 font-display">
+              ✅ Benefits of Subnetting (Lammle p. 274, Fig. 8.2 p. 283 &amp; p. 286)
+            </h3>
+            <p class="text-xs text-slate-400">How slicing the network into smaller broadcast domains optimizes traffic</p>
+          </div>
+          <span class="px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 font-mono-code text-xs border border-emerald-800">Router-Isolated Subnets</span>
+        </div>
+
+        <div class="bg-[#0b0e17] border border-emerald-900/40 rounded-xl p-3">
+          <svg viewBox="0 0 500 125" class="w-full h-auto">
+            <rect x="10" y="8" width="145" height="90" rx="8" fill="rgba(16, 185, 129, 0.08)" stroke="#10b981" />
+            <text x="82" y="24" text-anchor="middle" fill="#34d399" font-size="9.5" font-weight="bold" font-family="JetBrains Mono">192.168.10.64 /26</text>
+            <text x="82" y="42" text-anchor="middle" fill="#a7f3d0" font-size="9" font-family="JetBrains Mono">Hosts .66, .67, .68</text>
+            <text x="82" y="58" text-anchor="middle" fill="#6ee7b7" font-size="8.5" font-family="JetBrains Mono">Router E1: .65</text>
+            <text x="82" y="74" text-anchor="middle" fill="#94a3b8" font-size="8" font-family="JetBrains Mono">Bcast: .127</text>
+
+            <circle cx="250" cy="48" r="22" fill="#1e293b" stroke="#f59e0b" stroke-width="2.5" />
+            <text x="250" y="46" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="bold">ROUTER</text>
+            <text x="250" y="57" text-anchor="middle" fill="#cbd5e1" font-size="7.5" font-family="JetBrains Mono">E0/E1/E2</text>
+            <line x1="155" y1="48" x2="228" y2="48" stroke="#f59e0b" stroke-width="2" />
+            <line x1="272" y1="48" x2="345" y2="48" stroke="#f59e0b" stroke-width="2" />
+
+            <rect x="345" y="8" width="145" height="90" rx="8" fill="rgba(6, 182, 212, 0.08)" stroke="#06b6d4" />
+            <text x="417" y="24" text-anchor="middle" fill="#22d3ee" font-size="9.5" font-weight="bold" font-family="JetBrains Mono">192.168.10.128 /26</text>
+            <text x="417" y="42" text-anchor="middle" fill="#a5f3fc" font-size="9" font-family="JetBrains Mono">Hosts .130, .131, .132</text>
+            <text x="417" y="58" text-anchor="middle" fill="#67e8f9" font-size="8.5" font-family="JetBrains Mono">Router E2: .129</text>
+            <text x="417" y="74" text-anchor="middle" fill="#94a3b8" font-size="8" font-family="JetBrains Mono">Bcast: .191</text>
+
+            <text x="250" y="114" text-anchor="middle" fill="#fde047" font-size="9.5" font-family="JetBrains Mono">
+              Figure 8.2 (p. 283): /26 gives 4 subnets (.0, .64, .128, .192) — 1 per router interface + 1 spare!
+            </text>
+          </svg>
+        </div>
+
+        <ul class="space-y-2 text-xs sm:text-sm text-slate-300">
+          <li><strong class="text-emerald-300">1. Reduced Network Traffic (~80% Broadcast Reduction):</strong> Routers create broadcast domains. Most traffic stays on the local subnet; only packets destined for other networks pass through the router.</li>
+          <li><strong class="text-emerald-300">2. Optimized Network Performance (+50% Bandwidth, ~70% CPU Relief):</strong> Smaller broadcast domains mean less network traffic on each segment and faster throughput.</li>
+          <li><strong class="text-emerald-300">3. Simplified Management:</strong> Problems are isolated to a single small subnet instead of taking down the whole organization.</li>
+          <li><strong class="text-emerald-300">4. Real World WAN Efficiency (pp. 286–288 — The <code>/30</code> <code>255.255.255.252</code> Mask):</strong> Regardless of whether you have a Class A, Class B, or Class C address, the <code>/30</code> mask always provides exactly <strong>2 usable hosts</strong> — suited almost exclusively for point-to-point WAN links!</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Bottom Quick Reference Card from Lammle pp. 286–288: "Subnetting in Your Head" & "So What Do You Know Now?" -->
+    <div data-speakable-box class="bg-[#10141f] border border-slate-800 rounded-2xl p-4 relative">
+      <h3 class="text-sm font-bold text-cyan-400 font-display mb-2 pr-8">
+        🧠 Todd Lammle's "Subnetting in Your Head" &amp; "So What Do You Know Now?" (pp. 286–288)
+      </h3>
+      <p class="text-xs text-slate-300 mb-3">
+        <em>"If you can memorize this 'So What Do You Know Now?' section, you'll be much better off in your day-to-day job and in your studies. Try saying it out loud, which helps you memorize things!"</em> — Todd Lammle, page 288. Click the little speaker icon on any card below to hear it read out loud!
+      </p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs font-mono-code">
+        <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-lg p-2.5 relative">
+          <div class="text-amber-400 font-bold pr-6">/25 (Mask 128)</div>
+          <div class="text-slate-300">1 bit on, 7 bits off (10000000)</div>
+          <div class="text-cyan-300">Block size of 128</div>
+          <div class="text-emerald-300">2 subnets, each with 126 hosts</div>
+        </div>
+        <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-lg p-2.5 relative">
+          <div class="text-amber-400 font-bold pr-6">/26 (Mask 192)</div>
+          <div class="text-slate-300">2 bits on, 6 bits off (11000000)</div>
+          <div class="text-cyan-300">Block size of 64</div>
+          <div class="text-emerald-300">4 subnets, each with 62 hosts</div>
+        </div>
+        <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-lg p-2.5 relative">
+          <div class="text-amber-400 font-bold pr-6">/27 (Mask 224)</div>
+          <div class="text-slate-300">3 bits on, 5 bits off (11100000)</div>
+          <div class="text-cyan-300">Block size of 32</div>
+          <div class="text-emerald-300">8 subnets, each with 30 hosts</div>
+        </div>
+        <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-lg p-2.5 relative">
+          <div class="text-amber-400 font-bold pr-6">/28 (Mask 240)</div>
+          <div class="text-slate-300">4 bits on, 4 bits off (11110000)</div>
+          <div class="text-cyan-300">Block size of 16</div>
+          <div class="text-emerald-300">16 subnets, each with 14 hosts</div>
+        </div>
+        <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-lg p-2.5 relative">
+          <div class="text-amber-400 font-bold pr-6">/29 (Mask 248)</div>
+          <div class="text-slate-300">5 bits on, 3 bits off (11111000)</div>
+          <div class="text-cyan-300">Block size of 8</div>
+          <div class="text-emerald-300">32 subnets, each with 6 hosts</div>
+        </div>
+        <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-lg p-2.5 relative">
+          <div class="text-amber-400 font-bold pr-6">/30 (Mask 252)</div>
+          <div class="text-slate-300">6 bits on, 2 bits off (11111100)</div>
+          <div class="text-cyan-300">Block size of 4</div>
+          <div class="text-emerald-300">64 subnets, each with 2 hosts</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: INTERACTIVE PIZZA CALCULATOR (EMPTY STEP 1 BOXES & SINGLE-USE EX)  -->
+  <!-- ========================================================================= -->
+  <main id="panel-1" class="hidden max-w-[1600px] mx-auto px-3 py-2.5 space-y-2.5">
+
+    <!-- Top Notice Banner on Tab 1 -->
+    <div data-speakable-box class="bg-[#151b2b] border border-amber-500/50 rounded-xl px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 relative pr-10">
+      <div class="text-xs sm:text-sm text-slate-200">
+        👉 <strong class="text-amber-300">How to Use Tab 1:</strong> The 4 IPv4 boxes in <strong>Step 1</strong> start empty! Type your own IPv4 address into the boxes below, OR click one of the <strong>Lammle Examples</strong> (note: <strong>each example can only be used once!</strong>). If you type a Subnet Mask in <strong>Step 3</strong>, the <strong>Bit-Flipper</strong> below it updates automatically!
+      </div>
+      <button id="btn-unlock-tab2" onclick="completeTab1AndGoToTab2()"
+        class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-sm shrink-0">
+        Next: Unlock Tab 2 (Guess CIDR) ➔
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-stretch">
+      <!-- LEFT COLUMN (7 cols): FLEXIBLE IP / CIDR / SUBNET MASK INPUTS + 5 CORE METRICS -->
+      <section class="lg:col-span-7 bg-[#10141f] border border-slate-800 rounded-xl p-3 flex flex-col justify-between shadow-lg">
+        <div>
+          <!-- Single-Use Example Buttons -->
+          <div class="flex flex-wrap items-center justify-between gap-1.5 pb-2 mb-2 border-b border-slate-800/80">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-xs font-semibold uppercase tracking-wider text-amber-400">⚡ Single-Use Examples:</span>
+              <button id="ex-btn-0" onclick="useExampleOnce(0, [192,168,10,0], 25)" class="px-2 py-0.5 rounded text-xs font-mono-code bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700" title="Lammle p. 281">Ex #1C: 192.168.10.0 /25</button>
+              <button id="ex-btn-1" onclick="useExampleOnce(1, [192,168,10,0], 26)" class="px-2 py-0.5 rounded text-xs font-mono-code bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700" title="Lammle p. 282">Ex #2C: 192.168.10.0 /26</button>
+              <button id="ex-btn-2" onclick="useExampleOnce(2, [192,168,10,33], 27)" class="px-2 py-0.5 rounded text-xs font-mono-code bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700" title="Lammle p. 286">Mental #1: 192.168.10.33 /27</button>
+              <button id="ex-btn-3" onclick="useExampleOnce(3, [192,168,10,174], 28)" class="px-2 py-0.5 rounded text-xs font-mono-code bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700" title="Lammle p. 287">Mental #2: 192.168.10.174 /28</button>
+              <button id="ex-btn-4" onclick="useExampleOnce(4, [192,168,10,17], 30)" class="px-2 py-0.5 rounded text-xs font-mono-code bg-slate-800 hover:bg-slate-700 text-red-300 border border-slate-700" title="Lammle p. 287">WAN /30: 192.168.10.17 /30</button>
+            </div>
+            <button onclick="clearAllInputs()" class="px-2 py-0.5 rounded text-xs font-semibold bg-red-950/60 hover:bg-red-900/70 text-red-300 border border-red-800/50">
+              ✕ Clear Fields
+            </button>
+          </div>
+
+          <!-- ROW 1: IPv4 ADDRESS (4 EMPTY TEXTBOXES UNDER STEP 1) + CIDR -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-start">
+            <div data-speakable-box class="sm:col-span-9 bg-[#0b0e17] border border-slate-800/90 rounded-lg p-2 relative">
+              <div class="flex items-center justify-between mb-1 pr-8">
+                <label class="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                  1. Network / Host IPv4 Address <span class="font-normal text-slate-400">(Type IP or pick 1 example above)</span>
+                </label>
+                <span id="ip-status-badge" class="text-xs font-mono-code px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                  Waiting for IPv4 Input...
+                </span>
+              </div>
+
+              <div class="grid grid-cols-4 gap-1.5">
+                <div class="bg-[#131929] border border-slate-700/80 rounded-lg p-1.5 text-center">
+                  <div class="text-xs text-slate-400 font-mono-code mb-0.5">Octet #1</div>
+                  <input id="ip-0" type="number" min="0" max="255" placeholder="e.g. 192" value=""
+                    oninput="onIpOctetInput(0)" aria-label="Calculator IPv4 Octet 1"
+                    class="w-full bg-[#080a10] text-center font-mono-code text-base font-bold text-white rounded border border-slate-700 focus:border-cyan-400 focus:outline-none py-0.5" />
+                  <div class="mt-1 pt-1 border-t border-slate-800">
+                    <div id="ip-bin-0" class="font-mono-code text-xs font-bold tracking-wider text-cyan-300 bg-cyan-950/40 rounded py-0.5 px-1 border border-cyan-500/30">--------</div>
+                  </div>
+                </div>
+                <div class="bg-[#131929] border border-slate-700/80 rounded-lg p-1.5 text-center">
+                  <div class="text-xs text-slate-400 font-mono-code mb-0.5">Octet #2</div>
+                  <input id="ip-1" type="number" min="0" max="255" placeholder="e.g. 168" value=""
+                    oninput="onIpOctetInput(1)" aria-label="Calculator IPv4 Octet 2"
+                    class="w-full bg-[#080a10] text-center font-mono-code text-base font-bold text-white rounded border border-slate-700 focus:border-cyan-400 focus:outline-none py-0.5" />
+                  <div class="mt-1 pt-1 border-t border-slate-800">
+                    <div id="ip-bin-1" class="font-mono-code text-xs font-semibold tracking-wider text-slate-300 bg-slate-900 rounded py-0.5 px-1">--------</div>
+                  </div>
+                </div>
+                <div class="bg-[#131929] border border-slate-700/80 rounded-lg p-1.5 text-center">
+                  <div class="text-xs text-slate-400 font-mono-code mb-0.5">Octet #3</div>
+                  <input id="ip-2" type="number" min="0" max="255" placeholder="e.g. 10" value=""
+                    oninput="onIpOctetInput(2)" aria-label="Calculator IPv4 Octet 3"
+                    class="w-full bg-[#080a10] text-center font-mono-code text-base font-bold text-white rounded border border-slate-700 focus:border-cyan-400 focus:outline-none py-0.5" />
+                  <div class="mt-1 pt-1 border-t border-slate-800">
+                    <div id="ip-bin-2" class="font-mono-code text-xs font-semibold tracking-wider text-slate-300 bg-slate-900 rounded py-0.5 px-1">--------</div>
+                  </div>
+                </div>
+                <div class="bg-[#131929] border border-slate-700/80 rounded-lg p-1.5 text-center">
+                  <div class="text-xs text-slate-400 font-mono-code mb-0.5">Octet #4</div>
+                  <input id="ip-3" type="number" min="0" max="255" placeholder="e.g. 0" value=""
+                    oninput="onIpOctetInput(3)" aria-label="Calculator IPv4 Octet 4"
+                    class="w-full bg-[#080a10] text-center font-mono-code text-base font-bold text-white rounded border border-slate-700 focus:border-cyan-400 focus:outline-none py-0.5" />
+                  <div class="mt-1 pt-1 border-t border-slate-800">
+                    <div id="ip-bin-3" class="font-mono-code text-xs font-semibold tracking-wider text-slate-300 bg-slate-900 rounded py-0.5 px-1">--------</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: CIDR Prefix Box -->
+            <div data-speakable-box class="sm:col-span-3 bg-[#0b0e17] border border-amber-500/40 rounded-lg p-2 flex flex-col justify-between h-full relative">
+              <div>
+                <label for="cidr-input" class="text-xs font-bold uppercase tracking-wider text-amber-400 block mb-1 pr-7">
+                  2. CIDR Prefix
+                </label>
+                <div class="flex items-center gap-1 bg-[#131929] border border-amber-500/50 rounded-lg px-2 py-1">
+                  <span class="text-lg font-bold font-mono-code text-amber-400">/</span>
+                  <input id="cidr-input" type="number" min="8" max="30" placeholder="26" value="26"
+                    oninput="onCidrInput()" aria-label="Calculator CIDR Prefix"
+                    class="w-full bg-transparent text-center font-mono-code text-lg font-bold text-white focus:outline-none" />
+                </div>
+              </div>
+              <div class="mt-1.5">
+                <input id="cidr-slider" type="range" min="8" max="30" value="26"
+                  oninput="onCidrSlider(this.value)" aria-label="CIDR Slider"
+                  class="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-800 rounded-lg" />
+                <div class="flex justify-between text-xs font-mono-code text-slate-400 mt-0.5">
+                  <span>/8</span>
+                  <span id="cidr-ones-label" class="text-amber-300 font-semibold">26 ones</span>
+                  <span>/30</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW 2: STEP 3 SUBNET MASK + AUTOMATICALLY UPDATING BIT-FLIPPER -->
+          <div data-speakable-box class="mt-2 bg-[#0b0e17] border border-slate-800/90 rounded-lg p-2 relative">
+            <div class="flex flex-wrap items-center justify-between gap-1 mb-1 pr-8">
+              <label class="text-xs font-bold uppercase tracking-wider text-red-400">
+                3. Subnet Mask (The Pizza Cutter) <span class="font-normal text-slate-400">(Typing here automatically updates the Bit-Flipper below!)</span>
+              </label>
+              <span id="mask-sync-note" class="text-xs font-mono-code text-amber-300">
+                Cutter in Octet #4 (192 = 11000000)
+              </span>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1.5">
+              <div id="mask-box-0" class="bg-[#131929] border border-slate-700/80 rounded-lg p-1.5 text-center">
+                <input id="mask-0" type="number" min="0" max="255" value="255" oninput="onMaskOctetInput(0)" aria-label="Mask Octet 1"
+                  class="w-full bg-[#080a10] text-center font-mono-code text-sm font-bold text-white rounded border border-slate-700 py-0.5" />
+                <div id="mask-bin-0" class="mt-1 font-mono-code text-xs text-slate-400 tracking-wider">11111111</div>
+              </div>
+              <div id="mask-box-1" class="bg-[#131929] border border-slate-700/80 rounded-lg p-1.5 text-center">
+                <input id="mask-1" type="number" min="0" max="255" value="255" oninput="onMaskOctetInput(1)" aria-label="Mask Octet 2"
+                  class="w-full bg-[#080a10] text-center font-mono-code text-sm font-bold text-white rounded border border-slate-700 py-0.5" />
+                <div id="mask-bin-1" class="mt-1 font-mono-code text-xs text-slate-400 tracking-wider">11111111</div>
+              </div>
+              <div id="mask-box-2" class="bg-[#131929] border border-slate-700/80 rounded-lg p-1.5 text-center">
+                <input id="mask-2" type="number" min="0" max="255" value="255" oninput="onMaskOctetInput(2)" aria-label="Mask Octet 3"
+                  class="w-full bg-[#080a10] text-center font-mono-code text-sm font-bold text-white rounded border border-slate-700 py-0.5" />
+                <div id="mask-bin-2" class="mt-1 font-mono-code text-xs text-slate-400 tracking-wider">11111111</div>
+              </div>
+              <div id="mask-box-3" class="bg-[#1a1625] border-2 border-amber-400 rounded-lg p-1.5 text-center">
+                <input id="mask-3" type="number" min="0" max="255" value="192" oninput="onMaskOctetInput(3)" aria-label="Mask Octet 4"
+                  class="w-full bg-[#080a10] text-center font-mono-code text-sm font-bold text-white rounded border border-slate-700 py-0.5" />
+                <div id="mask-bin-3" class="mt-1 font-mono-code text-xs text-amber-300 font-bold tracking-wider">11000000</div>
+              </div>
+            </div>
+
+            <div class="mt-2 pt-1.5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-1.5">
+              <div class="text-xs text-slate-300 font-semibold">
+                🍕 Cutter Octet Bit-Flipper (<span id="flipper-octet-label" class="text-amber-400">Octet #4</span>):
+              </div>
+              <div id="bit-flipper-row" class="grid grid-cols-8 gap-1 flex-1 max-w-md"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5 REQUIRED CALCULATED OUTPUT CARDS -->
+        <div class="mt-2.5">
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5" aria-live="polite">
+            <div data-speakable-box class="bg-[#151b2b] border border-cyan-500/40 rounded-lg p-2 flex flex-col justify-between relative">
+              <div class="flex items-center justify-between pr-7">
+                <span class="text-xs uppercase font-bold text-cyan-400">IP Class</span>
+                <span class="text-xs font-mono-code text-slate-400" id="out-class-range">--</span>
+              </div>
+              <div id="out-class-main" class="text-lg font-bold font-display text-white mt-0.5">Type 1st Octet</div>
+              <div id="out-class-sub" class="text-xs text-slate-300 font-mono-code">Def: /24 Assumed</div>
+            </div>
+
+            <div data-speakable-box class="bg-[#151b2b] border border-red-500/40 rounded-lg p-2 flex flex-col justify-between relative">
+              <div class="flex items-center justify-between pr-7">
+                <span class="text-xs uppercase font-bold text-red-400">Cutter Octet</span>
+              </div>
+              <div id="out-cutter-main" class="text-lg font-bold font-display text-white mt-0.5">Octet #4</div>
+              <div id="out-cutter-sub" class="text-xs text-red-300 font-mono-code">Subnet Mask: 192</div>
+            </div>
+
+            <div data-speakable-box class="bg-[#151b2b] border-2 border-amber-400 rounded-lg p-2 flex flex-col justify-between relative">
+              <div class="flex items-center justify-between pr-7">
+                <span class="text-xs uppercase font-bold text-amber-300">Borrowed Bits</span>
+              </div>
+              <div id="out-borrowed-main" class="text-lg font-bold font-display text-amber-300 mt-0.5">2 bits</div>
+              <div id="out-borrowed-sub" class="text-xs text-amber-200 font-mono-code">2² = 4 Pizza Slices</div>
+            </div>
+
+            <div data-speakable-box class="bg-[#151b2b] border-2 border-red-400 rounded-lg p-2 flex flex-col justify-between relative">
+              <div class="flex items-center justify-between pr-7">
+                <span class="text-xs uppercase font-bold text-red-300">Block Size</span>
+              </div>
+              <div id="out-block-main" class="text-lg font-bold font-display text-red-300 mt-0.5">64</div>
+              <div id="out-block-sub" class="text-xs text-red-200 font-mono-code">256 - 192 = 64</div>
+            </div>
+
+            <div data-speakable-box class="col-span-2 sm:col-span-1 bg-[#151b2b] border-2 border-emerald-400 rounded-lg p-2 flex flex-col justify-between relative">
+              <div class="flex items-center justify-between pr-7">
+                <span class="text-xs uppercase font-bold text-emerald-300">Usable Hosts</span>
+              </div>
+              <div id="out-hosts-main" class="text-lg font-bold font-display text-emerald-300 mt-0.5">62</div>
+              <div id="out-hosts-sub" class="text-xs text-emerald-200 font-mono-code">2⁶ - 2 = 62 / slice</div>
+            </div>
+          </div>
+
+          <div data-speakable-box class="mt-1.5 bg-[#0b0e17] border border-slate-800 rounded-lg px-2.5 py-1.5 pr-10 flex flex-wrap items-center justify-between gap-2 text-xs font-mono-code relative">
+            <div><span class="text-slate-400">Active Slice:</span> <span id="out-subnet-index" class="text-amber-300 font-bold">Slice #1 of 4</span></div>
+            <div><span class="text-emerald-400">Crust (Net ID):</span> <span id="out-net-id" class="text-white font-bold">0.0.0.0</span></div>
+            <div><span class="text-amber-400">🍕 Usable Sausages:</span> <span id="out-usable-range" class="text-amber-200 font-bold">.1 – .62</span></div>
+            <div><span class="text-red-400">Crust (Broadcast):</span> <span id="out-broadcast" class="text-white font-bold">.63</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN (5 cols): DYNAMIC SAUSAGE PIZZA VISUALIZER WITH ANNOTATED ARROWS -->
+      <section data-speakable-box class="lg:col-span-5 bg-[#10141f] border border-slate-800 rounded-xl p-3 flex flex-col justify-between shadow-lg relative overflow-hidden">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-1 pr-8">
+          <div>
+            <h2 class="text-sm font-bold text-white font-display">
+              🍕 Dynamic Sausage Pizza Cutter &amp; Cause-Effect Arrows
+            </h2>
+            <p class="text-xs text-slate-400">
+              Arrows connect the numbers that control how many pizza slices there are.
+            </p>
+          </div>
+          <span id="pizza-slice-badge" class="px-2 py-0.5 rounded-full text-xs font-mono-code font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            4 Slices • 62 Hosts/Slice
+          </span>
+        </div>
+
+        <div class="relative flex-1 flex items-center justify-center my-0.5">
+          <svg id="pizza-visualizer-svg" viewBox="0 0 560 300" class="w-full h-auto max-h-[285px]" role="img" aria-label="Dynamic Sausage Pizza Diagram">
+            <defs>
+              <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
+              </marker>
+              <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444" />
+              </marker>
+              <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+              </marker>
+              <radialGradient id="crustGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="78%" stop-color="#d97706" />
+                <stop offset="92%" stop-color="#b45309" />
+                <stop offset="100%" stop-color="#78350f" />
+              </radialGradient>
+              <radialGradient id="sauceGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#dc2626" />
+                <stop offset="85%" stop-color="#b91c1c" />
+                <stop offset="100%" stop-color="#7f1d1d" />
+              </radialGradient>
+              <radialGradient id="cheeseGrad" cx="45%" cy="45%" r="55%">
+                <stop offset="0%" stop-color="#fde047" />
+                <stop offset="70%" stop-color="#f59e0b" />
+                <stop offset="100%" stop-color="#d97706" />
+              </radialGradient>
+            </defs>
+
+            <g transform="translate(8, 16)">
+              <rect width="195" height="74" rx="8" fill="#151b2b" stroke="#f59e0b" stroke-width="1.8" />
+              <text x="10" y="18" fill="#fbbf24" font-size="11" font-weight="bold" font-family="Space Grotesk, sans-serif">1. BORROWED 1s (2ˣ) ➔ SLICES</text>
+              <text id="svg-box1-line1" x="10" y="38" fill="#ffffff" font-size="13" font-weight="bold" font-family="JetBrains Mono, monospace">x = 2 ones ➔ 2² = 4 Slices</text>
+              <text x="10" y="54" fill="#cbd5e1" font-size="10.5" font-family="Inter, sans-serif">Each 1-bit doubles the cuts!</text>
+              <text id="svg-box1-line3" x="10" y="67" fill="#94a3b8" font-size="10" font-family="JetBrains Mono, monospace">CIDR /26 in Octet #4</text>
+            </g>
+
+            <g transform="translate(8, 112)">
+              <rect width="195" height="74" rx="8" fill="#151b2b" stroke="#ef4444" stroke-width="1.8" />
+              <text x="10" y="18" fill="#f87171" font-size="11" font-weight="bold" font-family="Space Grotesk, sans-serif">2. BLOCK SIZE ➔ SLICE WIDTH</text>
+              <text id="svg-box2-line1" x="10" y="38" fill="#ffffff" font-size="13" font-weight="bold" font-family="JetBrains Mono, monospace">256 - 192 = 64 IPs / Slice</text>
+              <text x="10" y="54" fill="#cbd5e1" font-size="10.5" font-family="Inter, sans-serif">Where the pizza cutter lands:</text>
+              <text id="svg-box2-line3" x="10" y="67" fill="#fca5a5" font-size="10" font-family="JetBrains Mono, monospace">Cuts: .0 | .64 | .128 | .192</text>
+            </g>
+
+            <g transform="translate(8, 208)">
+              <rect width="195" height="76" rx="8" fill="#151b2b" stroke="#10b981" stroke-width="1.8" />
+              <text x="10" y="18" fill="#34d399" font-size="11" font-weight="bold" font-family="Space Grotesk, sans-serif">3. HOST 0s (2ʸ-2) ➔ SAUSAGES</text>
+              <text id="svg-box3-line1" x="10" y="38" fill="#ffffff" font-size="13" font-weight="bold" font-family="JetBrains Mono, monospace">2⁶ - 2 = 62 Usable Hosts</text>
+              <text x="10" y="54" fill="#cbd5e1" font-size="10.5" font-family="Inter, sans-serif">Crust Tax = -2 (Net ID &amp; Bcast)</text>
+              <text id="svg-box3-line3" x="10" y="68" fill="#6ee7b7" font-size="10" font-family="JetBrains Mono, monospace">6 off-bits (0s) left for hosts</text>
+            </g>
+
+            <g id="pizza-pie-group" class="pizza-glow">
+              <circle cx="415" cy="148" r="124" fill="#090d16" stroke="#1e293b" stroke-width="2" />
+              <circle cx="415" cy="148" r="116" fill="url(#crustGrad)" stroke="#f59e0b" stroke-width="2" />
+              <circle cx="415" cy="148" r="100" fill="url(#sauceGrad)" />
+              <circle cx="415" cy="148" r="95" fill="url(#cheeseGrad)" />
+              <g id="pizza-active-wedge"></g>
+              <g id="pizza-sausages-group"></g>
+              <g id="pizza-cuts-group"></g>
+              <g id="pizza-labels-group"></g>
+              <circle cx="415" cy="148" r="24" fill="#0f172a" stroke="#f59e0b" stroke-width="2.5" />
+              <text id="pizza-center-top" x="415" y="145" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="bold" font-family="JetBrains Mono, monospace">4</text>
+              <text id="pizza-center-bot" x="415" y="158" text-anchor="middle" fill="#e2e8f0" font-size="8.5" font-weight="bold" font-family="Space Grotesk, sans-serif">SLICES</text>
+            </g>
+
+            <path d="M 203 52 C 255 52, 310 95, 390 135" fill="none" stroke="#f59e0b" stroke-width="2.5" class="arrow-flow" marker-end="url(#arrow-amber)" />
+            <path d="M 203 148 C 248 148, 272 110, 312 95" fill="none" stroke="#ef4444" stroke-width="2.5" class="arrow-flow" marker-end="url(#arrow-red)" />
+            <path d="M 203 246 C 260 246, 315 215, 365 182" fill="none" stroke="#10b981" stroke-width="2.5" class="arrow-flow" marker-end="url(#arrow-green)" />
+          </svg>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-800 text-xs">
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span><span class="text-slate-300"><strong>Cutter Lines:</strong> 2<sup>x</sup> Subnets</span></div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-700 border border-amber-300 inline-block"></span><span class="text-slate-300"><strong>Sausages:</strong> 2<sup>y</sup> - 2 Hosts</span></div>
+          <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-700 border border-emerald-400 inline-block"></span><span class="text-slate-300"><strong>Crust (-2):</strong> Net ID &amp; Bcast</span></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- STEP-BY-STEP EXPLANATIONS ON TAB 1 (Each step card has its own speaker button!) -->
+    <section class="bg-[#10141f] border border-slate-800 rounded-xl p-3 shadow-lg">
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-800">
+        <div>
+          <h2 class="text-sm font-bold text-white font-display">🧮 How Each Solution Was Determined &amp; Calculated (Lammle's Big 5 Fast Way)</h2>
+          <p class="text-xs text-slate-400">Click the 🔊 speaker icon inside any box below to hear that explanation read aloud.</p>
+        </div>
+        <button onclick="completeTab1AndGoToTab2()" class="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950">
+          Complete Tab 1 &amp; Unlock Tab 2 ➔
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+        <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-lg p-2.5 relative">
+          <div class="font-bold text-cyan-400 mb-1 pr-7">Step 1: 1st Octet Binary &amp; IP Class (p. 276)</div>
+          <p id="exp-step-1" class="text-slate-300 leading-relaxed"></p>
+        </div>
+        <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-lg p-2.5 relative">
+          <div class="font-bold text-red-400 mb-1 pr-7">Step 2: CIDR &amp; Cutter Octet (pp. 277–279)</div>
+          <p id="exp-step-2" class="text-slate-300 leading-relaxed"></p>
+        </div>
+        <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-lg p-2.5 relative">
+          <div class="font-bold text-amber-400 mb-1 pr-7">Step 3: Subnets = 2<sup>x</sup> (x = 1-bits on, p. 280)</div>
+          <p id="exp-step-3" class="text-slate-300 leading-relaxed"></p>
+        </div>
+        <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-lg p-2.5 relative">
+          <div class="font-bold text-emerald-400 mb-1 pr-7">Step 4: Block Size (256-M) &amp; Hosts (2<sup>y</sup>-2)</div>
+          <p id="exp-step-4" class="text-slate-300 leading-relaxed"></p>
+        </div>
+      </div>
+      <div data-speakable-box class="mt-2 bg-[#0b0e17] border border-slate-800 rounded-lg p-2 pr-10 text-xs relative">
+        <div id="exp-step-5" class="text-slate-300 font-mono-code"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- DYNAMIC PRACTICE WORKBENCH CONTAINER FOR TABS 2, 3, 4, 5, 6, 7, 8         -->
+  <!-- ========================================================================= -->
+  <section id="panel-practice" class="hidden max-w-[1500px] mx-auto px-3 py-3 space-y-3">
+
+    <!-- SHARED TOP CARD: 4 IPv4 TEXT BOXES + AUTO BINARY + HUGE CLASS LETTER & DEDICATED SUBNET MASK LINE -->
+    <div data-speakable-box class="bg-[#10141f] border border-slate-800 rounded-2xl p-4 shadow-xl relative">
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-800 pr-8">
+        <div>
+          <span id="prac-step-badge" class="text-xs font-mono-code uppercase px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+            STEP 1 OF 7
+          </span>
+          <h2 id="prac-title" class="text-xl sm:text-2xl font-bold text-white font-display mt-1">
+            Step 1 (Tab 2): Guess the CIDR Value
+          </h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="generateFreshRandomIpForCurrentTab()"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30">
+            🎲 Suggest New Unused IP
+          </button>
+          <button onclick="navigatePracticeTab(-1)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200">
+            ◄ Prev Tab
+          </button>
+          <button onclick="navigatePracticeTab(1)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold">
+            Next Tab ➔
+          </button>
+        </div>
+      </div>
+
+      <!-- IP Policy Banner -->
+      <div data-speakable-box id="prac-ip-rule-note" class="mb-3 px-3 py-2 pr-10 rounded-xl bg-slate-900/90 border border-slate-700 text-xs text-slate-300 flex flex-wrap items-center justify-between gap-2 relative">
+        <span id="prac-ip-rule-text">
+          💡 <strong>IP Rule (Tabs 2–7):</strong> You may keep using your same IPv4 address from Tab 2 all the way through Tab 7 (or change it anytime). On Tab 8 (Boss Level), you will need a brand-new IPv4 address!
+        </span>
+        <div id="used-ips-chips" class="flex flex-wrap gap-1 font-mono-code"></div>
+      </div>
+
+      <!-- Duplicate IP Error Banner -->
+      <div id="prac-ip-guard-banner" class="hidden mb-3 p-3 rounded-xl bg-red-950/90 border-2 border-red-500 text-red-200 text-xs sm:text-sm flex items-center justify-between gap-2">
+        <div>
+          <strong>🚫 Previously Used IPv4 Address Detected!</strong> You already used <code id="dup-ip-label" class="font-mono-code font-bold text-white"></code> on an earlier tab. For this step, please enter a <strong>different IPv4 address</strong>!
+        </div>
+        <button onclick="generateFreshRandomIpForCurrentTab()" class="px-3 py-1 rounded bg-red-500 text-slate-950 font-bold text-xs shrink-0">
+          Pick New Unused IP
+        </button>
+      </div>
+
+      <!-- 4 IPv4 Input Boxes + Big Class Letter Card with Dedicated "Subnet Mask" Line -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+        <div class="lg:col-span-7 bg-[#0b0e17] border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+          <div class="flex flex-wrap items-center justify-between gap-1 mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-cyan-400">
+              Type Your 4 IPv4 Octets (0–255) — Binary Appears Automatically Below Each:
+            </span>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2">
+            <div class="bg-[#131929] border border-cyan-500/40 rounded-xl p-2 text-center">
+              <label for="p-ip-0" class="text-xs text-cyan-300 font-mono-code block mb-1">1st Octet (Class)</label>
+              <input id="p-ip-0" type="number" min="1" max="254" placeholder="192"
+                oninput="onPracticeIpInput()"
+                class="w-full bg-[#080a10] text-center font-mono-code text-lg sm:text-xl font-bold text-white rounded-lg border border-slate-700 focus:border-cyan-400 focus:outline-none py-1.5" />
+              <div class="mt-2 pt-1.5 border-t border-slate-800">
+                <div class="text-[11px] text-slate-400 mb-0.5">Binary (Auto)</div>
+                <div id="p-bin-0" class="font-mono-code text-xs sm:text-sm font-bold tracking-widest text-cyan-300 bg-slate-950 rounded py-1 px-1 border border-cyan-500/30">
+                  --------
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-[#131929] border border-slate-700 rounded-xl p-2 text-center">
+              <label for="p-ip-1" class="text-xs text-slate-300 font-mono-code block mb-1">2nd Octet</label>
+              <input id="p-ip-1" type="number" min="0" max="255" placeholder="168"
+                oninput="onPracticeIpInput()"
+                class="w-full bg-[#080a10] text-center font-mono-code text-lg sm:text-xl font-bold text-white rounded-lg border border-slate-700 focus:border-cyan-400 focus:outline-none py-1.5" />
+              <div class="mt-2 pt-1.5 border-t border-slate-800">
+                <div class="text-[11px] text-slate-400 mb-0.5">Binary (Auto)</div>
+                <div id="p-bin-1" class="font-mono-code text-xs sm:text-sm font-bold tracking-widest text-slate-200 bg-slate-950 rounded py-1 px-1 border border-slate-800">
+                  --------
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-[#131929] border border-slate-700 rounded-xl p-2 text-center">
+              <label for="p-ip-2" class="text-xs text-slate-300 font-mono-code block mb-1">3rd Octet</label>
+              <input id="p-ip-2" type="number" min="0" max="255" placeholder="10"
+                oninput="onPracticeIpInput()"
+                class="w-full bg-[#080a10] text-center font-mono-code text-lg sm:text-xl font-bold text-white rounded-lg border border-slate-700 focus:border-cyan-400 focus:outline-none py-1.5" />
+              <div class="mt-2 pt-1.5 border-t border-slate-800">
+                <div class="text-[11px] text-slate-400 mb-0.5">Binary (Auto)</div>
+                <div id="p-bin-2" class="font-mono-code text-xs sm:text-sm font-bold tracking-widest text-slate-200 bg-slate-950 rounded py-1 px-1 border border-slate-800">
+                  --------
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-[#1a1625] border-2 border-amber-400 rounded-xl p-2 text-center shadow-md shadow-amber-950/30">
+              <label for="p-ip-3" class="text-xs text-amber-300 font-mono-code font-bold block mb-1">4th Octet</label>
+              <input id="p-ip-3" type="number" min="0" max="255" placeholder="192"
+                oninput="onPracticeIpInput()"
+                class="w-full bg-[#080a10] text-center font-mono-code text-lg sm:text-xl font-bold text-amber-300 rounded-lg border border-amber-500/60 focus:border-amber-400 focus:outline-none py-1.5" />
+              <div class="mt-2 pt-1.5 border-t border-slate-800">
+                <div class="text-[11px] text-amber-300 mb-0.5">1s (x) &amp; 0s (y)</div>
+                <div id="p-bin-3" class="font-mono-code text-xs sm:text-sm font-bold tracking-widest bg-slate-950 rounded py-1 px-1 border border-amber-500/40">
+                  --------
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span class="text-slate-400">
+              💡 Quick 4th Octet Setter (Lammle p. 279):
+            </span>
+            <div class="flex flex-wrap gap-1 font-mono-code">
+              <button type="button" onclick="setPracticeOctet4(128)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700">.128 (/25)</button>
+              <button type="button" onclick="setPracticeOctet4(192)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700">.192 (/26)</button>
+              <button type="button" onclick="setPracticeOctet4(224)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700">.224 (/27)</button>
+              <button type="button" onclick="setPracticeOctet4(240)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700">.240 (/28)</button>
+              <button type="button" onclick="setPracticeOctet4(248)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700">.248 (/29)</button>
+              <button type="button" onclick="setPracticeOctet4(252)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700">.252 (/30)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 5 cols: BIG CLASS LETTER + WHY EXPLANATION + DEDICATED "SUBNET MASK" LINE WITH HIGHLIGHTED LAST OCTET -->
+        <div data-speakable-box class="lg:col-span-5 bg-[#0b0e17] border border-cyan-500/40 rounded-xl p-3.5 flex flex-col justify-between gap-3 relative">
+          <div class="flex items-center gap-4 pr-7">
+            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-cyan-500/20 via-amber-500/15 to-red-500/20 border-2 border-cyan-400 flex flex-col items-center justify-center shrink-0 shadow-lg">
+              <span class="text-[10px] font-mono-code uppercase tracking-widest text-cyan-300">IP CLASS</span>
+              <span id="p-big-class-letter" class="text-5xl font-extrabold font-display text-white leading-none mt-0.5">
+                C
+              </span>
+            </div>
+            <div class="space-y-1 text-xs sm:text-sm">
+              <div id="p-class-title" class="font-bold text-cyan-300 text-base font-display">
+                Class C Network Address
+              </div>
+              <p id="p-class-why" class="text-slate-300 leading-relaxed"></p>
+            </div>
+          </div>
+
+          <div class="bg-[#151b2b] border border-slate-700 rounded-xl p-2.5 space-y-1.5">
+            <div id="p-active-octet-summary" class="font-mono-code text-xs text-slate-300"></div>
+            <div class="pt-1.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-red-300">Subnet Mask:</span>
+              <div id="p-subnet-mask-line" class="font-mono-code text-sm sm:text-base font-bold text-white flex items-center gap-1">
+                <span>255 . 255 . 255 .</span>
+                <span class="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 font-extrabold ring-2 ring-red-400 shadow">192</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DYNAMIC QUESTION / FORMULA / TABLES AREA FOR EACH SPECIFIC TAB (2..8) -->
+    <div id="prac-specific-content" class="space-y-3"></div>
+
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 9: OFFICIAL HIGH-RES PNG CERTIFICATE (CLEAN FORMULAS, NO $ OR \text)  -->
+  <!-- ========================================================================= -->
+  <section id="panel-9" class="hidden max-w-[1200px] mx-auto px-3 py-4 space-y-4">
+
+    <div id="cert-controls-box" class="bg-[#10141f] border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <div>
+          <label for="cert-first-name" class="block text-xs font-bold uppercase text-amber-400 mb-1">First Name</label>
+          <input id="cert-first-name" type="text" placeholder="First Name" value="Jane"
+            oninput="updateCertificateDisplay()"
+            class="bg-[#080a10] border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:border-amber-400 focus:outline-none w-44" />
+        </div>
+        <div>
+          <label for="cert-last-name" class="block text-xs font-bold uppercase text-amber-400 mb-1">Last Name</label>
+          <input id="cert-last-name" type="text" placeholder="Last Name" value="Doe"
+            oninput="updateCertificateDisplay()"
+            class="bg-[#080a10] border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:border-amber-400 focus:outline-none w-44" />
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button onclick="downloadHighResCertificatePng()"
+          class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 shadow-lg transition-transform hover:scale-105">
+          📥 Download High-Res Certificate Image (.PNG)
+        </button>
+      </div>
+    </div>
+
+    <!-- On-Screen Certificate Preview (Zero dollar signs or \text!) -->
+    <div data-speakable-box id="certificate-render-pane" class="relative bg-gradient-to-br from-[#121624] via-[#0b0f1b] to-[#171310] border-4 border-amber-500 rounded-2xl p-6 sm:p-8 shadow-2xl overflow-hidden">
+      <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-15" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="scanlines" width="120" height="6" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="120" y2="0" stroke="#f59e0b" stroke-width="1" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#scanlines)" />
+      </svg>
+
+      <div class="relative z-10 text-center space-y-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono-code uppercase">
+          Barstow Community College • CBIS 15 Information Networking
+        </div>
+
+        <h2 class="text-2xl sm:text-3xl font-bold text-white font-display tracking-tight">
+          OFFICIAL SUBNETTING LAB CERTIFICATE OF COMPLETION
+        </h2>
+
+        <p class="text-xs text-slate-400">This official credential certifies that</p>
+
+        <!-- Student Name Rendered with Scanlines INSIDE the Text Letters -->
+        <div class="relative inline-block px-10 py-3 rounded-xl bg-[#080a10] border-2 border-amber-400 shadow-lg">
+          <div id="cert-student-name" class="text-3xl sm:text-5xl font-extrabold font-display tracking-wider scanline-text">
+            JANE DOE
+          </div>
+          <div class="text-[10px] font-mono-code uppercase tracking-widest text-cyan-400 mt-1">
+            SCANLINE VERIFIED CREDENTIAL • BCC CBIS 15
+          </div>
+        </div>
+
+        <!-- Completed IPv4 Class Badge -->
+        <div class="max-w-xl mx-auto bg-cyan-950/50 border border-cyan-500/50 rounded-xl px-4 py-2 text-xs sm:text-sm font-mono-code text-cyan-200">
+          🏆 <strong>Completed IPv4 Address Class(es):</strong> <span id="cert-completed-class" class="text-amber-300 font-bold">Class C (192–223)</span>
+        </div>
+
+        <!-- Clean HTML Superscripts — NO dollar signs ($), NO \text, NO curly braces! -->
+        <p class="text-xs sm:text-sm text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          has mastered IPv4 Classful &amp; Classless (CIDR) Subnetting, Binary Octet Conversion, Borrowed Subnet Bits (2<sup>x</sup>), Usable Host Calculations (2<sup>y</sup> - 2), Block Size Increments (256 - Subnet Mask), Broadcast Identification, and Valid Host Ranges in <strong>The Sausage Pizza Subnetting Lab (SP-SL)</strong>.
+        </p>
+
+        <!-- Solved IPs Log -->
+        <div class="bg-[#090c14]/90 border border-slate-800 rounded-xl p-3 max-w-3xl mx-auto text-xs font-mono-code">
+          <div class="text-amber-300 font-bold mb-1">Verified IPv4 Addresses &amp; Classes Completed Across Lab Tabs:</div>
+          <div id="cert-verified-ips" class="text-cyan-300 flex flex-wrap justify-center gap-2"></div>
+        </div>
+
+        <!-- Timestamps -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-2xl mx-auto text-xs font-mono-code bg-slate-900/70 rounded-lg p-2.5 border border-slate-800">
+          <div><span class="text-slate-400">Start:</span> <span id="cert-start-time" class="text-slate-200">--</span></div>
+          <div><span class="text-slate-400">Completed:</span> <span id="cert-end-time" class="text-slate-200">--</span></div>
+          <div><span class="text-slate-400">Active Time:</span> <span id="cert-total-time" class="text-amber-400 font-bold">--</span></div>
+        </div>
+
+        <div class="pt-4 grid grid-cols-1 sm:grid-cols-3 items-center gap-4 max-w-2xl mx-auto">
+          <div class="border-t border-slate-700 pt-2">
+            <div class="font-display italic text-base text-slate-200">Timothy Brinkley</div>
+            <div class="text-xs text-slate-400">Instructor, CBIS 15 Networking</div>
+          </div>
+          <div class="flex justify-center">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-700 p-1 shadow-lg flex items-center justify-center">
+              <div class="w-full h-full rounded-full bg-[#0b0e17] flex flex-col items-center justify-center text-amber-400 font-bold text-xs leading-tight">
+                <span>🍕 BCC</span>
+                <span class="text-[10px]">CBIS 15</span>
+              </div>
+            </div>
+          </div>
+          <div class="border-t border-slate-700 pt-2">
+            <div class="font-display italic text-base text-slate-200">Wes Frogge</div>
+            <div class="text-xs text-slate-400">Barstow Community College</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- UNIVERSAL AI TUTOR DOCKED ON EVERY TAB (CHAT ABOUT CURRENT TAB'S TOPICS!) -->
+  <!-- ========================================================================= -->
+  <aside class="max-w-[1600px] mx-auto px-3 pb-6 pt-1">
+    <div data-speakable-box class="bg-[#10141f] border-2 border-cyan-500/40 rounded-2xl p-4 shadow-xl relative">
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-800 pr-8">
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-white font-display flex items-center gap-2">
+            <span>🤖 Pizzeria AI Subnetting Tutor — Ask About <span id="ai-tab-topic-label" class="text-amber-400">Tab 0: Benefits &amp; Rules</span></span>
+          </h2>
+          <p class="text-xs text-slate-400">
+            Chat with the AI on any tab! Click a topic question below or type your own question about this tab's concept or IP calculation.
+          </p>
+        </div>
+        <span class="text-xs font-mono-code px-2.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700/40">
+          Available on All 10 Tabs
+        </span>
+      </div>
+
+      <!-- Dynamic Topic Quick-Chips for the Active Tab -->
+      <div id="ai-dynamic-chips" class="flex flex-wrap gap-1.5 mb-2.5"></div>
+
+      <!-- Shared AI Chat Log -->
+      <div id="tutor-chat-log" class="bg-[#0b0e17] border border-slate-800 rounded-xl p-3 h-[150px] overflow-y-auto space-y-2 text-xs" aria-live="polite"></div>
+
+      <!-- Question Input Form -->
+      <form onsubmit="handleTutorSubmit(event)" class="mt-2.5 flex items-center gap-2">
+        <input id="tutor-input" type="text"
+          placeholder="Ask Chef Lammle AI anything about this tab's topic or your current IPv4 address..."
+          aria-label="Ask the AI Tutor a question about the current tab"
+          class="flex-1 bg-[#080a10] text-xs sm:text-sm text-white rounded-xl border border-slate-700 px-3 py-2 focus:border-amber-400 focus:outline-none" />
+        <button type="submit" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors shrink-0">
+          Ask AI Tutor ➔
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT ENGINE: PER-BOX SPEAKERS, ALL-TAB AI, SEQUENTIAL UNLOCKING     -->
+  <!-- ========================================================================= -->
+  <script>
+    const startTime = new Date().getTime();
+    let activeTab = 0;
+    let maxUnlockedTab = 0;
+    const usedPresetExamples = new Set();
+
+    const validOctetMaskValues = [0, 128, 192, 224, 240, 248, 252, 254, 255];
+    const bitWeights = [128, 64, 32, 16, 8, 4, 2, 1];
+
+    const tabLabels = {
+      0: '🌐 0. Benefits & Rules',
+      1: '🍕 1. Pizza Calculator & AI',
+      2: '🎯 2. Guess CIDR',
+      3: '🔢 3. Subnets (2ˣ)',
+      4: '🍕 4. Hosts (2ʸ - 2)',
+      5: '🧱 5. Valid Subnets (256-M)',
+      6: '📡 6. Net ID & Broadcast',
+      7: '🖥️ 7. Valid Host Range',
+      8: '🏆 8. All 6 Final Boss',
+      9: '🎓 9. Certificate'
+    };
+
+    // =========================================================================
+    // PER-BOX SPEAKER INJECTION & CLICK-AWAY AUTO-STOP ENGINE
+    // =========================================================================
+    let activeSpeakerBtn = null;
+    let isSpeaking = false;
+
+    function stopSpeech() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      isSpeaking = false;
+      if (activeSpeakerBtn) {
+        activeSpeakerBtn.classList.remove('speaking-active');
+        activeSpeakerBtn = null;
+      }
+      const lbl = document.getElementById('speaker-label');
+      if (lbl) lbl.textContent = 'Read Tab Summary';
+    }
+
+    // Clean text inside a box so speechSynthesis reads formulas naturally
+    function cleanBoxTextForSpeech(rawText) {
+      return rawText
+        .replace(/🔊/g, '')
+        .replace(/2ˣ|2\^x/gi, '2 to the power of x')
+        .replace(/2ʸ\s*-\s*2|2\^y\s*-\s*2/gi, '2 to the power of y minus 2')
+        .replace(/2²/g, '2 squared')
+        .replace(/2⁶/g, '2 to the 6th power')
+        .replace(/\/(\d{1,2})\b/g, 'slash $1')
+        .replace(/➔|◄|👉|💡|🎉|🏆|🚫|✅|❌|🍕|🧱|📡|🖥️|🔢|🎯|🌐|🔒|🔓/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function speakTextFromBox(boxEl, btnEl, event) {
+      if (event) event.stopPropagation();
+      if (!('speechSynthesis' in window)) return;
+
+      // If clicking the same active speaker button, toggle it off
+      if (isSpeaking && activeSpeakerBtn === btnEl) {
+        stopSpeech();
+        return;
+      }
+
+      stopSpeech();
+      const clone = boxEl.cloneNode(true);
+      clone.querySelectorAll('.box-speaker-btn, button, script, style').forEach(el => el.remove());
+      const cleanedText = cleanBoxTextForSpeech(clone.innerText || clone.textContent || '');
+      if (!cleanedText) return;
+
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
+      activeSpeakerBtn = btnEl;
+      btnEl.classList.add('speaking-active');
+      isSpeaking = true;
+
+      utterance.onend = () => stopSpeech();
+      utterance.onerror = () => stopSpeech();
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Automatically inject a little speaker button into every [data-speakable-box] container
+    function injectBoxSpeakers() {
+      document.querySelectorAll('[data-speakable-box]').forEach(box => {
+        if (box.querySelector('.box-speaker-btn')) return;
+        if (!box.classList.contains('relative')) {
+          box.classList.add('relative');
+        }
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'box-speaker-btn absolute top-2 right-2 z-20';
+        btn.setAttribute('data-speaker-btn', 'true');
+        btn.setAttribute('title', 'Read the text inside this box aloud (clicks away stop reading)');
+        btn.setAttribute('aria-label', 'Read this box aloud');
+        btn.innerHTML = '🔊';
+        btn.addEventListener('click', (e) => speakTextFromBox(box, btn, e));
+        box.appendChild(btn);
+      });
+    }
+
+    // Stop reading immediately when the user clicks away anywhere on the page!
+    document.addEventListener('pointerdown', (e) => {
+      if (!isSpeaking) return;
+      const clickedSpeaker = e.target.closest('[data-speaker-btn="true"]');
+      if (!clickedSpeaker) {
+        stopSpeech();
+      }
+    });
+
+    window.addEventListener('blur', stopSpeech);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopSpeech(); });
+
+    // =========================================================================
+    // WEB AUDIO SYNTHESIZER (Reward Jingles, Low-End Chime, High-End Cheer)
+    // =========================================================================
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playLowEndChime() {
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        [523.25, 659.25].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+          gain.gain.setValueAtTime(0.18, now + idx * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.28);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.12);
+          osc.stop(now + idx * 0.12 + 0.3);
+        });
+      } catch (e) {}
+    }
+
+    function playVictoryCheer() {
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.11);
+          const dur = idx === notes.length - 1 ? 0.55 : 0.18;
+          gain.gain.setValueAtTime(0.14, now + idx * 0.11);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.11 + dur);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.11);
+          osc.stop(now + idx * 0.11 + dur + 0.02);
+        });
+      } catch (e) {}
+    }
+
+    function playErrorBuzz() {
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(190, now);
+        osc.frequency.setValueAtTime(150, now + 0.1);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.26);
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // CONFETTI CELEBRATION ENGINE
+    // =========================================================================
+    let confettiParticles = [];
+    let confettiAnimId = null;
+
+    function launchConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const colors = ['#f59e0b', '#ef4444', '#10b981', '#06b6d4', '#fde047', '#ffffff'];
+      for (let i = 0; i < 110; i++) {
+        confettiParticles.push({
+          x: window.innerWidth * (0.2 + Math.random() * 0.6),
+          y: window.innerHeight * 0.35,
+          vx: (Math.random() - 0.5) * 14,
+          vy: -Math.random() * 12 - 4,
+          size: 6 + Math.random() * 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rot: Math.random() * 360,
+          vrot: (Math.random() - 0.5) * 12,
+          life: 100 + Math.random() * 40
+        });
+      }
+      if (!confettiAnimId) animateConfetti();
+    }
+
+    function animateConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      confettiParticles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.35;
+        p.rot += p.vrot;
+        p.life -= 1;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rot * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.65);
+        ctx.restore();
+      });
+      confettiParticles = confettiParticles.filter(p => p.life > 0 && p.y < canvas.height + 30);
+      if (confettiParticles.length > 0) {
+        confettiAnimId = requestAnimationFrame(animateConfetti);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        confettiAnimId = null;
+      }
+    }
+
+    // =========================================================================
+    // BINARY & SUBNETTING CORE HELPERS
+    // =========================================================================
+    function toBin8(val) {
+      if (val === null || val === undefined || isNaN(val) || val < 0 || val > 255) return '--------';
+      return (val >>> 0).toString(2).padStart(8, '0');
+    }
+
+    function cidrToMask(cidr) {
+      const m = [0, 0, 0, 0];
+      let rem = Math.max(0, Math.min(32, cidr));
+      for (let i = 0; i < 4; i++) {
+        const bits = Math.min(8, rem);
+        m[i] = bits === 0 ? 0 : (0xff << (8 - bits)) & 0xff;
+        rem -= bits;
+      }
+      return m;
+    }
+
+    function getIpClassInfo(oct0) {
+      if (oct0 === null || isNaN(oct0)) {
+        return { letter: 'C', short: 'Class C (Assumed)', range: '192–223', defCidr: 24, defMask: [255, 255, 255, 0], leadBits: '110' };
+      }
+      if (oct0 >= 1 && oct0 <= 126) {
+        return { letter: 'A', short: 'Class A', range: '1–126', defCidr: 8, defMask: [255, 0, 0, 0], leadBits: '0' };
+      }
+      if (oct0 === 127) {
+        return { letter: 'L', short: 'Loopback (127)', range: '127', defCidr: 8, defMask: [255, 0, 0, 0], leadBits: '01111111' };
+      }
+      if (oct0 >= 128 && oct0 <= 191) {
+        return { letter: 'B', short: 'Class B', range: '128–191', defCidr: 16, defMask: [255, 255, 0, 0], leadBits: '10' };
+      }
+      if (oct0 >= 192 && oct0 <= 223) {
+        return { letter: 'C', short: 'Class C', range: '192–223', defCidr: 24, defMask: [255, 255, 255, 0], leadBits: '110' };
+      }
+      if (oct0 >= 224 && oct0 <= 239) {
+        return { letter: 'D', short: 'Class D (Multicast)', range: '224–239', defCidr: 24, defMask: [255, 255, 255, 0], leadBits: '1110' };
+      }
+      return { letter: 'E', short: 'Class E (Experimental)', range: '240–255', defCidr: 24, defMask: [255, 255, 255, 0], leadBits: '1111' };
+    }
+
+    function getPublicPrivateBadge(ipArr, oct0Entered) {
+      if (!oct0Entered) return 'Type 1st Octet or Pick Example';
+      const [a, b] = ipArr;
+      if (a === 10) return 'Private RFC 1918 (10.0.0.0/8)';
+      if (a === 172 && b >= 16 && b <= 31) return 'Private RFC 1918 (172.16.0.0/12)';
+      if (a === 192 && b === 168) return 'Private RFC 1918 (192.168.0.0/16)';
+      if (a === 127) return 'Loopback Reserved';
+      return 'Public Routable IP';
+    }
+
+    // =========================================================================
+    // TAB 1 CALCULATOR STATE & LOGIC (Starts with Empty IPv4 Boxes!)
+    // =========================================================================
+    let currentState = {
+      ip: [0, 0, 0, 0],
+      ipEntered: [false, false, false, false],
+      cidr: 26,
+      mask: [255, 255, 255, 192],
+      ipClass: 'C',
+      clsInfo: getIpClassInfo(null),
+      cutterOctetIndex: 3,
+      borrowedBitsInOctet: 2,
+      borrowedBitsFromClass: 2,
+      hostBitsTotal: 6,
+      blockSize: 64,
+      slicesInOctet: 4,
+      usableHosts: 62,
+      activeSliceIndex: 0,
+      networkAddress: [0, 0, 0, 0],
+      broadcastAddress: [0, 0, 0, 63],
+      firstUsable: [0, 0, 0, 1],
+      lastUsable: [0, 0, 0, 62]
+    };
+
+    function useExampleOnce(exIdx, ipArr, cidrVal) {
+      if (usedPresetExamples.has(exIdx)) return;
+      usedPresetExamples.add(exIdx);
+      const btn = document.getElementById(`ex-btn-${exIdx}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.className = 'px-2 py-0.5 rounded text-xs font-mono-code bg-slate-900 text-slate-500 border border-slate-800 line-through cursor-not-allowed';
+        btn.textContent = btn.textContent + ' [Used ✓]';
+      }
+      loadPreset(ipArr, cidrVal);
+    }
+
+    function onIpOctetInput(idx) {
+      const el = document.getElementById(`ip-${idx}`);
+      let raw = el.value.trim();
+      let val = raw === '' ? null : parseInt(raw, 10);
+      if (val !== null) {
+        if (val < 0) { val = 0; el.value = 0; }
+        if (val > 255) { val = 255; el.value = 255; }
+      }
+      document.getElementById(`ip-bin-${idx}`).textContent = val !== null ? toBin8(val) : '--------';
+      const cidrEl = document.getElementById('cidr-input');
+      if (idx === 0 && val !== null && cidrEl.value.trim() === '') {
+        const cls = getIpClassInfo(val);
+        cidrEl.value = cls.defCidr;
+        const m = cidrToMask(cls.defCidr);
+        for (let i = 0; i < 4; i++) document.getElementById(`mask-${i}`).value = m[i];
+      }
+      recalculateAll('ip');
+    }
+
+    function onCidrInput() {
+      const el = document.getElementById('cidr-input');
+      let raw = el.value.trim();
+      if (raw === '') return;
+      let cidr = parseInt(raw, 10);
+      if (isNaN(cidr)) return;
+      cidr = Math.max(8, Math.min(30, cidr));
+      document.getElementById('cidr-slider').value = cidr;
+      const mask = cidrToMask(cidr);
+      for (let i = 0; i < 4; i++) document.getElementById(`mask-${i}`).value = mask[i];
+      recalculateAll('cidr');
+    }
+
+    function onCidrSlider(val) {
+      const cidr = parseInt(val, 10);
+      document.getElementById('cidr-input').value = cidr;
+      const mask = cidrToMask(cidr);
+      for (let i = 0; i < 4; i++) document.getElementById(`mask-${i}`).value = mask[i];
+      recalculateAll('cidr');
+    }
+
+    function onMaskOctetInput(idx) {
+      const raw = document.getElementById(`mask-${idx}`).value.trim();
+      let enteredVal = raw === '' ? 0 : parseInt(raw, 10);
+      if (isNaN(enteredVal) || enteredVal < 0) enteredVal = 0;
+      if (enteredVal > 255) { enteredVal = 255; document.getElementById(`mask-${idx}`).value = 255; }
+
+      document.getElementById(`mask-bin-${idx}`).textContent = toBin8(enteredVal);
+
+      for (let j = 0; j < idx; j++) {
+        document.getElementById(`mask-${j}`).value = 255;
+        document.getElementById(`mask-bin-${j}`).textContent = '11111111';
+      }
+      for (let k = idx + 1; k < 4; k++) {
+        document.getElementById(`mask-${k}`).value = 0;
+        document.getElementById(`mask-bin-${k}`).textContent = '00000000';
+      }
+
+      const onesInOctet = (toBin8(enteredVal).match(/1/g) || []).length;
+      const newCidr = Math.max(8, Math.min(30, idx * 8 + onesInOctet));
+      document.getElementById('cidr-input').value = newCidr;
+      document.getElementById('cidr-slider').value = newCidr;
+      recalculateAll('mask', idx, enteredVal);
+    }
+
+    function recalculateAll(source, customMaskIdx = null, customMaskVal = null) {
+      const ipEntered = [false, false, false, false];
+      const ip = [0, 0, 0, 0];
+      for (let i = 0; i < 4; i++) {
+        const raw = document.getElementById(`ip-${i}`).value.trim();
+        if (raw !== '' && !isNaN(parseInt(raw, 10))) {
+          ipEntered[i] = true;
+          ip[i] = Math.max(0, Math.min(255, parseInt(raw, 10)));
+          document.getElementById(`ip-bin-${i}`).textContent = toBin8(ip[i]);
+        } else {
+          ipEntered[i] = false;
+          ip[i] = 0;
+          document.getElementById(`ip-bin-${i}`).textContent = '--------';
+        }
+      }
+      const clsInfo = getIpClassInfo(ipEntered[0] ? ip[0] : null);
+      let cidrRaw = document.getElementById('cidr-input').value.trim();
+      let cidr = cidrRaw !== '' ? parseInt(cidrRaw, 10) : clsInfo.defCidr;
+      if (isNaN(cidr) || cidr < 8) cidr = 8;
+      if (cidr > 30) cidr = 30;
+
+      const mask = cidrToMask(cidr);
+      if (source === 'mask' && customMaskIdx !== null && customMaskVal !== null) {
+        mask[customMaskIdx] = customMaskVal;
+      }
+      for (let i = 0; i < 4; i++) {
+        if (source !== 'mask') document.getElementById(`mask-${i}`).value = mask[i];
+        document.getElementById(`mask-bin-${i}`).textContent = toBin8(mask[i]);
+      }
+      document.getElementById('cidr-ones-label').textContent = `${cidr} ones`;
+
+      let cutterOctetIndex = 3;
+      let borrowedInOctet = 0;
+      let blockSize = 256;
+      if (source === 'mask' && customMaskIdx !== null) {
+        cutterOctetIndex = customMaskIdx;
+        borrowedInOctet = (toBin8(mask[cutterOctetIndex]).match(/1/g) || []).length;
+        blockSize = mask[cutterOctetIndex] === 0 ? 256 : Math.max(1, 256 - mask[cutterOctetIndex]);
+      } else if (cidr === 8) {
+        cutterOctetIndex = 0; borrowedInOctet = 0; blockSize = 256;
+      } else if (cidr <= 15) {
+        cutterOctetIndex = 1; borrowedInOctet = cidr - 8; blockSize = 256 - mask[1];
+      } else if (cidr === 16) {
+        cutterOctetIndex = 1; borrowedInOctet = 0; blockSize = 256;
+      } else if (cidr <= 23) {
+        cutterOctetIndex = 2; borrowedInOctet = cidr - 16; blockSize = 256 - mask[2];
+      } else if (cidr === 24) {
+        cutterOctetIndex = 3; borrowedInOctet = 0; blockSize = 256;
+      } else {
+        cutterOctetIndex = 3; borrowedInOctet = cidr - 24; blockSize = 256 - mask[3];
+      }
+
+      const hostBitsTotal = 32 - cidr;
+      const usableHosts = Math.max(0, Math.pow(2, hostBitsTotal) - 2);
+      const borrowedFromClass = Math.max(0, cidr - clsInfo.defCidr);
+      const slicesInOctet = Math.pow(2, borrowedInOctet);
+
+      const netAddr = [ip[0] & mask[0], ip[1] & mask[1], ip[2] & mask[2], ip[3] & mask[3]];
+      const bcastAddr = [
+        netAddr[0] | (~mask[0] & 255),
+        netAddr[1] | (~mask[1] & 255),
+        netAddr[2] | (~mask[2] & 255),
+        netAddr[3] | (~mask[3] & 255)
+      ];
+      const firstUsable = [...netAddr]; firstUsable[3] = Math.min(255, firstUsable[3] + 1);
+      const lastUsable = [...bcastAddr]; lastUsable[3] = Math.max(0, lastUsable[3] - 1);
+      const activeSliceIndex = blockSize === 256 ? 0 : Math.floor(ip[cutterOctetIndex] / blockSize);
+
+      currentState = {
+        ip, ipEntered, cidr, mask, ipClass: clsInfo.letter, clsInfo,
+        cutterOctetIndex, borrowedBitsInOctet: borrowedInOctet, borrowedBitsFromClass: borrowedFromClass,
+        hostBitsTotal, blockSize, slicesInOctet, usableHosts, activeSliceIndex,
+        networkAddress: netAddr, broadcastAddress: bcastAddr, firstUsable, lastUsable
+      };
+
+      updateMetricCards();
+      renderBitFlipper();
+      renderPizzaSvg();
+      renderStepByStepExplanations();
+    }
+
+    function updateMetricCards() {
+      const s = currentState;
+      document.getElementById('ip-status-badge').textContent = s.ipEntered[0]
+        ? `${s.clsInfo.short} • ${getPublicPrivateBadge(s.ip, true)}`
+        : 'Type an IP or Choose 1 Example Above';
+      document.getElementById('mask-sync-note').textContent = `Cutter in Octet #${s.cutterOctetIndex + 1} (${s.mask[s.cutterOctetIndex]} = ${toBin8(s.mask[s.cutterOctetIndex])})`;
+      document.getElementById('out-class-range').textContent = s.ipEntered[0] ? s.clsInfo.range : '1–254';
+      document.getElementById('out-class-main').textContent = s.ipEntered[0] ? s.clsInfo.short : 'Enter 1st Octet';
+      document.getElementById('out-class-sub').textContent = `Def: /${s.clsInfo.defCidr} (${s.clsInfo.defMask.join('.')})`;
+      document.getElementById('out-cutter-main').textContent = `Octet #${s.cutterOctetIndex + 1}`;
+      document.getElementById('out-cutter-sub').textContent = `Subnet Mask: ${s.mask[s.cutterOctetIndex]}`;
+      document.getElementById('out-borrowed-main').textContent = `${s.borrowedBitsInOctet} bit${s.borrowedBitsInOctet === 1 ? '' : 's'} (Oct #${s.cutterOctetIndex + 1})`;
+      document.getElementById('out-borrowed-sub').textContent = `2^${s.borrowedBitsInOctet} = ${s.slicesInOctet} Slice${s.slicesInOctet === 1 ? '' : 's'}`;
+      document.getElementById('out-block-main').textContent = s.blockSize;
+      document.getElementById('out-block-sub').textContent = s.blockSize === 256 ? 'Full Octet (256)' : `256 - ${s.mask[s.cutterOctetIndex]} = ${s.blockSize}`;
+      document.getElementById('out-hosts-main').textContent = s.usableHosts.toLocaleString();
+      document.getElementById('out-hosts-sub').textContent = `2^${s.hostBitsTotal} - 2 = ${s.usableHosts.toLocaleString()}`;
+      document.getElementById('out-subnet-index').textContent = `Slice #${s.activeSliceIndex + 1} of ${s.slicesInOctet}`;
+      document.getElementById('out-net-id').textContent = s.networkAddress.join('.');
+      document.getElementById('out-usable-range').textContent = `${s.firstUsable.join('.')} – ${s.lastUsable.join('.')}`;
+      document.getElementById('out-broadcast').textContent = s.broadcastAddress.join('.');
+    }
+
+    function renderBitFlipper() {
+      const s = currentState;
+      const container = document.getElementById('bit-flipper-row');
+      document.getElementById('flipper-octet-label').textContent = `Octet #${s.cutterOctetIndex + 1}`;
+      const binStr = toBin8(s.mask[s.cutterOctetIndex]);
+      container.innerHTML = '';
+      for (let b = 0; b < 8; b++) {
+        const isOne = binStr[b] === '1';
+        const weight = bitWeights[b];
+        const targetOnes = (isOne && b === s.borrowedBitsInOctet - 1) ? b : (b + 1);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => {
+          let newCidr = Math.max(8, Math.min(30, s.cutterOctetIndex * 8 + targetOnes));
+          document.getElementById('cidr-input').value = newCidr;
+          document.getElementById('cidr-slider').value = newCidr;
+          onCidrInput();
+        };
+        btn.className = isOne
+          ? 'px-1 py-1 rounded text-center font-mono-code text-xs font-bold bg-amber-500 text-slate-950 border border-amber-300 shadow-sm'
+          : 'px-1 py-1 rounded text-center font-mono-code text-xs font-semibold bg-slate-900 text-emerald-400 border border-slate-700';
+        btn.innerHTML = `<div class="text-[10px] opacity-75">${weight}</div><div>${isOne ? '1' : '0'}</div>`;
+        container.appendChild(btn);
+      }
+    }
+
+    function renderPizzaSvg() {
+      const s = currentState;
+      const cx = 415, cy = 148, rOuter = 114;
+      document.getElementById('pizza-slice-badge').textContent = `${s.slicesInOctet} Slice${s.slicesInOctet === 1 ? '' : 's'} • Block ${s.blockSize} • ${s.usableHosts.toLocaleString()} Hosts/Slice`;
+      document.getElementById('svg-box1-line1').textContent = `x = ${s.borrowedBitsInOctet} one${s.borrowedBitsInOctet === 1 ? '' : 's'} ➔ 2^${s.borrowedBitsInOctet} = ${s.slicesInOctet} Slice${s.slicesInOctet === 1 ? '' : 's'}`;
+      document.getElementById('svg-box1-line3').textContent = `CIDR /${s.cidr} in Octet #${s.cutterOctetIndex + 1}`;
+      const maskVal = s.mask[s.cutterOctetIndex];
+      document.getElementById('svg-box2-line1').textContent = s.blockSize === 256 ? 'Full Pie = 256 IPs / Slice' : `256 - ${maskVal} = ${s.blockSize} IPs / Slice`;
+      const multiples = [];
+      for (let m = 0; m < Math.min(4, s.slicesInOctet); m++) multiples.push(`.${m * s.blockSize}`);
+      if (s.slicesInOctet > 4) multiples.push('...');
+      document.getElementById('svg-box2-line3').textContent = `Cuts: ${multiples.join(' | ')}`;
+      document.getElementById('svg-box3-line1').textContent = `2^${s.hostBitsTotal} - 2 = ${s.usableHosts.toLocaleString()} Hosts`;
+      document.getElementById('svg-box3-line3').textContent = `${s.hostBitsTotal} off-bits (0s) left for hosts`;
+      document.getElementById('pizza-center-top').textContent = s.slicesInOctet;
+      document.getElementById('pizza-center-bot').textContent = s.slicesInOctet === 1 ? 'WHOLE PIE' : 'SLICES';
+
+      const cutsGroup = document.getElementById('pizza-cuts-group');
+      const labelsGroup = document.getElementById('pizza-labels-group');
+      const sausagesGroup = document.getElementById('pizza-sausages-group');
+      const activeWedgeGroup = document.getElementById('pizza-active-wedge');
+      cutsGroup.innerHTML = ''; labelsGroup.innerHTML = ''; sausagesGroup.innerHTML = ''; activeWedgeGroup.innerHTML = '';
+
+      const nSlices = s.slicesInOctet;
+      if (nSlices > 1) {
+        const sliceAngle = (2 * Math.PI) / nSlices;
+        const startAngle = -Math.PI / 2 + s.activeSliceIndex * sliceAngle;
+        const endAngle = startAngle + sliceAngle;
+        const x1 = cx + rOuter * Math.cos(startAngle), y1 = cy + rOuter * Math.sin(startAngle);
+        const x2 = cx + rOuter * Math.cos(endAngle), y2 = cy + rOuter * Math.sin(endAngle);
+        const largeArc = sliceAngle > Math.PI ? 1 : 0;
+        const wedge = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        wedge.setAttribute('d', `M ${cx} ${cy} L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z`);
+        wedge.setAttribute('fill', 'rgba(16, 185, 129, 0.24)');
+        wedge.setAttribute('stroke', '#10b981');
+        wedge.setAttribute('stroke-width', '2');
+        activeWedgeGroup.appendChild(wedge);
+
+        const maxLines = Math.min(nSlices, 32);
+        for (let i = 0; i < maxLines; i++) {
+          const angle = -Math.PI / 2 + (i * 2 * Math.PI) / maxLines;
+          const lx2 = cx + rOuter * Math.cos(angle), ly2 = cy + rOuter * Math.sin(angle);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', cx); line.setAttribute('y1', cy);
+          line.setAttribute('x2', lx2.toFixed(1)); line.setAttribute('y2', ly2.toFixed(1));
+          line.setAttribute('stroke', '#fbbf24'); line.setAttribute('stroke-width', '1.5');
+          line.setAttribute('stroke-dasharray', '4 3');
+          cutsGroup.appendChild(line);
+
+          if (nSlices <= 8 || i % Math.ceil(maxLines / 8) === 0) {
+            const labelR = rOuter + 14;
+            const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            txt.setAttribute('x', (cx + labelR * Math.cos(angle)).toFixed(1));
+            txt.setAttribute('y', (cy + labelR * Math.sin(angle) + 3).toFixed(1));
+            txt.setAttribute('text-anchor', 'middle');
+            txt.setAttribute('fill', '#fde047');
+            txt.setAttribute('font-size', '9.5');
+            txt.setAttribute('font-weight', 'bold');
+            txt.setAttribute('font-family', 'JetBrains Mono, monospace');
+            txt.textContent = `.${i * s.blockSize}`;
+            labelsGroup.appendChild(txt);
+          }
+        }
+      }
+
+      const visualSlices = Math.min(nSlices, 16);
+      const sausagesPerSlice = nSlices >= 16 ? 1 : nSlices === 8 ? 2 : 3;
+      for (let sl = 0; sl < visualSlices; sl++) {
+        const sliceArc = (2 * Math.PI) / visualSlices;
+        const midAngle = -Math.PI / 2 + (sl + 0.5) * sliceArc;
+        for (let k = 0; k < sausagesPerSlice; k++) {
+          const dist = k === 0 ? 52 : k === 1 ? 74 : 66;
+          const angleOffset = k === 0 ? 0 : k === 1 ? -sliceArc * 0.22 : sliceArc * 0.22;
+          const sx = cx + dist * Math.cos(midAngle + angleOffset);
+          const sy = cy + dist * Math.sin(midAngle + angleOffset);
+          const pepp = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          pepp.setAttribute('cx', sx.toFixed(1)); pepp.setAttribute('cy', sy.toFixed(1));
+          pepp.setAttribute('r', nSlices >= 16 ? '5' : '7');
+          pepp.setAttribute('fill', '#991b1b'); pepp.setAttribute('stroke', '#f87171');
+          sausagesGroup.appendChild(pepp);
+        }
+      }
+    }
+
+    function renderStepByStepExplanations() {
+      const s = currentState;
+      const oct0Bin = s.ipEntered[0] ? toBin8(s.ip[0]) : '--------';
+      const cutterMaskVal = s.mask[s.cutterOctetIndex];
+      const cutterMaskBin = toBin8(cutterMaskVal);
+
+      document.getElementById('exp-step-1').innerHTML = s.ipEntered[0]
+        ? `1st octet <strong>${s.ip[0]}</strong> = binary <code>${oct0Bin}</code>. Because ${s.ip[0]} is in <strong>${s.clsInfo.range}</strong>, it is <strong>${s.clsInfo.short}</strong> (default Subnet Mask <code>${s.clsInfo.defMask.join('.')}</code>).`
+        : `Type a number (1–254) into <strong>Octet #1</strong> above (or pick one of the single-use examples) to see its automatic 8-bit binary and IP Class!`;
+      document.getElementById('exp-step-2').innerHTML =
+        `CIDR <strong>/${s.cidr}</strong> has ${s.cidr} consecutive <code>1</code>s: Subnet Mask <code>${s.mask.join('.')}</code>. The Cutter Octet is <strong>Octet #${s.cutterOctetIndex + 1}</strong> (decimal <strong>${cutterMaskVal}</strong> = <code>${cutterMaskBin}</code>).`;
+      document.getElementById('exp-step-3').innerHTML =
+        `Formula: <strong>2<sup>x</sup> = Subnets</strong> where <code>x = ${s.borrowedBitsInOctet}</code> (number of 1s in <code>${cutterMaskBin}</code>). <code>2<sup>${s.borrowedBitsInOctet}</sup> = ${s.slicesInOctet}</code> pizza slices!`;
+      document.getElementById('exp-step-4').innerHTML =
+        `<strong>Block Size:</strong> <code>256 - ${cutterMaskVal} = ${s.blockSize}</code> (valid subnets: 0, ${s.blockSize < 256 ? s.blockSize : ''}...). <strong>Usable Hosts:</strong> <code>2<sup>${s.hostBitsTotal}</sup> - 2 = ${s.usableHosts.toLocaleString()}</code>.`;
+      document.getElementById('exp-step-5').innerHTML =
+        `🍕 <strong>Active Subnet Walk (pp. 280–288):</strong> Subnet ID = <strong>${s.networkAddress.join('.')}</strong> | First Host = <strong>${s.firstUsable.join('.')}</strong> | Last Host = <strong>${s.lastUsable.join('.')}</strong> | Broadcast (right before next subnet) = <strong>${s.broadcastAddress.join('.')}</strong>`;
+    }
+
+    function loadPreset(ipArr, cidrVal) {
+      for (let i = 0; i < 4; i++) document.getElementById(`ip-${i}`).value = ipArr[i];
+      document.getElementById('cidr-input').value = cidrVal;
+      document.getElementById('cidr-slider').value = cidrVal;
+      onCidrInput();
+    }
+
+    function clearAllInputs() {
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`ip-${i}`).value = '';
+        document.getElementById(`ip-bin-${i}`).textContent = '--------';
+      }
+      recalculateAll('clear');
+    }
+
+    // =========================================================================
+    // UNIVERSAL AI TUTOR DOCKED ON EVERY TAB (WITH TAB-SPECIFIC CHIPS & ANSWERS)
+    // =========================================================================
+    const tabTopicChips = {
+      0: [
+        'What are the 4 benefits of subnetting on page 274?',
+        'What are the drawbacks of not subnetting?',
+        'Why use a /30 mask on point-to-point WAN links (p. 286)?',
+        'Explain the IP address rules for Tabs 2–7 vs. Tab 8'
+      ],
+      1: [
+        'Why do we subtract 2 for usable hosts?',
+        'How was the Block Size (256 - Subnet Mask) calculated?',
+        'How do I subnet in my head like page 286?',
+        'How does typing in Step 3 update the Bit-Flipper?'
+      ],
+      2: [
+        'How do I use Table 1 and Table 2 to find my CIDR value?',
+        'How do the 1s in my 4th octet determine the CIDR slash number?',
+        'Why can we not use /31 or /32 in Class C (p. 279)?'
+      ],
+      3: [
+        'Explain the 2^x formula for Number of Subnets on this tab',
+        'How many 1s are turned ON in my current 4th octet?',
+        'Explain the Powers of 2 doubling trick from page 275'
+      ],
+      4: [
+        'Explain the 2^y - 2 formula for Usable Hosts on this tab',
+        'How many 0s are in my current 4th octet?',
+        'Why are all-0s and all-1s not valid host addresses?'
+      ],
+      5: [
+        'How do I identify my Subnet Mask before calculating 256 - Subnet Mask?',
+        'How do the visual blocks add up to my Subnet Mask number?',
+        'What is the increment / block size for my current IP?'
+      ],
+      6: [
+        'Why is the Broadcast ID always the number right before the next subnet?',
+        'How do I find the Network ID (subnet address) for my IP?',
+        'What is the broadcast address of the very last subnet?'
+      ],
+      7: [
+        'How do I find the Low End (First Valid Host) without guessing?',
+        'How do I find the High End (Last Valid Host) from the broadcast address?',
+        'Why do we omit all the 0s and all the 1s for valid hosts?'
+      ],
+      8: [
+        'Walk me through all 6 formulas for the Final Boss tab!',
+        'Why do I need a different IP address on Tab 8?',
+        'Give me a hint for my current Boss Level IP address'
+      ],
+      9: [
+        'How do I download my High-Res PNG Certificate with scanlines?',
+        'What IPv4 Class did I complete in this lab?'
+      ]
+    };
+
+    function updateAiTutorForTab(tabIndex) {
+      const labelEl = document.getElementById('ai-tab-topic-label');
+      if (labelEl) labelEl.textContent = tabLabels[tabIndex] || `Tab ${tabIndex}`;
+
+      const chipsContainer = document.getElementById('ai-dynamic-chips');
+      if (!chipsContainer) return;
+      const chips = tabTopicChips[tabIndex] || tabTopicChips[1];
+      chipsContainer.innerHTML = chips.map(q => `
+        <button type="button" onclick="askTutorChip(${JSON.stringify(q).replace(/"/g, '&quot;')})"
+          class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition-colors">
+          💬 ${q}
+        </button>
+      `).join('');
+    }
+
+    function appendTutorMessage(sender, htmlText) {
+      const log = document.getElementById('tutor-chat-log');
+      const div = document.createElement('div');
+      div.className = sender === 'user'
+        ? 'bg-amber-500/15 border border-amber-500/30 rounded-lg px-2.5 py-1.5 text-amber-200 ml-6'
+        : 'bg-[#151b2b] border border-cyan-500/30 rounded-lg px-2.5 py-1.5 text-slate-200 mr-2 leading-relaxed';
+      div.innerHTML = sender === 'user'
+        ? `<strong class="text-amber-400">You (Tab ${activeTab}):</strong> ${htmlText}`
+        : `<strong class="text-cyan-400">🍕 Chef Lammle AI:</strong> ${htmlText}`;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function askTutorChip(qText) {
+      appendTutorMessage('user', qText);
+      const q = qText.toLowerCase();
+      const s = currentState;
+      const pracSt = practiceTabsState[activeTab >= 2 && activeTab <= 8 ? activeTab : 2];
+      const pInfo = analyzePracticeIp(pracSt.ip);
+
+      let ans = '';
+      if (q.includes('benefit') || q.includes('drawback') || q.includes('274')) {
+        ans = `On <strong>page 274</strong>, Todd Lammle highlights 4 major <strong>Benefits of Subnetting</strong>:
+        <br/>1. <strong>Reduced Network Traffic:</strong> Routers break one giant broadcast domain into smaller ones so broadcasts stay local.
+        <br/>2. <strong>Optimized Network Performance:</strong> Less broadcast traffic means more usable bandwidth and less CPU interruption.
+        <br/>3. <strong>Simplified Management:</strong> Isolating problems in smaller connected networks is much easier than in one gigantic flat network.
+        <br/>4. <strong>Facilitated Spanning of Large Geographical Distances:</strong> Keeps local broadcasts off slow, expensive WAN links!`;
+      } else if (q.includes('rule') || q.includes('different ip') || q.includes('tabs 2')) {
+        ans = `Here is how IPs work in this lab:
+        <br/>• <strong>Tabs 2 through 7:</strong> You can use the <strong>exact same IPv4 address</strong> on Tabs 2, 3, 4, 5, 6, and 7 as you solve each step!
+        <br/>• <strong>Tab 8 (Boss Level):</strong> You must enter a <strong>different IPv4 address</strong> that wasn't used on Tabs 1–7, and you can click the <strong>Verify</strong> button as many times as you like!`;
+      } else if (q.includes('table 1') || q.includes('table 2') || q.includes('cidr')) {
+        ans = `On <strong>Tab 2</strong>, look at your 4th octet (<code>${pracSt.ip[3]}</code> = binary <code>${pInfo.bin3}</code>, which has <strong>${pInfo.exactOnesInOctet3}</strong> ones turned ON ➔ Subnet Mask <code>.${pInfo.effectiveMaskByte}</code>).
+        <br/>• In <strong>Table 1 (p. 279)</strong>, match decimal <strong>${pInfo.effectiveMaskByte}</strong> (binary <code>${toBin8(pInfo.effectiveMaskByte)}</code>) to see CIDR <strong>/${pInfo.cidrFromMask}</strong>!
+        <br/>• Remember from page 279: we cannot use <code>/31</code> or <code>/32</code> because at least 2 host bits must remain for assigning IPs to hosts.`;
+      } else if (q.includes('2^x') || q.includes('1s') || q.includes('power') || q.includes('275')) {
+        ans = `On <strong>Tab 3 (Number of Subnets)</strong>, the formula is <strong>2<sup>x</sup></strong> where <code>x</code> is the number of <code>1</code>s turned ON in the binary version of your 4th octet (<code>${pInfo.bin3}</code>).
+        <br/>Here, <strong>x = ${pInfo.exactOnesInOctet3}</strong>, so <strong>2<sup>${pInfo.exactOnesInOctet3}</sup> = ${pInfo.subnetsCountExact} subnets</strong>! (Tip from page 275: just double 2 for each 1-bit: 2, 4, 8, 16, 32, 64, 128, 256).`;
+      } else if (q.includes('2^y') || q.includes('0s') || q.includes('subtract 2') || q.includes('usable')) {
+        ans = `On <strong>Tab 4 (Usable Hosts per Subnet)</strong>, the formula is <strong>2<sup>y</sup> - 2</strong> where <code>y</code> is the number of unmasked <code>0</code> bits in your 4th octet (<code>${pInfo.bin3}</code>).
+        <br/>Here, <strong>y = ${pInfo.exactZerosInOctet3}</strong> zeros, giving <strong>2<sup>${pInfo.exactZerosInOctet3}</sup> - 2 = ${pInfo.usableHostsExact} usable hosts</strong> (we subtract 2 because the subnet address [all 0s] and broadcast address [all 1s] cannot be assigned to hosts!).`;
+      } else if (q.includes('identify') || q.includes('visual block') || q.includes('block') || q.includes('256')) {
+        ans = `On <strong>Tab 5 (Valid Subnets)</strong>:
+        <br/>1. First, identify the highlighted last octet of your <strong>Subnet Mask</strong>: <code>255.255.255.<strong>${pInfo.effectiveMaskByte}</strong></code>.
+        <br/>2. Subtract that number from 256: <strong>256 - ${pInfo.effectiveMaskByte} = ${pInfo.blockSize}</strong> (your Block Size / Increment).
+        <br/>3. Count from 0 in blocks of <strong>${pInfo.blockSize}</strong> until you reach <strong>${pInfo.effectiveMaskByte}</strong>: <code>${pInfo.validSubnets.join(', ')}</code>!`;
+      } else if (q.includes('broadcast') || q.includes('network id') || q.includes('before the next')) {
+        ans = `On <strong>Tab 6 (Network ID &amp; Broadcast Address)</strong>, Todd Lammle's golden rule (p. 280) is:
+        <br/>• Your valid subnets start at <code>0</code> and go up by <strong>${pInfo.blockSize}</strong> (<code>${pInfo.validSubnets.join(', ')}</code>).
+        <br/>• <strong>The Broadcast Address is ALWAYS the number right before the next subnet!</strong> For Subnet <code>0</code>, the next subnet is <code>${pInfo.blockSize}</code>, so its broadcast address is <strong>${pInfo.subnet0Bcast}</strong> (and the last subnet's broadcast is always <strong>255</strong>).`;
+      } else if (q.includes('low end') || q.includes('high end') || q.includes('valid host') || q.includes('between')) {
+        ans = `On <strong>Tab 7 (Valid Host Range)</strong>, valid hosts are the numbers <strong>between</strong> the subnet address and the broadcast address:
+        <br/>• <strong>Low End (First Valid Host):</strong> Add 1 to the Subnet Address (<code>Subnet + 1</code>). Getting this right plays the audio chime!
+        <br/>• <strong>High End (Last Valid Host):</strong> Subtract 1 from the Broadcast Address (<code>Broadcast - 1</code>). Getting this right launches the cheer and confetti!`;
+      } else if (q.includes('boss') || q.includes('all 6') || q.includes('tab 8')) {
+        ans = `On <strong>Tab 8 (Final Boss)</strong>, here is the 6-part recipe for your IP <code>${pInfo.ipStr}</code>:
+        <br/>1. <strong>CIDR:</strong> 24 + number of 1s in 4th octet.
+        <br/>2. <strong>Subnets:</strong> 2<sup>x</sup> (x = 1-bits).
+        <br/>3. <strong>Usable Hosts:</strong> 2<sup>y</sup> - 2 (y = 0-bits).
+        <br/>4. <strong>Valid Subnets:</strong> 256 - Subnet Mask = Block Size; count from 0 by Block Size.
+        <br/>5. <strong>Broadcast:</strong> 1 less than the next subnet.
+        <br/>6. <strong>Valid Host Range:</strong> Subnet + 1 through Broadcast - 1.`;
+      } else if (q.includes('head') || q.includes('286')) {
+        ans = `On <strong>pages 286–287 ("Subnetting in Your Head")</strong>, Lammle shows how to solve any host IP (like <code>192.168.10.33 /27</code>, mask <code>.224</code>) in seconds:
+        <br/>1. Block Size = <code>256 - 224 = 32</code>.
+        <br/>2. Count from 0 by 32 until you pass 33: <code>0, 32, 64</code>.
+        <br/>3. 33 falls between 32 and 64, so Subnet = <strong>.32</strong>, Broadcast = <strong>.63</strong> (right before 64), and Valid Hosts = <strong>.33 – .62</strong>!`;
+      } else if (q.includes('/30') || q.includes('wan') || q.includes('252')) {
+        ans = `From <strong>pages 286 &amp; 288</strong>: Regardless of whether you have a Class A, Class B, or Class C address, the <strong>/30 mask (255.255.255.252)</strong> always provides <strong>only 2 usable hosts</strong> (block size <code>256 - 252 = 4</code>). That makes <code>/30</code> ideal for point-to-point WAN router links without wasting 252 addresses!`;
+      } else if (q.includes('certificate') || q.includes('scanline')) {
+        ans = `On <strong>Tab 9 (Certificate)</strong>, type your First and Last Name and click <strong>Download High-Res Certificate Image (.PNG)</strong>. Your name is rendered with scanlines inside the letters, along with your completed IPv4 Class (<strong>${getCompletedClassesSummary()}</strong>)!`;
+      } else {
+        ans = `For your current active IP (<code>${activeTab === 1 ? s.ip.join('.') : pInfo.ipStr}</code>):
+        <br/>• <strong>Class:</strong> ${pInfo.cls.short} (${pInfo.cls.range})
+        <br/>• <strong>Subnet Mask:</strong> <code>255.255.255.${pInfo.effectiveMaskByte}</code> (/${pInfo.cidrFromMask})
+        <br/>• <strong>Subnets (2<sup>x</sup>):</strong> ${pInfo.subnetsCountEffective} | <strong>Usable Hosts (2<sup>y</sup> - 2):</strong> ${pInfo.usableHostsEffective} | <strong>Block Size (256 - Mask):</strong> ${pInfo.blockSize}.`;
+      }
+      appendTutorMessage('ai', ans);
+    }
+
+    function handleTutorSubmit(e) {
+      e.preventDefault();
+      const inp = document.getElementById('tutor-input');
+      if (!inp.value.trim()) return;
+      askTutorChip(inp.value.trim());
+      inp.value = '';
+    }
+
+    // =========================================================================
+    // PRACTICE TABS 2–8 STATE & LOGIC
+    // =========================================================================
+    const practiceTabsState = {
+      0: { verified: false },
+      1: { verified: false },
+      2: { ip: [192, 168, 10, 192], verified: false, lockedIpStr: null, ansCidr: '' },
+      3: { ip: [192, 168, 10, 192], verified: false, lockedIpStr: null, ansSubnets: '' },
+      4: { ip: [192, 168, 10, 192], verified: false, lockedIpStr: null, ansHosts: '' },
+      5: { ip: [192, 168, 10, 192], verified: false, lockedIpStr: null, ansBlock: '', ansValidList: '' },
+      6: { ip: [192, 168, 10, 192], verified: false, lockedIpStr: null, ansNetId: '', ansBcast: '' },
+      7: { ip: [192, 168, 10, 192], verified: false, lockedIpStr: null, ansLowHost: '', ansHighHost: '', lowVerified: false },
+      8: { ip: [192, 168, 86, 224], verified: false, lockedIpStr: null, c1: '', c2: '', c3: '', c4: '', c5: '', c6Low: '', c6High: '' }
+    };
+
+    const stepTitles = {
+      2: 'Step 1 (Tab 2): Guess the CIDR Value Using Table 1 & Table 2',
+      3: 'Step 2 (Tab 3): How Many Subnets? Formula: 2ˣ (Count the 1s Turned ON)',
+      4: 'Step 3 (Tab 4): How Many Usable Hosts per Subnet? Formula: 2ʸ - 2 (Count the 0s)',
+      5: 'Step 4 (Tab 5): Identify Your Subnet Mask & Calculate Valid Subnets (256 - Subnet Mask)',
+      6: 'Step 5 (Tab 6): Find the Network ID & Broadcast Address (Right Before Next Subnet)',
+      7: 'Step 6 (Tab 7): Find the Valid Host Range (Low End Chime + High End Cheer!)',
+      8: 'Step 7 (Tab 8): Final Boss — Solve All 6 Parts with a Different IP Address!'
+    };
+
+    function isIpDisallowedForTab(ipStr, tabNum) {
+      if (tabNum === 8) {
+        for (let t = 2; t <= 7; t++) {
+          if (practiceTabsState[t].lockedIpStr === ipStr || practiceTabsState[t].ip.join('.') === ipStr) {
+            return true;
+          }
+        }
+        if (currentState.ipEntered[0] && currentState.ip.join('.') === ipStr) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function updateProgressAndTabBarUI() {
+      let completedCount = 0;
+      for (let t = 0; t <= 8; t++) {
+        if (practiceTabsState[t] && practiceTabsState[t].verified) completedCount++;
+      }
+      document.getElementById('unlocked-tab-indicator').textContent = `Tab ${maxUnlockedTab} / 9`;
+      document.getElementById('completed-steps-count').textContent = `${completedCount} / 9`;
+
+      const usedSet = new Set();
+      for (let t = 2; t <= 8; t++) {
+        if (practiceTabsState[t].lockedIpStr) {
+          const cls = getIpClassInfo(practiceTabsState[t].ip[0]);
+          usedSet.add(`${practiceTabsState[t].lockedIpStr} (${cls.short})`);
+        }
+      }
+      const chipsEl = document.getElementById('used-ips-chips');
+      if (chipsEl) {
+        chipsEl.innerHTML = usedSet.size === 0
+          ? `<span class="text-slate-400 italic">No IPs locked yet</span>`
+          : Array.from(usedSet).map(s => `<span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50">${s} ✓</span>`).join('');
+      }
+
+      for (let i = 0; i <= 9; i++) {
+        const btn = document.getElementById(`tab-btn-${i}`);
+        if (!btn) continue;
+        const isUnlocked = i <= maxUnlockedTab;
+        const isDone = practiceTabsState[i] && practiceTabsState[i].verified;
+        const baseTitle = tabLabels[i];
+        btn.textContent = !isUnlocked ? `🔒 ${baseTitle.replace(/^[^\s]+\s/, '')}` : isDone ? `${baseTitle} ✓` : baseTitle;
+
+        if (i === activeTab) {
+          btn.setAttribute('aria-selected', 'true');
+          btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shrink-0 bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-300';
+        } else if (isUnlocked) {
+          btn.setAttribute('aria-selected', 'false');
+          btn.className = isDone
+            ? 'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 bg-emerald-950/80 text-emerald-300 border border-emerald-600/40 hover:bg-emerald-900/70'
+            : 'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700';
+        } else {
+          btn.setAttribute('aria-selected', 'false');
+          btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 bg-slate-900/60 text-slate-500 border border-slate-800/70 cursor-not-allowed opacity-70';
+        }
+      }
+    }
+
+    function unlockUpToTab(targetTab) {
+      if (targetTab > maxUnlockedTab) maxUnlockedTab = targetTab;
+      updateProgressAndTabBarUI();
+    }
+
+    function completeTab0AndUnlockTab1() {
+      practiceTabsState[0].verified = true;
+      unlockUpToTab(1);
+      playVictoryCheer();
+      launchConfetti();
+      trySwitchTab(1);
+    }
+
+    function completeTab1AndGoToTab2() {
+      if (!currentState.ipEntered[0]) {
+        playErrorBuzz();
+        showLockedToast('Please type an IPv4 address into Step 1 on Tab 1 (or choose one of the Single-Use Examples) before unlocking Tab 2!');
+        return;
+      }
+      practiceTabsState[1].verified = true;
+      if (currentState.ipEntered[0]) {
+        const carryIp = [...currentState.ip];
+        if (carryIp[3] === 0) carryIp[3] = currentState.mask[3] || 192;
+        for (let t = 2; t <= 7; t++) {
+          if (!practiceTabsState[t].verified) practiceTabsState[t].ip = [...carryIp];
+        }
+      }
+      unlockUpToTab(2);
+      playVictoryCheer();
+      launchConfetti();
+      trySwitchTab(2);
+    }
+
+    function showLockedToast(msg) {
+      const toast = document.getElementById('locked-tab-toast');
+      document.getElementById('locked-tab-msg').textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3400);
+    }
+
+    function centerTabHorizontally(tabIndex) {
+      const container = document.getElementById('tabs-scroll-container');
+      const btn = document.getElementById(`tab-btn-${tabIndex}`);
+      if (!container || !btn) return;
+      const containerRect = container.getBoundingClientRect();
+      const btnRect = btn.getBoundingClientRect();
+      const offset = (btnRect.left - containerRect.left) + container.scrollLeft - (containerRect.width / 2) + (btnRect.width / 2);
+      container.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
+    }
+
+    function analyzePracticeIp(ipArr) {
+      const [o0, o1, o2, o3] = ipArr;
+      const cls = getIpClassInfo(o0);
+      const bin3 = toBin8(o3);
+      const exactOnesInOctet3 = (bin3.match(/1/g) || []).length;
+      const exactZerosInOctet3 = 8 - exactOnesInOctet3;
+
+      const maskByte = exactOnesInOctet3 === 0 ? 0 : ((0xff << (8 - Math.min(6, exactOnesInOctet3))) & 0xff);
+      const effectiveMaskByte = validOctetMaskValues.includes(o3) && o3 <= 252 && o3 > 0 ? o3 : (maskByte || 192);
+      const effectiveOnes = (toBin8(effectiveMaskByte).match(/1/g) || []).length;
+      const effectiveZeros = 8 - effectiveOnes;
+
+      const cidrFromMask = 24 + effectiveOnes;
+      const cidrExact = 24 + exactOnesInOctet3;
+      const cidrClassDefault = cls.defCidr;
+
+      const blockSize = effectiveMaskByte === 0 ? 256 : (256 - effectiveMaskByte);
+      const validSubnets = [];
+      for (let v = 0; v < 256; v += blockSize) validSubnets.push(v);
+
+      const landedSubnet = Math.floor(o3 / blockSize) * blockSize;
+      const nextSubnet = landedSubnet + blockSize;
+      const bcastOctet = nextSubnet - 1;
+      const firstHostOctet = landedSubnet + 1;
+      const lastHostOctet = bcastOctet - 1;
+
+      const subnet0Bcast = blockSize - 1;
+      const subnet0First = 1;
+      const subnet0Last = blockSize - 2;
+
+      return {
+        ip: ipArr,
+        ipStr: ipArr.join('.'),
+        cls,
+        bin3,
+        exactOnesInOctet3,
+        exactZerosInOctet3,
+        effectiveMaskByte,
+        effectiveOnes,
+        effectiveZeros,
+        cidrFromMask,
+        cidrExact,
+        cidrClassDefault,
+        subnetsCountEffective: Math.pow(2, effectiveOnes),
+        subnetsCountExact: Math.pow(2, exactOnesInOctet3),
+        usableHostsEffective: Math.max(0, Math.pow(2, effectiveZeros) - 2),
+        usableHostsExact: Math.max(0, Math.pow(2, exactZerosInOctet3) - 2),
+        blockSize,
+        validSubnets,
+        landedSubnet,
+        bcastOctet,
+        firstHostOctet,
+        lastHostOctet,
+        subnet0Bcast,
+        subnet0First,
+        subnet0Last
+      };
+    }
+
+    function formatColoredBinary(binStr) {
+      return binStr.split('').map(ch =>
+        ch === '1'
+          ? `<span class="text-amber-400 font-extrabold">1</span>`
+          : `<span class="text-emerald-400 font-extrabold">0</span>`
+      ).join('');
+    }
+
+    function loadPracticeTab(tabNum) {
+      const st = practiceTabsState[tabNum];
+      document.getElementById('prac-step-badge').textContent = tabNum === 8
+        ? `STEP 7 OF 7 (BOSS LEVEL) • DIFFERENT IP REQUIRED`
+        : `STEP ${tabNum - 1} OF 7 • SAME IP ALLOWED UP TO TAB 7`;
+      document.getElementById('prac-title').textContent = stepTitles[tabNum];
+
+      const ruleText = document.getElementById('prac-ip-rule-text');
+      if (tabNum === 8) {
+        ruleText.innerHTML = `🏆 <strong class="text-amber-300">Boss Level IP Rule (Tab 8):</strong> You must use a <strong>DIFFERENT IPv4 address</strong> than the one(s) you used in Tabs 1–7! You can check your answers each time with the <strong>Verify button below</strong>.`;
+      } else {
+        ruleText.innerHTML = `💡 <strong class="text-cyan-300">IP Rule (Tabs 2–7):</strong> You may keep using the <strong>same IPv4 address</strong> all the way through Tab 7 (or change it if you want). Only Tab 8 requires a different IP!`;
+      }
+
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`p-ip-${i}`).value = st.ip[i];
+      }
+      updatePracticeHeaderAndCheckDup();
+      renderPracticeSpecificSection(tabNum);
+      injectBoxSpeakers();
+    }
+
+    function setPracticeOctet4(val) {
+      document.getElementById('p-ip-3').value = val;
+      onPracticeIpInput();
+    }
+
+    function generateFreshRandomIpForCurrentTab() {
+      const maskOptions = [128, 192, 224, 240, 248, 252];
+      for (let attempt = 0; attempt < 50; attempt++) {
+        const oct1 = [192, 192, 172, 10][Math.floor(Math.random() * 4)];
+        const oct2 = oct1 === 192 ? 168 : oct1 === 172 ? 16 : Math.floor(Math.random() * 90) + 1;
+        const oct3 = Math.floor(Math.random() * 240) + 1;
+        const oct4 = maskOptions[Math.floor(Math.random() * maskOptions.length)];
+        const testArr = [oct1, oct2, oct3, oct4];
+        if (!isIpDisallowedForTab(testArr.join('.'), activeTab)) {
+          practiceTabsState[activeTab].ip = testArr;
+          if (activeTab >= 2 && activeTab <= 7) {
+            for (let t = activeTab + 1; t <= 7; t++) {
+              if (!practiceTabsState[t].verified) practiceTabsState[t].ip = [...testArr];
+            }
+          }
+          loadPracticeTab(activeTab);
+          break;
+        }
+      }
+    }
+
+    function onPracticeIpInput() {
+      if (activeTab < 2 || activeTab > 8) return;
+      const st = practiceTabsState[activeTab];
+      for (let i = 0; i < 4; i++) {
+        const raw = document.getElementById(`p-ip-${i}`).value.trim();
+        let v = raw === '' ? 0 : parseInt(raw, 10);
+        if (isNaN(v) || v < 0) v = 0;
+        if (v > 255) v = 255;
+        st.ip[i] = v;
+      }
+      if (activeTab >= 2 && activeTab <= 7) {
+        for (let t = activeTab + 1; t <= 7; t++) {
+          if (!practiceTabsState[t].verified) {
+            practiceTabsState[t].ip = [...st.ip];
+          }
+        }
+      }
+      updatePracticeHeaderAndCheckDup();
+      renderPracticeSpecificSection(activeTab);
+      injectBoxSpeakers();
+    }
+
+    function updatePracticeHeaderAndCheckDup() {
+      const st = practiceTabsState[activeTab];
+      const info = analyzePracticeIp(st.ip);
+
+      for (let i = 0; i < 3; i++) {
+        document.getElementById(`p-bin-${i}`).textContent = toBin8(st.ip[i]);
+      }
+      document.getElementById(`p-bin-3`).innerHTML = formatColoredBinary(info.bin3);
+
+      document.getElementById('p-big-class-letter').textContent = info.cls.letter;
+      document.getElementById('p-class-title').textContent = `${info.cls.short} Network Address`;
+      document.getElementById('p-class-why').innerHTML =
+        `Because the 1st octet is <strong>${st.ip[0]}</strong> (binary <code>${toBin8(st.ip[0])}</code>, starts with <code>${info.cls.leadBits}</code>), which falls in the <strong>${info.cls.range}</strong> range (Table 8.1, p. 276), this IP is in <strong>${info.cls.short}</strong>.`;
+
+      document.getElementById('p-active-octet-summary').innerHTML =
+        `4th Octet <strong>${st.ip[3]}</strong> = <code>${info.bin3}</code> • <span class="text-amber-300 font-bold">x = ${info.exactOnesInOctet3} ones (1s)</span> • <span class="text-emerald-300 font-bold">y = ${info.exactZerosInOctet3} zeros (0s)</span>`;
+
+      document.getElementById('p-subnet-mask-line').innerHTML = `
+        <span>255 . 255 . 255 .</span>
+        <span class="px-2.5 py-0.5 rounded-md bg-amber-500 text-slate-950 font-extrabold ring-2 ring-red-400 shadow" title="Highlighted Last Octet of the Subnet Mask">${info.effectiveMaskByte}</span>
+      `;
+
+      const isDisallowed = isIpDisallowedForTab(info.ipStr, activeTab);
+      const banner = document.getElementById('prac-ip-guard-banner');
+      if (isDisallowed) {
+        banner.classList.remove('hidden');
+        document.getElementById('dup-ip-label').textContent = info.ipStr;
+      } else {
+        banner.classList.add('hidden');
+      }
+      return !isDisallowed;
+    }
+
+    function markCurrentPracticeTabVerified() {
+      const st = practiceTabsState[activeTab];
+      st.verified = true;
+      st.lockedIpStr = st.ip.join('.');
+      unlockUpToTab(Math.min(9, activeTab + 1));
+      playVictoryCheer();
+      launchConfetti();
+    }
+
+    function renderPracticeSpecificSection(tabNum) {
+      const container = document.getElementById('prac-specific-content');
+      const st = practiceTabsState[tabNum];
+      const info = analyzePracticeIp(st.ip);
+
+      if (tabNum === 2) {
+        const classCRows = [
+          { bin: '00000000', dec: 0, cidr: '/24' },
+          { bin: '10000000', dec: 128, cidr: '/25' },
+          { bin: '11000000', dec: 192, cidr: '/26' },
+          { bin: '11100000', dec: 224, cidr: '/27' },
+          { bin: '11110000', dec: 240, cidr: '/28' },
+          { bin: '11111000', dec: 248, cidr: '/29' },
+          { bin: '11111100', dec: 252, cidr: '/30' }
+        ];
+        container.innerHTML = `
+          <div data-speakable-box class="bg-[#10141f] border-2 border-amber-500/50 rounded-2xl p-4 space-y-4 relative">
+            <div class="flex flex-wrap items-center justify-between gap-3 pr-8">
+              <div class="space-y-1">
+                <div class="text-xs font-mono-code uppercase text-amber-400 font-bold">QUESTION 1: DETERMINE THE CIDR VALUE</div>
+                <div class="text-lg sm:text-xl font-bold text-white font-display">
+                  Look at your IPv4 address <code class="text-cyan-300 font-mono-code">${info.ipStr}</code> (4th octet binary <code class="text-amber-300 font-mono-code">${info.bin3}</code>) and the two tables below. What is the CIDR value?
+                </div>
+                <p class="text-xs text-slate-300">
+                  💡 <strong>How to figure it out using the two tables:</strong> Count the <code>1</code>s turned on in your 4th octet (<code>${info.exactOnesInOctet3}</code> ones ➔ Subnet Mask last octet <strong>${info.effectiveMaskByte}</strong>) and match it in <strong>Table 1</strong> (p. 279), or match the full Subnet Mask in <strong>Table 2</strong> (pp. 277–278)!
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="flex items-center bg-[#080a10] border-2 border-amber-400 rounded-xl px-3 py-1.5">
+                  <span class="text-xl font-bold font-mono-code text-amber-400 mr-1">/</span>
+                  <input id="tab2-ans-cidr" type="number" min="8" max="30" placeholder="e.g. 26" value="${st.ansCidr}"
+                    aria-label="Guess CIDR Value"
+                    class="w-24 bg-transparent text-white font-mono-code text-xl font-bold text-center focus:outline-none" />
+                </div>
+                <button onclick="checkTab2Answer()" class="px-4 py-2.5 rounded-xl font-bold text-sm bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md">
+                  Check CIDR &amp; Unlock Tab 3 ➔
+                </button>
+              </div>
+            </div>
+            <div id="tab2-feedback" class="text-xs sm:text-sm font-mono-code"></div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
+              <div data-speakable-box class="bg-[#0b0e17] border border-slate-800 rounded-xl p-3 relative">
+                <h3 class="text-sm font-bold text-amber-400 font-display mb-1 pr-7">
+                  📋 Table 1: Class C CIDR Options — Binary, Decimal &amp; CIDR (Lammle p. 279)
+                </h3>
+                <p class="text-xs text-slate-400 mb-2">
+                  Match your 4th octet's binary <code>1</code>-bits or Subnet Mask decimal value (<code class="text-amber-300">${info.effectiveMaskByte}</code>):
+                </p>
+                <table class="w-full text-left text-xs font-mono-code border-collapse">
+                  <thead>
+                    <tr class="border-b border-slate-700 text-cyan-300">
+                      <th class="py-1.5 px-2">Binary Value</th>
+                      <th class="py-1.5 px-2">Decimal Value</th>
+                      <th class="py-1.5 px-2">CIDR Value</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800">
+                    ${classCRows.map(r => {
+                      const isMatch = r.dec === info.effectiveMaskByte || r.dec === st.ip[3];
+                      return `<tr class="${isMatch ? 'bg-amber-500/20 text-amber-200 font-bold' : 'text-slate-300'}">
+                        <td class="py-1.5 px-2">${r.bin}</td>
+                        <td class="py-1.5 px-2">${r.dec}</td>
+                        <td class="py-1.5 px-2 text-amber-400 font-bold">${r.cidr} ${isMatch ? '◄ Matches in Table 1!' : ''}</td>
+                      </tr>`;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+              <div data-speakable-box class="bg-[#0b0e17] border border-slate-800 rounded-xl p-3 max-h-[290px] overflow-y-auto relative">
+                <h3 class="text-sm font-bold text-cyan-400 font-display mb-1 pr-7">
+                  📋 Table 2: Table 8.2 — CIDR Values Based on Subnet Mask (pp. 277–278)
+                </h3>
+                <p class="text-xs text-slate-400 mb-2">
+                  Match your Subnet Mask (<code>255.255.255.${info.effectiveMaskByte}</code>) to its CIDR value:
+                </p>
+                <table class="w-full text-left text-xs font-mono-code border-collapse">
+                  <thead class="sticky top-0 bg-[#151b2b] text-amber-300 border-b border-slate-700">
+                    <tr>
+                      <th class="py-1.5 px-2">Subnet Mask</th>
+                      <th class="py-1.5 px-2">CIDR Value</th>
+                      <th class="py-1.5 px-2">Class Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800 text-slate-300">
+                    ${Array.from({ length: 23 }, (_, idx) => {
+                      const c = idx + 8;
+                      const m = cidrToMask(c).join('.');
+                      const note = c === 8 ? 'Class A Default' : c === 16 ? 'Class B Default' : c === 24 ? 'Class C Default' : `Last Octet .${cidrToMask(c)[3]}`;
+                      const highlight = c === info.cidrFromMask || c === info.cidrExact || c === info.cidrClassDefault;
+                      return `<tr class="${highlight ? 'bg-cyan-500/20 text-cyan-200 font-bold' : ''}">
+                        <td class="py-1 px-2">${m}</td>
+                        <td class="py-1 px-2 text-amber-400">/${c}</td>
+                        <td class="py-1 px-2 text-slate-400">${note}</td>
+                      </tr>`;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      else if (tabNum === 3) {
+        container.innerHTML = `
+          <div class="bg-[#10141f] border-2 border-amber-500/50 rounded-2xl p-5 space-y-4">
+            <div data-speakable-box class="bg-[#0b0e17] border-2 border-amber-400 rounded-2xl p-4 text-center space-y-2 shadow-lg relative">
+              <div class="text-xs font-mono-code uppercase tracking-widest text-amber-300">TODD LAMMLE PAGE 280 FORMULA #1</div>
+              <div class="text-3xl sm:text-5xl font-extrabold font-display text-amber-400 tracking-tight">
+                2<sup class="text-2xl sm:text-3xl">x</sup> = Number of Subnets
+              </div>
+              <p class="text-sm sm:text-base text-slate-200 max-w-2xl mx-auto">
+                where <strong class="text-amber-300 font-mono-code">x</strong> is the number of <strong class="text-amber-300 font-mono-code">1s</strong> that are turned ON in the binary version of the number!
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+              <div data-speakable-box class="lg:col-span-7 bg-[#151b2b] border border-slate-800 rounded-xl p-4 space-y-2 relative">
+                <div class="text-xs font-bold uppercase text-cyan-400 pr-7">Visual 1-Bit Counter for Your 4th Octet (${st.ip[3]}):</div>
+                <div class="grid grid-cols-8 gap-1.5 text-center font-mono-code">
+                  ${info.bin3.split('').map((bit, idx) => `
+                    <div class="p-2 rounded-lg border ${bit === '1' ? 'bg-amber-500/25 border-amber-400 text-amber-300 font-extrabold' : 'bg-slate-900 border-slate-800 text-slate-500'}">
+                      <div class="text-[10px]">${bitWeights[idx]}</div>
+                      <div class="text-lg">${bit}</div>
+                      <div class="text-[10px]">${bit === '1' ? 'ON (1)' : 'off'}</div>
+                    </div>
+                  `).join('')}
+                </div>
+                <p class="text-xs text-slate-300 pt-1">
+                  Count the glowing amber <code>1</code> bits above: there are <strong class="text-amber-300">x = ${info.exactOnesInOctet3}</strong> ones turned ON in <code>${info.bin3}</code>. Calculate <strong>2<sup>${info.exactOnesInOctet3}</sup></strong>!
+                </p>
+              </div>
+
+              <div data-speakable-box class="lg:col-span-5 bg-[#151b2b] border border-amber-500/40 rounded-xl p-4 space-y-3 relative">
+                <label for="tab3-ans-subnets" class="block text-sm font-bold text-white font-display pr-7">
+                  How many subnets does this IP address have? (2<sup>x</sup>)
+                </label>
+                <div class="flex items-center gap-2">
+                  <input id="tab3-ans-subnets" type="number" min="1" placeholder="Enter 2^x" value="${st.ansSubnets}"
+                    class="flex-1 bg-[#080a10] border-2 border-amber-400 rounded-xl px-3 py-2 text-white font-mono-code text-xl font-bold text-center focus:outline-none" />
+                  <button onclick="checkTab3Answer()" class="px-4 py-2.5 rounded-xl font-bold text-sm bg-amber-500 hover:bg-amber-400 text-slate-950">
+                    Check 2ˣ &amp; Unlock Tab 4 ➔
+                  </button>
+                </div>
+                <div class="text-xs font-mono-code text-slate-400">
+                  Powers of 2 Helper: 2⁰=1 | 2¹=2 | 2²=4 | 2³=8 | 2⁴=16 | 2⁵=32 | 2⁶=64 | 2⁷=128 | 2⁸=256
+                </div>
+                <div id="tab3-feedback" class="text-xs sm:text-sm font-mono-code"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      else if (tabNum === 4) {
+        container.innerHTML = `
+          <div class="bg-[#10141f] border-2 border-emerald-500/50 rounded-2xl p-5 space-y-4">
+            <div data-speakable-box class="bg-[#0b0e17] border-2 border-emerald-400 rounded-2xl p-4 text-center space-y-2 shadow-lg relative">
+              <div class="text-xs font-mono-code uppercase tracking-widest text-emerald-300">TODD LAMMLE PAGE 280 FORMULA #2</div>
+              <div class="text-3xl sm:text-5xl font-extrabold font-display text-emerald-400 tracking-tight">
+                2<sup class="text-2xl sm:text-3xl">y</sup> - 2 = Usable Hosts per Subnet
+              </div>
+              <p class="text-sm sm:text-base text-slate-200 max-w-3xl mx-auto">
+                where <strong class="text-emerald-300 font-mono-code">y</strong> is the number of <strong class="text-emerald-300 font-mono-code">0s</strong> in the binary version of the part of the IPv4 number in question (subtracting 2 for the subnet address &amp; broadcast address)!
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+              <div data-speakable-box class="lg:col-span-7 bg-[#151b2b] border border-slate-800 rounded-xl p-4 space-y-2 relative">
+                <div class="text-xs font-bold uppercase text-emerald-400 pr-7">Visual 0-Bit Counter for Your 4th Octet (${st.ip[3]}):</div>
+                <div class="grid grid-cols-8 gap-1.5 text-center font-mono-code">
+                  ${info.bin3.split('').map((bit, idx) => `
+                    <div class="p-2 rounded-lg border ${bit === '0' ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300 font-extrabold' : 'bg-slate-900 border-slate-800 text-slate-500'}">
+                      <div class="text-[10px]">${bitWeights[idx]}</div>
+                      <div class="text-lg">${bit}</div>
+                      <div class="text-[10px]">${bit === '0' ? 'HOST (0)' : 'net'}</div>
+                    </div>
+                  `).join('')}
+                </div>
+                <p class="text-xs text-slate-300 pt-1">
+                  Count the glowing green <code>0</code> bits above: there are <strong class="text-emerald-300">y = ${info.exactZerosInOctet3}</strong> zeros in <code>${info.bin3}</code>. Calculate <strong>2<sup>${info.exactZerosInOctet3}</sup> - 2</strong>!
+                </p>
+              </div>
+
+              <div data-speakable-box class="lg:col-span-5 bg-[#151b2b] border border-emerald-500/40 rounded-xl p-4 space-y-3 relative">
+                <label for="tab4-ans-hosts" class="block text-sm font-bold text-white font-display pr-7">
+                  How many usable hosts per subnet? (2<sup>y</sup> - 2)
+                </label>
+                <div class="flex items-center gap-2">
+                  <input id="tab4-ans-hosts" type="number" min="0" placeholder="Enter 2^y - 2" value="${st.ansHosts}"
+                    class="flex-1 bg-[#080a10] border-2 border-emerald-400 rounded-xl px-3 py-2 text-white font-mono-code text-xl font-bold text-center focus:outline-none" />
+                  <button onclick="checkTab4Answer()" class="px-4 py-2.5 rounded-xl font-bold text-sm bg-emerald-500 hover:bg-emerald-400 text-slate-950">
+                    Check Hosts &amp; Unlock Tab 5 ➔
+                  </button>
+                </div>
+                <div class="text-xs font-mono-code text-slate-400">
+                  Powers of 2: 2²-2=2 | 2³-2=6 | 2⁴-2=14 | 2⁵-2=30 | 2⁶-2=62 | 2⁷-2=126 | 2⁸-2=254
+                </div>
+                <div id="tab4-feedback" class="text-xs sm:text-sm font-mono-code"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      else if (tabNum === 5) {
+        const block = info.blockSize;
+        const maskTarget = info.effectiveMaskByte;
+        const blocksToMask = [];
+        for (let sum = 0; sum < maskTarget; sum += block) {
+          blocksToMask.push({ start: sum, end: sum + block, size: block });
+        }
+
+        container.innerHTML = `
+          <div class="bg-[#10141f] border-2 border-red-500/50 rounded-2xl p-5 space-y-4">
+            <div data-speakable-box class="bg-[#151b2b] border-2 border-amber-400 rounded-2xl p-4 space-y-2.5 shadow-lg relative">
+              <div class="text-xs font-mono-code uppercase tracking-wider text-amber-300 font-bold pr-7">
+                🔍 FIRST: IDENTIFY YOUR SUBNET MASK &amp; ITS HIGHLIGHTED LAST OCTET
+              </div>
+              <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                Before calculating your valid subnets, look at how we find your <strong>Subnet Mask</strong>: your 4th octet has <strong>${info.effectiveOnes}</strong> subnet bit(s) turned ON (<code>${toBin8(maskTarget)}</code> = <strong>${maskTarget}</strong>). Putting the full <strong>Subnet Mask</strong> on its own line and highlighting the last octet gives:
+              </p>
+              <div class="bg-[#080a10] border border-slate-700 rounded-xl p-3 flex flex-wrap items-center justify-center gap-3 font-mono-code">
+                <span class="text-sm sm:text-lg font-bold text-cyan-300 uppercase">Subnet Mask:</span>
+                <span class="text-lg sm:text-2xl font-bold text-slate-300">255 . 255 . 255 .</span>
+                <span class="px-4 py-1 rounded-xl bg-amber-500 text-slate-950 text-xl sm:text-3xl font-extrabold ring-4 ring-red-500 shadow-lg">
+                  ${maskTarget}
+                </span>
+                <span class="text-xs sm:text-sm text-amber-300 font-semibold">
+                  ◄ Use this highlighted Subnet Mask number (${maskTarget}) in the formula below!
+                </span>
+              </div>
+            </div>
+
+            <div data-speakable-box class="bg-[#0b0e17] border-2 border-red-400 rounded-2xl p-4 text-center space-y-2 shadow-lg relative">
+              <div class="text-xs font-mono-code uppercase tracking-widest text-red-300">TODD LAMMLE PAGE 280 FORMULA #3</div>
+              <div class="text-2xl sm:text-4xl font-extrabold font-display text-red-400 tracking-tight">
+                256 - Subnet Mask (${maskTarget}) = Block Size (${block})
+              </div>
+              <p class="text-xs sm:text-sm text-slate-200 max-w-3xl mx-auto">
+                "Start counting at zero in blocks of ${block} until you reach the Subnet Mask value (${maskTarget}), and these are your valid subnets!" — Todd Lammle, pp. 280–285
+              </p>
+            </div>
+
+            <div data-speakable-box class="bg-[#151b2b] border border-slate-800 rounded-xl p-4 space-y-3 relative">
+              <div class="flex flex-wrap items-center justify-between gap-2 pr-7">
+                <div class="text-xs font-bold uppercase text-amber-300">
+                  🧱 Visual Block Breakdown: Blocks of ${block} Adding Up to Subnet Mask (${maskTarget})
+                </div>
+                <div class="text-xs font-mono-code text-cyan-300">
+                  256 - ${maskTarget} = <strong>${block}</strong> (Increment / Block Size)
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="px-3 py-2 rounded-lg bg-emerald-950 border-2 border-emerald-400 text-center font-mono-code">
+                  <div class="text-[10px] text-emerald-300">Start at 0</div>
+                  <div class="text-base font-bold text-white">0</div>
+                </div>
+
+                ${blocksToMask.map((b, i) => `
+                  <div class="flex items-center gap-1.5">
+                    <div class="px-3 py-2 rounded-lg bg-amber-500/20 border border-amber-400 text-center font-mono-code">
+                      <div class="text-[10px] text-amber-300">Block #${i + 1}</div>
+                      <div class="text-xs font-bold text-amber-200">+ ${b.size}</div>
+                    </div>
+                    <span class="text-slate-400 font-bold">➔</span>
+                    <div class="px-3 py-2 rounded-lg ${b.end === maskTarget ? 'bg-red-500/30 border-2 border-red-400' : 'bg-slate-900 border border-cyan-500/50'} text-center font-mono-code">
+                      <div class="text-[10px] text-cyan-300">${b.end === maskTarget ? 'Subnet Mask!' : 'Subnet'}</div>
+                      <div class="text-base font-bold text-white">${b.end}</div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+
+              <p class="text-xs text-slate-300 font-mono-code">
+                Count how many blocks of <strong>${block}</strong> add up to your Subnet Mask number <strong>${maskTarget}</strong>: <code>${blocksToMask.map(b => b.size).join(' + ')} = ${maskTarget}</code>. Including 0, your valid subnets are: <strong class="text-amber-300">${info.validSubnets.join(', ')}</strong>!
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#151b2b] border border-red-500/40 rounded-xl p-4">
+              <div>
+                <label for="tab5-ans-block" class="block text-xs font-bold uppercase text-red-300 mb-1">
+                  1. Block Size (256 - Subnet Mask ${maskTarget}):
+                </label>
+                <input id="tab5-ans-block" type="number" placeholder="e.g. ${block}" value="${st.ansBlock}"
+                  class="w-full bg-[#080a10] border-2 border-red-400 rounded-xl px-3 py-2 text-white font-mono-code text-lg font-bold focus:outline-none" />
+              </div>
+              <div>
+                <label for="tab5-ans-list" class="block text-xs font-bold uppercase text-amber-300 mb-1">
+                  2. Valid Subnets (count from 0 up to ${maskTarget} by ${block}):
+                </label>
+                <div class="flex gap-2">
+                  <input id="tab5-ans-list" type="text" placeholder="e.g. 0, ${block}..." value="${st.ansValidList}"
+                    class="flex-1 bg-[#080a10] border-2 border-amber-400 rounded-xl px-3 py-2 text-white font-mono-code text-lg font-bold focus:outline-none" />
+                  <button onclick="checkTab5Answer()" class="px-4 py-2 rounded-xl font-bold text-sm bg-red-500 hover:bg-red-400 text-slate-950 shrink-0">
+                    Verify &amp; Unlock Tab 6 ➔
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div id="tab5-feedback" class="text-xs sm:text-sm font-mono-code"></div>
+          </div>
+        `;
+      }
+
+      else if (tabNum === 6) {
+        container.innerHTML = `
+          <div class="bg-[#10141f] border-2 border-cyan-500/50 rounded-2xl p-5 space-y-4">
+            <div data-speakable-box class="bg-[#0b0e17] border-2 border-cyan-400 rounded-2xl p-4 text-center space-y-2 shadow-lg relative">
+              <div class="text-xs font-mono-code uppercase tracking-widest text-cyan-300">TODD LAMMLE PAGE 280–287 FORMULA #4</div>
+              <div class="text-2xl sm:text-3xl font-extrabold font-display text-cyan-400">
+                "The Broadcast ID/Address is ALWAYS the number right before the next subnet!"
+              </div>
+              <p class="text-xs sm:text-sm text-slate-300 max-w-3xl mx-auto">
+                With Subnet Mask <code>255.255.255.${info.effectiveMaskByte}</code>, your valid subnets count in blocks of <strong>${info.blockSize}</strong>: <code>${info.validSubnets.join(', ')}</code>.
+                For the first subnet (<strong>0</strong>), the next subnet is <strong>${info.blockSize}</strong>, so its broadcast address is <strong>${info.subnet0Bcast}</strong> (and for the last subnet <strong>${info.effectiveMaskByte}</strong>, the broadcast is always <strong>255</strong>).
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#151b2b] border border-cyan-500/40 rounded-xl p-4">
+              <div>
+                <label for="tab6-ans-netid" class="block text-xs font-bold uppercase text-emerald-300 mb-1">
+                  1. Network ID (Subnet Address — e.g. 0 or ${info.landedSubnet}):
+                </label>
+                <input id="tab6-ans-netid" type="text" placeholder="e.g. 0 or ${st.ip.slice(0,3).join('.')}.${info.landedSubnet}" value="${st.ansNetId}"
+                  class="w-full bg-[#080a10] border-2 border-emerald-400 rounded-xl px-3 py-2 text-white font-mono-code text-lg font-bold focus:outline-none" />
+              </div>
+              <div>
+                <label for="tab6-ans-bcast" class="block text-xs font-bold uppercase text-red-300 mb-1">
+                  2. Broadcast ID/Address (Number right before the next subnet):
+                </label>
+                <div class="flex gap-2">
+                  <input id="tab6-ans-bcast" type="text" placeholder="e.g. ${info.subnet0Bcast} or ${info.bcastOctet}" value="${st.ansBcast}"
+                    class="flex-1 bg-[#080a10] border-2 border-red-400 rounded-xl px-3 py-2 text-white font-mono-code text-lg font-bold focus:outline-none" />
+                  <button onclick="checkTab6Answer()" class="px-4 py-2 rounded-xl font-bold text-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 shrink-0">
+                    Check IDs &amp; Unlock Tab 7 ➔
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div id="tab6-feedback" class="text-xs sm:text-sm font-mono-code"></div>
+          </div>
+        `;
+      }
+
+      else if (tabNum === 7) {
+        container.innerHTML = `
+          <div class="bg-[#10141f] border-2 border-amber-500/50 rounded-2xl p-5 space-y-4">
+            <div data-speakable-box class="bg-[#0b0e17] border-2 border-amber-400 rounded-2xl p-4 text-center space-y-2 shadow-lg relative">
+              <div class="text-xs font-mono-code uppercase tracking-widest text-amber-300">TODD LAMMLE PAGE 280–287 FORMULA #5 (WITHOUT GIVING AWAY THE ADDRESS!)</div>
+              <div class="text-xl sm:text-3xl font-extrabold font-display text-white">
+                "Valid hosts are the numbers <span class="text-amber-400">between</span> the subnet address and the broadcast address, omitting all the 0s and all the 1s!"
+              </div>
+              <p class="text-xs sm:text-sm text-slate-300 max-w-3xl mx-auto">
+                💡 <strong>How to figure it out (Lammle p. 284):</strong> First write out the subnet address and the broadcast address.
+                <br/>• <strong>Low End (First Valid Host)</strong> = 1 number higher than the Subnet Address (Subnet + 1)
+                <br/>• <strong>High End (Last Valid Host)</strong> = 1 number lower than the Broadcast Address (Broadcast - 1)
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#151b2b] border border-slate-800 rounded-xl p-4">
+              <div>
+                <label for="tab7-ans-low" class="block text-xs font-bold uppercase text-cyan-300 mb-1">
+                  1. Low End (First Valid Host — plays instant auditory chime when right!):
+                </label>
+                <div class="flex gap-2">
+                  <input id="tab7-ans-low" type="text" placeholder="First Host (4th octet or full IP)" value="${st.ansLowHost}"
+                    oninput="checkTab7LowEndLive()"
+                    class="flex-1 bg-[#080a10] border-2 border-cyan-400 rounded-xl px-3 py-2 text-white font-mono-code text-lg font-bold focus:outline-none" />
+                  <button onclick="checkTab7LowEndLive(true)" class="px-3 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950">
+                    Test Low End 🎵
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label for="tab7-ans-high" class="block text-xs font-bold uppercase text-emerald-300 mb-1">
+                  2. High End (Last Valid Host — triggers Cheer, Confetti &amp; Unlocks Tab 8!):
+                </label>
+                <div class="flex gap-2">
+                  <input id="tab7-ans-high" type="text" placeholder="Last Host (4th octet or full IP)" value="${st.ansHighHost}"
+                    class="flex-1 bg-[#080a10] border-2 border-emerald-400 rounded-xl px-3 py-2 text-white font-mono-code text-lg font-bold focus:outline-none" />
+                  <button onclick="checkTab7BothEnds()" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950">
+                    Verify High End 🎉
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div id="tab7-feedback" class="text-xs sm:text-sm font-mono-code"></div>
+          </div>
+        `;
+      }
+
+      else if (tabNum === 8) {
+        container.innerHTML = `
+          <div data-speakable-box class="bg-[#10141f] border-2 border-amber-500/60 rounded-2xl p-5 space-y-4 relative">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3 pr-8">
+              <div>
+                <h3 class="text-lg sm:text-xl font-bold text-amber-400 font-display">
+                  🏆 Final Boss Challenge: Solve All 6 Subnetting Questions for <code class="text-cyan-300 font-mono-code">${info.ipStr}</code>
+                </h3>
+                <p class="text-xs text-slate-300">
+                  Make sure <code class="text-amber-300">${info.ipStr}</code> is a different IP than the one you used in Tabs 2–7. You can click the <strong>Verify All 6 Answers</strong> button below as many times as you want to check each part!
+                </p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+              <div class="bg-[#151b2b] border border-slate-800 rounded-xl p-3 space-y-1.5">
+                <div class="flex justify-between items-center">
+                  <label for="t8-c1" class="font-bold text-amber-300">1. CIDR Value (e.g. /27 or 27)</label>
+                  <button type="button" onclick="toggleHint('h8-1')" class="text-cyan-300 underline">💡 Hint</button>
+                </div>
+                <input id="t8-c1" type="text" placeholder="/27" value="${st.c1}" class="w-full bg-[#080a10] border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono-code text-base font-bold" />
+                <div id="h8-1" class="hidden text-slate-400 font-mono-code">24 + number of 1s in 4th octet (${info.effectiveOnes} ones ➔ /${info.cidrFromMask}).</div>
+              </div>
+
+              <div class="bg-[#151b2b] border border-slate-800 rounded-xl p-3 space-y-1.5">
+                <div class="flex justify-between items-center">
+                  <label for="t8-c2" class="font-bold text-amber-300">2. # of Subnets (2<sup>x</sup>)</label>
+                  <button type="button" onclick="toggleHint('h8-2')" class="text-cyan-300 underline">💡 Hint</button>
+                </div>
+                <input id="t8-c2" type="number" placeholder="e.g. 8" value="${st.c2}" class="w-full bg-[#080a10] border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono-code text-base font-bold" />
+                <div id="h8-2" class="hidden text-slate-400 font-mono-code">Formula: 2<sup>x</sup> where x is the number of 1s turned ON in the binary version.</div>
+              </div>
+
+              <div class="bg-[#151b2b] border border-slate-800 rounded-xl p-3 space-y-1.5">
+                <div class="flex justify-between items-center">
+                  <label for="t8-c3" class="font-bold text-amber-300">3. Usable Hosts per Subnet (2<sup>y</sup> - 2)</label>
+                  <button type="button" onclick="toggleHint('h8-3')" class="text-cyan-300 underline">💡 Hint</button>
+                </div>
+                <input id="t8-c3" type="number" placeholder="e.g. 30" value="${st.c3}" class="w-full bg-[#080a10] border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono-code text-base font-bold" />
+                <div id="h8-3" class="hidden text-slate-400 font-mono-code">Formula: 2<sup>y</sup> - 2 where y is the number of 0s in the binary version.</div>
+              </div>
+
+              <div class="bg-[#151b2b] border border-slate-800 rounded-xl p-3 space-y-1.5">
+                <div class="flex justify-between items-center">
+                  <label for="t8-c4" class="font-bold text-amber-300">4. Valid Subnets (or Block Size)</label>
+                  <button type="button" onclick="toggleHint('h8-4')" class="text-cyan-300 underline">💡 Hint</button>
+                </div>
+                <input id="t8-c4" type="text" placeholder="e.g. 0, 32, 64..." value="${st.c4}" class="w-full bg-[#080a10] border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono-code text-base font-bold" />
+                <div id="h8-4" class="hidden text-slate-400 font-mono-code">Formula: 256 - Subnet Mask (${info.effectiveMaskByte}) = Block Size (${info.blockSize}). Count from 0!</div>
+              </div>
+
+              <div class="bg-[#151b2b] border border-slate-800 rounded-xl p-3 space-y-1.5">
+                <div class="flex justify-between items-center">
+                  <label for="t8-c5" class="font-bold text-amber-300">5. Broadcast ID / Address</label>
+                  <button type="button" onclick="toggleHint('h8-5')" class="text-cyan-300 underline">💡 Hint</button>
+                </div>
+                <input id="t8-c5" type="text" placeholder="4th octet or full IP" value="${st.c5}" class="w-full bg-[#080a10] border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono-code text-base font-bold" />
+                <div id="h8-5" class="hidden text-slate-400 font-mono-code">Always the number right before the next subnet (e.g. ${info.subnet0Bcast} for Subnet 0, or 255 for the last subnet).</div>
+              </div>
+
+              <div class="bg-[#151b2b] border border-slate-800 rounded-xl p-3 space-y-1.5">
+                <div class="flex justify-between items-center">
+                  <span class="font-bold text-amber-300">6. Valid Host Range (Low – High)</span>
+                  <button type="button" onclick="toggleHint('h8-6')" class="text-cyan-300 underline">💡 Hint</button>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <input id="t8-c6-low" type="text" placeholder="First Host" value="${st.c6Low}" class="w-full bg-[#080a10] border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono-code text-sm font-bold" />
+                  <input id="t8-c6-high" type="text" placeholder="Last Host" value="${st.c6High}" class="w-full bg-[#080a10] border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono-code text-sm font-bold" />
+                </div>
+                <div id="h8-6" class="hidden text-slate-400 font-mono-code">Numbers between subnet address and broadcast address (Subnet+1 to Broadcast-1).</div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div id="tab8-feedback" class="text-xs sm:text-sm font-mono-code"></div>
+              <button onclick="checkTab8AllSix()" class="px-6 py-3 rounded-xl font-display font-bold text-sm bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 shadow-lg">
+                🏆 Verify All 6 Answers &amp; Unlock Certificate ➔
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function toggleHint(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('hidden');
+    }
+
+    // =========================================================================
+    // ANSWER VERIFICATION FUNCTIONS FOR TABS 2..8
+    // =========================================================================
+    function checkTab2Answer() {
+      if (!updatePracticeHeaderAndCheckDup()) { playErrorBuzz(); return; }
+      const st = practiceTabsState[2];
+      const info = analyzePracticeIp(st.ip);
+      const raw = document.getElementById('tab2-ans-cidr').value.trim().replace('/', '');
+      st.ansCidr = raw;
+      const val = parseInt(raw, 10);
+      const fb = document.getElementById('tab2-feedback');
+
+      if (val === info.cidrFromMask || val === info.cidrExact || val === info.cidrClassDefault) {
+        fb.className = 'p-3 rounded-xl bg-emerald-950/80 border border-emerald-400 text-emerald-200 font-mono-code text-xs sm:text-sm animate-pop';
+        fb.innerHTML = `🎉 <strong>CORRECT! /${val}</strong> matches your IP <code>${info.ipStr}</code> in Table 1 &amp; Table 2! <strong>Tab 3 is now unlocked!</strong>`;
+        markCurrentPracticeTabVerified();
+      } else {
+        playErrorBuzz();
+        fb.className = 'p-3 rounded-xl bg-red-950/80 border border-red-400 text-red-200 font-mono-code text-xs sm:text-sm';
+        fb.innerHTML = `❌ Not quite! Look at the highlighted row in <strong>Table 1</strong> or <strong>Table 2</strong> below: try <strong>/${info.cidrFromMask}</strong> (or your Class default <strong>/${info.cidrClassDefault}</strong>).`;
+      }
+    }
+
+    function checkTab3Answer() {
+      if (!updatePracticeHeaderAndCheckDup()) { playErrorBuzz(); return; }
+      const st = practiceTabsState[3];
+      const info = analyzePracticeIp(st.ip);
+      const raw = document.getElementById('tab3-ans-subnets').value.trim();
+      st.ansSubnets = raw;
+      const val = parseInt(raw, 10);
+      const fb = document.getElementById('tab3-feedback');
+
+      if (val === info.subnetsCountExact || val === info.subnetsCountEffective) {
+        fb.className = 'p-3 rounded-xl bg-emerald-950/80 border border-emerald-400 text-emerald-200 font-mono-code text-xs sm:text-sm animate-pop';
+        fb.innerHTML = `🎉 <strong>AWESOME! 2<sup>${info.exactOnesInOctet3}</sup> = ${val} Subnets!</strong> <strong>Tab 4 is now unlocked!</strong>`;
+        markCurrentPracticeTabVerified();
+      } else {
+        playErrorBuzz();
+        fb.className = 'p-3 rounded-xl bg-red-950/80 border border-red-400 text-red-200 font-mono-code text-xs sm:text-sm';
+        fb.innerHTML = `❌ In <code>${info.bin3}</code>, there are <strong>x = ${info.exactOnesInOctet3}</strong> ones turned ON. Calculate <strong>2<sup>${info.exactOnesInOctet3}</sup> = ${info.subnetsCountExact}</strong>!`;
+      }
+    }
+
+    function checkTab4Answer() {
+      if (!updatePracticeHeaderAndCheckDup()) { playErrorBuzz(); return; }
+      const st = practiceTabsState[4];
+      const info = analyzePracticeIp(st.ip);
+      const raw = document.getElementById('tab4-ans-hosts').value.trim();
+      st.ansHosts = raw;
+      const val = parseInt(raw, 10);
+      const fb = document.getElementById('tab4-feedback');
+
+      if (val === info.usableHostsExact || val === info.usableHostsEffective) {
+        fb.className = 'p-3 rounded-xl bg-emerald-950/80 border border-emerald-400 text-emerald-200 font-mono-code text-xs sm:text-sm animate-pop';
+        fb.innerHTML = `🎉 <strong>BINGO! 2<sup>${info.exactZerosInOctet3}</sup> - 2 = ${val} Usable Hosts per Subnet!</strong> <strong>Tab 5 is now unlocked!</strong>`;
+        markCurrentPracticeTabVerified();
+      } else {
+        playErrorBuzz();
+        fb.className = 'p-3 rounded-xl bg-red-950/80 border border-red-400 text-red-200 font-mono-code text-xs sm:text-sm';
+        fb.innerHTML = `❌ In <code>${info.bin3}</code>, there are <strong>y = ${info.exactZerosInOctet3}</strong> zeros (0s). Calculate <strong>2<sup>${info.exactZerosInOctet3}</sup> - 2 = ${info.usableHostsExact}</strong>!`;
+      }
+    }
+
+    function checkTab5Answer() {
+      if (!updatePracticeHeaderAndCheckDup()) { playErrorBuzz(); return; }
+      const st = practiceTabsState[5];
+      const info = analyzePracticeIp(st.ip);
+      const rawBlock = document.getElementById('tab5-ans-block').value.trim();
+      const rawList = document.getElementById('tab5-ans-list').value.trim();
+      st.ansBlock = rawBlock;
+      st.ansValidList = rawList;
+      const blockVal = parseInt(rawBlock, 10);
+      const expectedBlock = info.blockSize;
+      const altBlock = 256 - st.ip[3];
+      const fb = document.getElementById('tab5-feedback');
+
+      const numsEntered = (rawList.match(/\d+/g) || []).map(Number);
+      const startsAtZeroAndMatchesStep = numsEntered.length >= 2 && numsEntered[0] === 0 && (numsEntered[1] === expectedBlock || numsEntered[1] === altBlock);
+
+      if ((blockVal === expectedBlock || blockVal === altBlock) && startsAtZeroAndMatchesStep) {
+        fb.className = 'p-3 rounded-xl bg-emerald-950/80 border border-emerald-400 text-emerald-200 font-mono-code text-xs sm:text-sm animate-pop';
+        fb.innerHTML = `🎉 <strong>NAILED IT!</strong> Block size is <strong>${blockVal}</strong> and valid subnets count up in blocks of ${blockVal}: <code>${info.validSubnets.join(', ')}</code>! <strong>Tab 6 is now unlocked!</strong>`;
+        markCurrentPracticeTabVerified();
+      } else {
+        playErrorBuzz();
+        fb.className = 'p-3 rounded-xl bg-red-950/80 border border-red-400 text-red-200 font-mono-code text-xs sm:text-sm';
+        fb.innerHTML = `❌ Remember: <strong>256 - Subnet Mask (${info.effectiveMaskByte}) = ${expectedBlock}</strong>. Then count from 0 in increments of ${expectedBlock}: <strong>${info.validSubnets.join(', ')}</strong>!`;
+      }
+    }
+
+    function extractLastOctet(str) {
+      const clean = str.trim();
+      if (clean.includes('.')) {
+        const parts = clean.split('.');
+        return parseInt(parts[parts.length - 1], 10);
+      }
+      return parseInt(clean, 10);
+    }
+
+    function checkTab6Answer() {
+      if (!updatePracticeHeaderAndCheckDup()) { playErrorBuzz(); return; }
+      const st = practiceTabsState[6];
+      const info = analyzePracticeIp(st.ip);
+      const rawNet = document.getElementById('tab6-ans-netid').value.trim();
+      const rawBcast = document.getElementById('tab6-ans-bcast').value.trim();
+      st.ansNetId = rawNet;
+      st.ansBcast = rawBcast;
+
+      const netOct = extractLastOctet(rawNet);
+      const bcastOct = extractLastOctet(rawBcast);
+      const fb = document.getElementById('tab6-feedback');
+
+      const netOk = netOct === 0 || netOct === info.landedSubnet || info.validSubnets.includes(netOct);
+      const bcastOk = bcastOct === info.subnet0Bcast || bcastOct === info.bcastOctet || bcastOct === 255 || (netOk && bcastOct === netOct + info.blockSize - 1);
+
+      if (netOk && bcastOk) {
+        fb.className = 'p-3 rounded-xl bg-emerald-950/80 border border-emerald-400 text-emerald-200 font-mono-code text-xs sm:text-sm animate-pop';
+        fb.innerHTML = `🎉 <strong>EXCELLENT!</strong> Network ID <strong>.${netOct}</strong> and Broadcast ID <strong>.${bcastOct}</strong> (right before the next subnet) are spot-on! <strong>Tab 7 is now unlocked!</strong>`;
+        markCurrentPracticeTabVerified();
+      } else {
+        playErrorBuzz();
+        fb.className = 'p-3 rounded-xl bg-red-950/80 border border-red-400 text-red-200 font-mono-code text-xs sm:text-sm';
+        fb.innerHTML = `❌ Hint: With block size <strong>${info.blockSize}</strong>, Subnet 0 starts at <strong>0</strong> and its Broadcast ID is right before ${info.blockSize}, which is <strong>${info.subnet0Bcast}</strong> (or for subnet <strong>.${info.landedSubnet}</strong>, broadcast is <strong>.${info.bcastOctet}</strong>)!`;
+      }
+    }
+
+    function checkTab7LowEndLive(showHintOnFail = false) {
+      const st = practiceTabsState[7];
+      const info = analyzePracticeIp(st.ip);
+      const rawLow = document.getElementById('tab7-ans-low').value.trim();
+      st.ansLowHost = rawLow;
+      const lowOct = extractLastOctet(rawLow);
+      const fb = document.getElementById('tab7-feedback');
+
+      const isLowValid = lowOct === 1 || lowOct === info.firstHostOctet || info.validSubnets.some(sub => lowOct === sub + 1);
+      if (isLowValid) {
+        if (!st.lowVerified) {
+          st.lowVerified = true;
+          playLowEndChime();
+        }
+        fb.className = 'p-3 rounded-xl bg-cyan-950/80 border border-cyan-400 text-cyan-200 font-mono-code text-xs sm:text-sm animate-pop';
+        fb.innerHTML = `🎵 <strong>LOW END CORRECT!</strong> Auditory Chime Played! You found the first valid host (Subnet + 1 = <strong>.${lowOct}</strong>). Now enter the <strong>High End (Last Valid Host = Broadcast - 1)</strong> for the cheer and confetti!`;
+        return true;
+      } else if (showHintOnFail) {
+        playErrorBuzz();
+        fb.className = 'p-3 rounded-xl bg-red-950/80 border border-red-400 text-red-200 font-mono-code text-xs sm:text-sm';
+        fb.innerHTML = `❌ Remember: The low end (first valid host) is <strong>1 greater than the subnet address</strong>!`;
+      }
+      return false;
+    }
+
+    function checkTab7BothEnds() {
+      if (!updatePracticeHeaderAndCheckDup()) { playErrorBuzz(); return; }
+      const st = practiceTabsState[7];
+      const info = analyzePracticeIp(st.ip);
+      const lowOk = checkTab7LowEndLive(true);
+      const rawHigh = document.getElementById('tab7-ans-high').value.trim();
+      st.ansHighHost = rawHigh;
+      const highOct = extractLastOctet(rawHigh);
+      const fb = document.getElementById('tab7-feedback');
+
+      const isHighValid = highOct === info.subnet0Last || highOct === info.lastHostOctet || highOct === 254 || info.validSubnets.some(sub => highOct === sub + info.blockSize - 2);
+
+      if (lowOk && isHighValid) {
+        fb.className = 'p-3 rounded-xl bg-emerald-950/80 border border-emerald-400 text-emerald-200 font-mono-code text-xs sm:text-sm animate-pop';
+        fb.innerHTML = `🎉🥳 <strong>HIGH END &amp; FULL VALID HOST RANGE VERIFIED!</strong> Cheer &amp; Confetti Launched! <strong>Tab 8 (Final Boss) is now unlocked!</strong>`;
+        markCurrentPracticeTabVerified();
+      } else if (lowOk && !isHighValid) {
+        playErrorBuzz();
+        fb.className = 'p-3 rounded-xl bg-amber-950/80 border border-amber-400 text-amber-200 font-mono-code text-xs sm:text-sm';
+        fb.innerHTML = `🎵 Your Low End is right! For the High End, subtract 1 from the Broadcast address (Broadcast - 1).`;
+      }
+    }
+
+    function checkTab8AllSix() {
+      if (!updatePracticeHeaderAndCheckDup()) {
+        playErrorBuzz();
+        const fb = document.getElementById('tab8-feedback');
+        fb.className = 'p-3 rounded-xl bg-red-950/80 border border-red-400 text-red-200 font-mono-code text-xs sm:text-sm';
+        fb.innerHTML = `🚫 Please change your IPv4 address above to a <strong>different IPv4 address</strong> that wasn't used in Tabs 1–7!`;
+        return;
+      }
+      const st = practiceTabsState[8];
+      const info = analyzePracticeIp(st.ip);
+
+      st.c1 = document.getElementById('t8-c1').value.trim();
+      st.c2 = document.getElementById('t8-c2').value.trim();
+      st.c3 = document.getElementById('t8-c3').value.trim();
+      st.c4 = document.getElementById('t8-c4').value.trim();
+      st.c5 = document.getElementById('t8-c5').value.trim();
+      st.c6Low = document.getElementById('t8-c6-low').value.trim();
+      st.c6High = document.getElementById('t8-c6-high').value.trim();
+
+      const cidrVal = parseInt(st.c1.replace('/', ''), 10);
+      const ok1 = cidrVal === info.cidrFromMask || cidrVal === info.cidrExact || cidrVal === info.cidrClassDefault;
+      const subVal = parseInt(st.c2, 10);
+      const ok2 = subVal === info.subnetsCountExact || subVal === info.subnetsCountEffective;
+      const hostVal = parseInt(st.c3, 10);
+      const ok3 = hostVal === info.usableHostsExact || hostVal === info.usableHostsEffective;
+      const ok4 = st.c4.includes(String(info.blockSize)) || st.c4.includes('0');
+      const bcastOct = extractLastOctet(st.c5);
+      const ok5 = bcastOct === info.subnet0Bcast || bcastOct === info.bcastOctet || bcastOct === 255;
+      const lowOct = extractLastOctet(st.c6Low);
+      const highOct = extractLastOctet(st.c6High);
+      const ok6 = (lowOct === 1 || lowOct === info.firstHostOctet) && (highOct === info.subnet0Last || highOct === info.lastHostOctet || highOct === 254);
+
+      const fb = document.getElementById('tab8-feedback');
+      if (ok1 && ok2 && ok3 && ok4 && ok5 && ok6) {
+        fb.className = 'p-3 rounded-xl bg-emerald-950/80 border border-emerald-400 text-emerald-200 font-mono-code text-xs sm:text-sm animate-pop';
+        fb.innerHTML = `🏆🎉 <strong>ALL 6 ANSWERS CORRECT!</strong> Your Official BCC Scanline Certificate is now UNLOCKED! Taking you to Tab 9...`;
+        markCurrentPracticeTabVerified();
+        setTimeout(() => trySwitchTab(9), 1300);
+      } else {
+        playErrorBuzz();
+        const statusParts = [
+          `1.CIDR: ${ok1 ? '✅' : '❌'}`,
+          `2.Subnets: ${ok2 ? '✅' : '❌'}`,
+          `3.Hosts: ${ok3 ? '✅' : '❌'}`,
+          `4.ValidSubnets: ${ok4 ? '✅' : '❌'}`,
+          `5.Broadcast: ${ok5 ? '✅' : '❌'}`,
+          `6.HostRange: ${ok6 ? '✅' : '❌'}`
+        ];
+        fb.className = 'p-3 rounded-xl bg-red-950/80 border border-red-400 text-red-200 font-mono-code text-xs sm:text-sm';
+        fb.innerHTML = `Check your fields: ${statusParts.join(' | ')} — you can click Verify as many times as needed!`;
+      }
+    }
+
+    // =========================================================================
+    // SEQUENTIAL TAB NAVIGATION, AUTO-SCROLL TO TOP & HORIZONTAL CENTER SCROLL
+    // =========================================================================
+    function navigatePracticeTab(delta) {
+      const target = Math.max(0, Math.min(9, activeTab + delta));
+      trySwitchTab(target);
+    }
+
+    function trySwitchTab(tabIndex) {
+      if (tabIndex > maxUnlockedTab) {
+        playErrorBuzz();
+        showLockedToast(`Tab ${tabIndex} is locked! Complete the task on Tab ${maxUnlockedTab} first to unlock it.`);
+        return;
+      }
+      stopSpeech();
+      activeTab = tabIndex;
+      updateProgressAndTabBarUI();
+      centerTabHorizontally(tabIndex);
+      updateAiTutorForTab(tabIndex);
+
+      document.getElementById('panel-0').classList.toggle('hidden', tabIndex !== 0);
+      document.getElementById('panel-1').classList.toggle('hidden', tabIndex !== 1);
+      document.getElementById('panel-practice').classList.toggle('hidden', !(tabIndex >= 2 && tabIndex <= 8));
+      document.getElementById('panel-9').classList.toggle('hidden', tabIndex !== 9);
+
+      if (tabIndex >= 2 && tabIndex <= 8) {
+        loadPracticeTab(tabIndex);
+      } else if (tabIndex === 9) {
+        updateCertificateDisplay();
+      }
+
+      injectBoxSpeakers();
+
+      // Auto-scroll to the top of the page when the tab is changed!
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+
+    // =========================================================================
+    // TAB 9: OFFICIAL HIGH-RES PNG CERTIFICATE (SCANLINES INSIDE NAME + CLASS)
+    // =========================================================================
+    function getCompletedClassesSummary() {
+      const classes = new Set();
+      for (let t = 2; t <= 8; t++) {
+        const cls = getIpClassInfo(practiceTabsState[t].ip[0]);
+        classes.add(`${cls.short} (${cls.range})`);
+      }
+      return Array.from(classes).join(' • ') || 'Class C (192–223)';
+    }
+
+    function updateCertificateDisplay() {
+      const first = (document.getElementById('cert-first-name').value || 'Jane').trim();
+      const last = (document.getElementById('cert-last-name').value || 'Doe').trim();
+      const fullName = `${first} ${last}`.trim().toUpperCase();
+      document.getElementById('cert-student-name').textContent = fullName || 'CBIS 15 STUDENT';
+      document.getElementById('cert-completed-class').textContent = getCompletedClassesSummary();
+
+      const endTime = new Date().getTime();
+      const totalTimeMs = endTime - startTime;
+      const minutes = Math.floor(totalTimeMs / 60000);
+      const seconds = Math.floor((totalTimeMs % 60000) / 1000);
+      const startString = new Date(startTime).toISOString().replace('T', ' ').substring(0, 19);
+      const endString = new Date(endTime).toISOString().replace('T', ' ').substring(0, 19);
+
+      document.getElementById('cert-start-time').textContent = startString;
+      document.getElementById('cert-end-time').textContent = endString;
+      document.getElementById('cert-total-time').textContent = `${minutes}m ${seconds}s`;
+
+      const ipsContainer = document.getElementById('cert-verified-ips');
+      const items = [];
+      for (let t = 2; t <= 8; t++) {
+        const cls = getIpClassInfo(practiceTabsState[t].ip[0]);
+        items.push(`<span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700">Tab ${t}: ${practiceTabsState[t].ip.join('.')} (${cls.short})</span>`);
+      }
+      ipsContainer.innerHTML = items.join('');
+    }
+
+    function downloadHighResCertificatePng() {
+      updateCertificateDisplay();
+      const first = (document.getElementById('cert-first-name').value || 'Jane').trim();
+      const last = (document.getElementById('cert-last-name').value || 'Doe').trim();
+      const fullName = (`${first} ${last}`.trim() || 'CBIS 15 STUDENT').toUpperCase();
+      const completedClassesStr = getCompletedClassesSummary();
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 1800;
+      canvas.height = 1200;
+      const ctx = canvas.getContext('2d');
+
+      const bgGrad = ctx.createLinearGradient(0, 0, 1800, 1200);
+      bgGrad.addColorStop(0, '#121624');
+      bgGrad.addColorStop(0.5, '#090d16');
+      bgGrad.addColorStop(1, '#171310');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 1800, 1200);
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.06)';
+      ctx.lineWidth = 2;
+      for (let y = 0; y < 1200; y += 8) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1800, y); ctx.stroke();
+      }
+      ctx.restore();
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 10;
+      ctx.strokeRect(36, 36, 1728, 1128);
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(54, 54, 1692, 1092);
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 24px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('BARSTOW COMMUNITY COLLEGE • CBIS 15 INFORMATION NETWORKING', 900, 125);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 52px "Space Grotesk", sans-serif';
+      ctx.fillText('OFFICIAL SUBNETTING LAB CERTIFICATE', 900, 195);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '24px "Inter", sans-serif';
+      ctx.fillText('This official credential certifies that', 900, 248);
+
+      ctx.fillStyle = '#080a10';
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 4;
+      ctx.fillRect(300, 272, 1200, 145);
+      ctx.strokeRect(300, 272, 1200, 145);
+
+      // Offscreen Canvas so Scanlines are Clipped strictly INSIDE the Student's Name Letters
+      const nameCanvas = document.createElement('canvas');
+      nameCanvas.width = 1180;
+      nameCanvas.height = 105;
+      const nCtx = nameCanvas.getContext('2d');
+
+      nCtx.textAlign = 'center';
+      nCtx.textBaseline = 'middle';
+      nCtx.font = '900 68px "Space Grotesk", sans-serif';
+      nCtx.fillStyle = '#fbbf24';
+      nCtx.fillText(fullName, 590, 54);
+
+      nCtx.globalCompositeOperation = 'source-atop';
+      for (let y = 0; y < 105; y += 6) {
+        nCtx.fillStyle = y % 12 === 0 ? '#fde047' : '#92400e';
+        nCtx.fillRect(0, y, 1180, 3);
+      }
+
+      ctx.drawImage(nameCanvas, 310, 278);
+
+      ctx.fillStyle = '#22d3ee';
+      ctx.font = 'bold 18px "JetBrains Mono", monospace';
+      ctx.fillText('SCANLINE VERIFIED CREDENTIAL • THE SAUSAGE PIZZA SUBNETTING LAB (SP-SL)', 900, 400);
+
+      ctx.fillStyle = '#0c2436';
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 2;
+      ctx.fillRect(420, 435, 960, 52);
+      ctx.strokeRect(420, 435, 960, 52);
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 23px "JetBrains Mono", monospace';
+      ctx.fillText(`COMPLETED IPv4 ADDRESS CLASS: ${completedClassesStr.toUpperCase()}`, 900, 469);
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '23px "Inter", sans-serif';
+      ctx.fillText('has successfully mastered IPv4 Classful & Classless (CIDR) Subnetting, Binary Conversion,', 900, 535);
+      ctx.fillText('Borrowed Subnet Bits (2^x), Usable Host Calculations (2^y - 2), Block Size (256 - Subnet Mask),', 900, 570);
+      ctx.fillText('Broadcast Identification, and Valid Host Ranges (Todd Lammle Chapter 8).', 900, 605);
+
+      ctx.fillStyle = '#0d1322';
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.fillRect(160, 640, 1480, 135);
+      ctx.strokeRect(160, 640, 1480, 135);
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 21px "JetBrains Mono", monospace';
+      ctx.fillText('VERIFIED IPv4 ADDRESSES & CLASSES COMPLETED ACROSS LAB TABS:', 900, 678);
+
+      ctx.fillStyle = '#67e8f9';
+      ctx.font = '19px "JetBrains Mono", monospace';
+      const ipLine1 = [2, 3, 4, 5].map(t => {
+        const c = getIpClassInfo(practiceTabsState[t].ip[0]);
+        return `Tab ${t}: ${practiceTabsState[t].ip.join('.')} (${c.short})`;
+      }).join('  |  ');
+      const ipLine2 = [6, 7, 8].map(t => {
+        const c = getIpClassInfo(practiceTabsState[t].ip[0]);
+        return `Tab ${t}: ${practiceTabsState[t].ip.join('.')} (${c.short})`;
+      }).join('  |  ');
+      ctx.fillText(ipLine1, 900, 715);
+      ctx.fillText(ipLine2, 900, 750);
+
+      const startStr = document.getElementById('cert-start-time').textContent;
+      const endStr = document.getElementById('cert-end-time').textContent;
+      const totalStr = document.getElementById('cert-total-time').textContent;
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '22px "JetBrains Mono", monospace';
+      ctx.fillText(`Start: ${startStr}   •   Completed: ${endStr}   •   Active Time: ${totalStr}`, 900, 835);
+
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(220, 995); ctx.lineTo(620, 995);
+      ctx.moveTo(1180, 995); ctx.lineTo(1580, 995);
+      ctx.stroke();
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'italic bold 32px "Space Grotesk", sans-serif';
+      ctx.fillText('Timothy Brinkley', 420, 975);
+      ctx.fillText('Wes Frogge', 1380, 975);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '20px "Inter", sans-serif';
+      ctx.fillText('Instructor, CBIS 15 Networking', 420, 1030);
+      ctx.fillText('Barstow Community College', 1380, 1030);
+
+      ctx.beginPath();
+      ctx.arc(900, 990, 68, 0, Math.PI * 2);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(900, 990, 58, 0, Math.PI * 2);
+      ctx.fillStyle = '#0b0e17';
+      ctx.fill();
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 24px "Space Grotesk", sans-serif';
+      ctx.fillText('🍕 BCC', 900, 985);
+      ctx.font = 'bold 18px "JetBrains Mono", monospace';
+      ctx.fillText('CBIS 15', 900, 1011);
+
+      const link = document.createElement('a');
+      const safeName = fullName.replace(/[^A-Z0-9]+/g, '_');
+      link.download = `BCC_CBIS15_Subnetting_Certificate_${safeName}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // Header Summary Speaker Button
+    function toggleSpeechCurrentSection(e) {
+      if (e) e.stopPropagation();
+      if (!('speechSynthesis' in window)) return;
+      if (isSpeaking) { stopSpeech(); return; }
+      let textToRead = '';
+      if (activeTab === 0) {
+        textToRead = 'Tab 0: Official Lab Instructions and Benefits of Subnetting. Click the little speaker icon inside any box to hear that box read aloud.';
+      } else if (activeTab === 1) {
+        const s = currentState;
+        textToRead = `Tab 1: Pizza Subnetting Calculator. Type an IPv4 address in Step 1 or choose one of the single-use examples. Current CIDR is slash ${s.cidr}, Block Size ${s.blockSize}, with ${s.usableHosts} usable hosts per slice.`;
+      } else if (activeTab >= 2 && activeTab <= 8) {
+        const st = practiceTabsState[activeTab];
+        const info = analyzePracticeIp(st.ip);
+        textToRead = `${stepTitles[activeTab]}. Current IP is ${info.ipStr}, in ${info.cls.short}. Subnet Mask is 255 dot 255 dot 255 dot ${info.effectiveMaskByte}.`;
+      } else {
+        textToRead = `Official Barstow Community College CBIS 15 Subnetting Lab Certificate. Completed IPv4 Class: ${getCompletedClassesSummary()}.`;
+      }
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.onend = () => stopSpeech();
+      utterance.onerror = () => stopSpeech();
+      isSpeaking = true;
+      document.getElementById('speaker-label').textContent = 'Stop Audio';
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Initialize Lab
+    window.addEventListener('DOMContentLoaded', () => {
+      recalculateAll('init');
+      updateProgressAndTabBarUI();
+      updateAiTutorForTab(0);
+      injectBoxSpeakers();
+      appendTutorMessage(
+        'ai',
+        `Welcome to the <strong>Sausage Pizza Subnetting Lab (SP-SL)</strong>! You can chat with me on <strong>every single tab</strong> using this AI Tutor panel at the bottom of the screen, and click the little <code>🔊</code> speaker button inside any box to hear it read aloud!`
+      );
+      updateCertificateDisplay();
+    });
+  </script>
+</body>
+</html>
