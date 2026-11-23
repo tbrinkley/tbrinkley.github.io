@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CBIS 15: QAM Communications Simulator | Barstow Community College</title>
   <meta name="description" content="Interactive Layer 1 RF and 16-QAM Communications Simulator for Barstow Community College CBIS 15: OSI model, wireless packet journey, RF spectrum and FHSS, PLL synchronization, I/Q waves, 16-QAM transmission, and demodulation math.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239333ea' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.9 19.1C1 15.2 1 8.8 4.9 4.9'/%3E%3Cpath d='M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%239333ea'/%3E%3Cpath d='M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5'/%3E%3Cpath d='M19.1 4.9C23 8.8 23 15.1 19.1 19'/%3E%3C/svg%3E">
@@ -143,6 +143,83 @@
       <path d="M12 17h.01" />
     </>);
 
+    // Cross-browser rounded-rectangle path helper (fallback for Safari < 15.4 / Firefox < 112)
+    function drawRoundRect(ctx, x, y, w, h, r) {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(x, y, w, h, radius);
+      } else {
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + w - radius, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+        ctx.lineTo(x + w, y + h - radius);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        ctx.lineTo(x + radius, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+      }
+    }
+
+    // Crisp HiDPI canvas setup across Retina mobile, tablet, and desktop displays
+    function setupHiDPICanvas(canvas, logicalW, logicalH) {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const targetW = Math.round(logicalW * dpr);
+      const targetH = Math.round(logicalH * dpr);
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      return ctx;
+    }
+
+    // Draw a vertically and horizontally symmetrical modulated QAM carrier wave
+    function drawSymmetricalQamWave(ctx, opts) {
+      const {
+        waveStart, waveLen, centerY, ampScale,
+        i1, q1, i2, q2, cyclesPerSymbol,
+        timePhase, smoothTransition, blendZone,
+        color, lineWidth
+      } = opts;
+
+      const halfLen = waveLen / 2;
+      const k = (cyclesPerSymbol * 2 * Math.PI) / halfLen;
+      const a1 = Math.hypot(i1, q1);
+      const p1 = Math.atan2(q1, i1);
+      const a2 = Math.hypot(i2, q2);
+      const p2 = Math.atan2(q2, i2);
+      // Wrap phase delta into (-PI, PI] safely across all JS engines
+      const twoPi = Math.PI * 2;
+      const dp = (((p2 - p1 + Math.PI) % twoPi) + twoPi) % twoPi - Math.PI;
+
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+
+      const step = 0.5;
+      for (let x = 0; x <= waveLen; x += step) {
+        let blend = x < halfLen ? 0 : 1;
+        if (smoothTransition && Math.abs(x - halfLen) < blendZone) {
+          const norm = (x - (halfLen - blendZone)) / (2 * blendZone);
+          blend = 0.5 - 0.5 * Math.cos(norm * Math.PI);
+        }
+        const amp = a1 * (1 - blend) + a2 * blend;
+        const phi = p1 + dp * blend;
+        const y = centerY - amp * ampScale * Math.sin(x * k + timePhase + phi);
+        if (x === 0) ctx.moveTo(waveStart + x, y);
+        else ctx.lineTo(waveStart + x, y);
+      }
+      ctx.stroke();
+    }
+
     function App() {
       // --- Global State ---
       const [activeTab, setActiveTab] = useState('INTRO');
@@ -234,6 +311,7 @@
       const mathGridRef = useRef(null);
 
       const animationRef = useRef(null);
+      const transmitTimeoutRef = useRef(null);
 
       const formatElapsedTime = () => {
         const totalSeconds = Math.max(1, Math.floor((Date.now() - startTimeRef.current) / 1000));
@@ -264,46 +342,78 @@
         checkFreqUnlock();
       }, [touchedFreqs, quiz]);
 
-      // --- Core QAM Logic & Audio ---
+      // --- Core QAM Logic & Audio (Cross-Browser + iOS/Android Safe) ---
       const initAudio = () => {
-        if (!audioCtxRef.current) {
+        try {
           const Ctx = window.AudioContext || window.webkitAudioContext;
-          audioCtxRef.current = new Ctx();
-          const masterGain = audioCtxRef.current.createGain();
-          masterGain.gain.value = 0.2;
-          masterGain.connect(audioCtxRef.current.destination);
+          if (!Ctx) return;
+          if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+            audioCtxRef.current = new Ctx();
+            const masterGain = audioCtxRef.current.createGain();
+            masterGain.gain.value = 0.2;
+            masterGain.connect(audioCtxRef.current.destination);
 
-          const oscI = audioCtxRef.current.createOscillator();
-          oscI.type = 'sine'; oscI.frequency.value = 300;
-          gainIRef.current = audioCtxRef.current.createGain();
-          gainIRef.current.gain.value = 0;
-          oscI.connect(gainIRef.current).connect(masterGain);
-          oscI.start();
+            const oscI = audioCtxRef.current.createOscillator();
+            oscI.type = 'sine'; oscI.frequency.value = 300;
+            gainIRef.current = audioCtxRef.current.createGain();
+            gainIRef.current.gain.value = 0;
+            oscI.connect(gainIRef.current).connect(masterGain);
+            oscI.start();
 
-          const oscQ = audioCtxRef.current.createOscillator();
-          oscQ.type = 'sine'; oscQ.frequency.value = 600;
-          gainQRef.current = audioCtxRef.current.createGain();
-          gainQRef.current.gain.value = 0;
-          oscQ.connect(gainQRef.current).connect(masterGain);
-          oscQ.start();
+            const oscQ = audioCtxRef.current.createOscillator();
+            oscQ.type = 'sine'; oscQ.frequency.value = 600;
+            gainQRef.current = audioCtxRef.current.createGain();
+            gainQRef.current.gain.value = 0;
+            oscQ.connect(gainQRef.current).connect(masterGain);
+            oscQ.start();
+          }
+          if (audioCtxRef.current.state === 'suspended' && typeof audioCtxRef.current.resume === 'function') {
+            const p = audioCtxRef.current.resume();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
+          }
+        } catch (err) {
+          // Gracefully degrade when Web Audio is unavailable or blocked
         }
-        if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
       };
 
       const updateAudioGains = (iVal, qVal) => {
-        if (!audioCtxRef.current || !gainIRef.current) return;
-        const volI = (iVal + 4) / 7;
-        const volQ = (qVal + 4) / 7;
-        gainIRef.current.gain.setTargetAtTime(volI, audioCtxRef.current.currentTime, 0.05);
-        gainQRef.current.gain.setTargetAtTime(volQ, audioCtxRef.current.currentTime, 0.05);
+        try {
+          if (!audioCtxRef.current || audioCtxRef.current.state === 'closed' || !gainIRef.current || !gainQRef.current) return;
+          const volI = (iVal + 4) / 7;
+          const volQ = (qVal + 4) / 7;
+          const now = audioCtxRef.current.currentTime;
+          gainIRef.current.gain.setTargetAtTime(volI, now, 0.05);
+          gainQRef.current.gain.setTargetAtTime(volQ, now, 0.05);
+        } catch (err) {}
       };
 
       const silenceAudio = () => {
-        if (gainIRef.current && audioCtxRef.current) {
-          gainIRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.05);
-          gainQRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.05);
-        }
+        try {
+          if (audioCtxRef.current && audioCtxRef.current.state !== 'closed' && gainIRef.current && gainQRef.current) {
+            const now = audioCtxRef.current.currentTime;
+            gainIRef.current.gain.setTargetAtTime(0, now, 0.05);
+            gainQRef.current.gain.setTargetAtTime(0, now, 0.05);
+          }
+        } catch (err) {}
       };
+
+      // Silence audio when backgrounding tab/app on mobile and clean up on unmount
+      useEffect(() => {
+        const handleVisibility = () => {
+          if (document.hidden) silenceAudio();
+        };
+        const handlePageHide = () => silenceAudio();
+        document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('pagehide', handlePageHide);
+        return () => {
+          document.removeEventListener('visibilitychange', handleVisibility);
+          window.removeEventListener('pagehide', handlePageHide);
+          if (transmitTimeoutRef.current) clearTimeout(transmitTimeoutRef.current);
+          if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+            try { audioCtxRef.current.close(); } catch (err) {}
+          }
+        };
+      }, []);
 
       const bitsMap = {'-3': '00', '-1': '01', '1': '11', '3': '10'};
 
@@ -327,6 +437,7 @@
 
       // --- Auto / Manual Game Logic ---
       const startGame = () => {
+        if (transmitTimeoutRef.current) clearTimeout(transmitTimeoutRef.current);
         initAudio();
         const wordToUse = targetWord.trim() || 'RF';
         const symbols = convertTextToSymbols(wordToUse);
@@ -355,21 +466,23 @@
       };
 
       const transmitManualSymbol = () => {
+        if (feedback === 'CORRECT') return;
         const cur = gameSymbols[currentSymbolIndex];
         if (!cur) return;
+        if (transmitTimeoutRef.current) clearTimeout(transmitTimeoutRef.current);
         if (userI === cur.i && userQ === cur.q) {
           setFeedback('CORRECT');
           const newScore = score + 100 + (streak * 20);
           setScore(newScore); setStreak(s => s + 1);
 
           if (currentSymbolIndex + 1 < gameSymbols.length) {
-            setTimeout(() => {
+            transmitTimeoutRef.current = setTimeout(() => {
               setFeedback(null);
               setCurrentSymbolIndex(p => p + 1);
               setActiveSymbol({ ...gameSymbols[currentSymbolIndex + 1], userDisplayI: userI, userDisplayQ: userQ });
             }, 800);
           } else {
-            setTimeout(() => {
+            transmitTimeoutRef.current = setTimeout(() => {
               setFeedback('MISSION COMPLETE!');
               setFinalScore(newScore);
               setGameActive(false);
@@ -379,18 +492,19 @@
           }
         } else {
           setFeedback('MISMATCH'); setStreak(0);
-          setTimeout(() => setFeedback(null), 800);
+          transmitTimeoutRef.current = setTimeout(() => setFeedback(null), 800);
         }
       };
 
-      // --- Grid Explorer Mouse Logic ---
-      const handleExploreMouseMove = (e) => {
+      // --- Grid Explorer Pointer Logic (Mouse, Touch, Stylus & Responsive Scaling) ---
+      const handleExplorePointer = (e) => {
         if (!exploreCanvasRef.current) return;
         const rect = exploreCanvasRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        if (!rect.width || !rect.height) return;
+        const x = ((e.clientX - rect.left) / rect.width) * 240;
+        const y = ((e.clientY - rect.top) / rect.height) * 240;
 
-        // Canvas is 240x240. Center is 120,120. Scale is 30.
+        // Logical canvas is 240x240. Center is 120,120. Scale is 30.
         const i = Math.round((x - 120) / 30);
         const q = Math.round((120 - y) / 30);
 
@@ -405,9 +519,14 @@
         setHoverQ(clamp(q));
       };
 
-      // --- Scroll to Top on Tab Change ---
+      // --- Scroll to Top on Tab Change (Respects Reduced Motion & Legacy Browsers) ---
       useEffect(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        try {
+          window.scrollTo({ top: 0, behavior: prefersReduced ? 'auto' : 'smooth' });
+        } catch (err) {
+          window.scrollTo(0, 0);
+        }
       }, [activeTab, mathSubTab]);
 
       // --- Auto-advance Packet Journey WLAN Animation ---
@@ -432,204 +551,221 @@
 
           // 0B. PACKET JOURNEY (WLAN / CELL TOWER CANVAS)
           if (activeTab === 'PACKET' && introCanvasRef.current) {
-            const ctx = introCanvasRef.current.getContext('2d');
-            const w = introCanvasRef.current.width, h = introCanvasRef.current.height;
+            const w = 540, h = 220;
+            const ctx = setupHiDPICanvas(introCanvasRef.current, w, h);
+            if (!ctx) return;
             ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, w, h);
 
-            const leftX = 85, rightX = w - 85, midY = h / 2 + 4;
-            const waveStart = leftX + 45;
-            const waveEnd = rightX - 45;
-            const waveLen = waveEnd - waveStart;
+            const midY = h / 2;
+            const boxW = 78, boxH = 76, boxMargin = 12;
+            const leftEdge = boxMargin + boxW;      // 90
+            const rightEdge = w - boxMargin - boxW; // 450
+            const waveStart = leftEdge + 14;        // 104
+            const waveEnd = rightEdge - 14;         // 436
+            const waveLen = waveEnd - waveStart;    // 332 (exact symmetry around w/2 = 270)
 
             if (duplexMode === 'HALF') {
               // --- HALF-DUPLEX (Wi-Fi / Walkie-Talkie: 1 Shared Channel, Taking Turns) ---
+              const isAck = wlanStep === 3;
               for (let r = 0; r < 3; r++) {
-                const radius = ((time * 35 + r * 45) % 140) + 20;
-                const alpha = Math.max(0, 1 - radius / 160) * 0.25;
-                ctx.strokeStyle = wlanStep === 3 ? `rgba(34, 197, 94, ${alpha})` : `rgba(168, 85, 247, ${alpha})`;
+                const radius = ((time * 35 + r * 45) % 140) + 18;
+                const alpha = Math.max(0, 1 - radius / 158) * 0.28;
+                ctx.strokeStyle = isAck ? `rgba(34, 197, 94, ${alpha})` : `rgba(168, 85, 247, ${alpha})`;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.arc(wlanStep === 3 ? rightX : leftX, midY, radius, -0.6, 0.6);
+                if (isAck) {
+                  ctx.arc(rightEdge, midY, radius, Math.PI - 0.55, Math.PI + 0.55);
+                } else {
+                  ctx.arc(leftEdge, midY, radius, -0.55, 0.55);
+                }
                 ctx.stroke();
               }
 
-              // Center Physical Medium Track
-              ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
-              ctx.beginPath(); ctx.moveTo(leftX + 40, midY); ctx.lineTo(rightX - 40, midY); ctx.stroke();
+              // Center Physical Medium 0V Track (symmetrical)
+              ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+              ctx.beginPath(); ctx.moveTo(leftEdge + 4, midY); ctx.lineTo(rightEdge - 4, midY); ctx.stroke();
               ctx.setLineDash([]);
 
-              // Symbol Boundary Marker
-              ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
-              ctx.beginPath(); ctx.moveTo(waveStart + waveLen / 2, midY - 38); ctx.lineTo(waveStart + waveLen / 2, midY + 38); ctx.stroke();
+              // Symbol Boundary Marker (dead-center at w / 2)
+              ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+              ctx.beginPath(); ctx.moveTo(w / 2, midY - 36); ctx.lineTo(w / 2, midY + 36); ctx.stroke();
               ctx.setLineDash([]);
 
-              // Modulated QAM Carrier Wave in the Air (with smooth pulse-shaped blending option)
-              ctx.beginPath();
-              ctx.strokeStyle = wlanStep === 3 ? '#22c55e' : '#a855f7';
-              ctx.lineWidth = 2.5;
-              const blendZone = 28; // Width of smooth pulse-shaping filter transition
-              const halfLen = waveLen / 2;
+              // Symmetrical Modulated QAM Carrier Wave (3 full cycles per symbol)
+              drawSymmetricalQamWave(ctx, {
+                waveStart,
+                waveLen,
+                centerY: midY,
+                ampScale: 3.8,
+                i1: 3, q1: -3,
+                i2: -1, q2: 3,
+                cyclesPerSymbol: 3,
+                timePhase: isAck ? time * 2.2 : -time * 2.2,
+                smoothTransition,
+                blendZone: 18,
+                color: isAck ? '#22c55e' : '#a855f7',
+                lineWidth: 2.5
+              });
 
-              for (let x = 0; x <= waveLen; x++) {
-                let blend = x < halfLen ? 0 : 1;
-                if (smoothTransition && Math.abs(x - halfLen) < blendZone) {
-                  const norm = (x - (halfLen - blendZone)) / (2 * blendZone);
-                  blend = 0.5 - 0.5 * Math.cos(norm * Math.PI);
-                }
-                const iAmp = 3 * (1 - blend) + (-1) * blend;
-                const qAmp = (-3) * (1 - blend) + 3 * blend;
-                const t = (x * 0.07) - time * (wlanStep === 3 ? -2.2 : 2.2);
-                const y = midY - (iAmp * Math.sin(t) + qAmp * Math.cos(t)) * 3.8;
-                if (x === 0) ctx.moveTo(waveStart + x, y);
-                else ctx.lineTo(waveStart + x, y);
-              }
-              ctx.stroke();
+              // Moving Packet / Frame Box above the wave (auto-sized to text)
+              const pktText = isAck ? '◀ ACK FRAME (1101)' : 'DATA: 1000 0110 ▶';
+              ctx.font = 'bold 9.5px monospace';
+              const pillW = Math.max(126, Math.ceil(ctx.measureText(pktText).width) + 20);
+              const pillH = 24;
+              const travelSpan = Math.max(0, waveLen - pillW);
+              const progress = (time * 0.4) % 1;
+              const pktX = isAck
+                ? (waveEnd - pillW / 2) - progress * travelSpan
+                : (waveStart + pillW / 2) + progress * travelSpan;
+              const pktY = midY - 62;
 
-              // Moving Packet / Frame Box above the wave
-              const progress = ((time * 0.4) % 1);
-              const pktX = wlanStep === 3
-                ? waveEnd - progress * (waveLen - 80) - 40
-                : waveStart + progress * (waveLen - 80) + 40;
-              const pktY = midY - 54;
-
-              ctx.fillStyle = wlanStep === 3 ? '#064e3b' : '#1e1b4b';
-              ctx.strokeStyle = wlanStep === 3 ? '#22c55e' : '#818cf8';
+              ctx.fillStyle = isAck ? '#064e3b' : '#1e1b4b';
+              ctx.strokeStyle = isAck ? '#22c55e' : '#818cf8';
               ctx.lineWidth = 1.5;
-              ctx.beginPath();
-              ctx.roundRect(pktX - 60, pktY - 13, 120, 24, 6);
+              drawRoundRect(ctx, pktX - pillW / 2, pktY - pillH / 2, pillW, pillH, 6);
               ctx.fill();
               ctx.stroke();
 
-              ctx.font = 'bold 9px monospace';
               ctx.fillStyle = '#ffffff';
               ctx.textAlign = 'center';
-              ctx.fillText(
-                wlanStep === 3 ? '◀ ACK FRAME (1101)' : 'DATA: 1000 0110 ▶',
-                pktX,
-                pktY + 2
-              );
+              ctx.textBaseline = 'middle';
+              ctx.fillText(pktText, pktX, pktY + 0.5);
+              ctx.textBaseline = 'alphabetic';
 
-              // Coordinate labels under wave
+              // Coordinate labels under wave (wide spacing, zero overlap)
               ctx.font = '9px monospace';
               ctx.fillStyle = '#c084fc';
-              ctx.fillText('Symbol 1: X=3, Y=-3 (1000)', waveStart + waveLen * 0.25, midY + 52);
+              ctx.fillText('Symbol 1: X=3, Y=-3 (1000)', waveStart + waveLen * 0.25, midY + 58);
               ctx.fillStyle = '#38bdf8';
-              ctx.fillText('Symbol 2: X=-1, Y=3 (0110)', waveStart + waveLen * 0.75, midY + 52);
+              ctx.fillText('Symbol 2: X=-1, Y=3 (0110)', waveStart + waveLen * 0.75, midY + 58);
 
             } else {
               // --- FULL-DUPLEX (Cellular Tower / FDD: 2 Simultaneous Channels at Once!) ---
-              const topY = midY - 28;
-              const botY = midY + 28;
+              const topY = midY - 34;
+              const botY = midY + 34;
 
               // Center Channel Divider
               ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.setLineDash([6, 4]);
-              ctx.beginPath(); ctx.moveTo(waveStart, midY); ctx.lineTo(waveEnd, midY); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(leftEdge + 4, midY); ctx.lineTo(rightEdge - 4, midY); ctx.stroke();
+
+              // Faint 0V baselines for both channels so symmetry is clearly visible
+              ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)'; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
+              ctx.beginPath(); ctx.moveTo(waveStart, topY); ctx.lineTo(waveEnd, topY); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(waveStart, botY); ctx.lineTo(waveEnd, botY); ctx.stroke();
+
+              // Faint Center Symbol Boundary across both channels
+              ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+              ctx.beginPath(); ctx.moveTo(w / 2, topY - 18); ctx.lineTo(w / 2, botY + 18); ctx.stroke();
               ctx.setLineDash([]);
 
-              // Top Lane: Downlink TX Wave (Purple, moving Left -> Right)
-              ctx.beginPath();
-              ctx.strokeStyle = '#a855f7';
-              ctx.lineWidth = 2.2;
-              const halfLen = waveLen / 2;
-              const blendZone = 24;
-              for (let x = 0; x <= waveLen; x++) {
-                let blend = x < halfLen ? 0 : 1;
-                if (smoothTransition && Math.abs(x - halfLen) < blendZone) {
-                  const norm = (x - (halfLen - blendZone)) / (2 * blendZone);
-                  blend = 0.5 - 0.5 * Math.cos(norm * Math.PI);
-                }
-                const iAmp = 3 * (1 - blend) + (-1) * blend;
-                const qAmp = (-3) * (1 - blend) + 3 * blend;
-                const t = (x * 0.07) - time * 2.2;
-                const y = topY - (iAmp * Math.sin(t) + qAmp * Math.cos(t)) * 2.5;
-                if (x === 0) ctx.moveTo(waveStart + x, y);
-                else ctx.lineTo(waveStart + x, y);
-              }
-              ctx.stroke();
+              // Top Lane: Downlink TX Wave (Purple, moving Left -> Right, 3 cycles/symbol)
+              drawSymmetricalQamWave(ctx, {
+                waveStart,
+                waveLen,
+                centerY: topY,
+                ampScale: 2.6,
+                i1: 3, q1: -3,
+                i2: -1, q2: 3,
+                cyclesPerSymbol: 3,
+                timePhase: -time * 2.2,
+                smoothTransition,
+                blendZone: 16,
+                color: '#a855f7',
+                lineWidth: 2.2
+              });
 
-              // Bottom Lane: Uplink RX Wave (Green, moving Right -> Left simultaneously)
-              ctx.beginPath();
-              ctx.strokeStyle = '#22c55e';
-              ctx.lineWidth = 2.2;
-              for (let x = 0; x <= waveLen; x++) {
-                let blend = x < halfLen ? 0 : 1;
-                if (smoothTransition && Math.abs(x - halfLen) < blendZone) {
-                  const norm = (x - (halfLen - blendZone)) / (2 * blendZone);
-                  blend = 0.5 - 0.5 * Math.cos(norm * Math.PI);
-                }
-                const iAmp = 1 * (1 - blend) + 3 * blend;
-                const qAmp = 3 * (1 - blend) + (-1) * blend;
-                const t = (x * 0.085) + time * 2.2;
-                const y = botY - (iAmp * Math.sin(t) + qAmp * Math.cos(t)) * 2.5;
-                if (x === 0) ctx.moveTo(waveStart + x, y);
-                else ctx.lineTo(waveStart + x, y);
-              }
-              ctx.stroke();
+              // Bottom Lane: Uplink RX Wave (Green, moving Right -> Left simultaneously, 3.5 cycles/symbol)
+              drawSymmetricalQamWave(ctx, {
+                waveStart,
+                waveLen,
+                centerY: botY,
+                ampScale: 2.6,
+                i1: 3, q1: -1,
+                i2: 1, q2: 3,
+                cyclesPerSymbol: 3.5,
+                timePhase: time * 2.2,
+                smoothTransition,
+                blendZone: 16,
+                color: '#22c55e',
+                lineWidth: 2.2
+              });
 
-              // Simultaneous Moving Packets
-              const prog = ((time * 0.4) % 1);
-              const txPktX = waveStart + prog * (waveLen - 90) + 45;
-              const rxPktX = waveEnd - prog * (waveLen - 90) - 45;
-
+              // Simultaneous Moving Packets (dynamically sized so labels never overflow)
+              const prog = (time * 0.4) % 1;
               ctx.textAlign = 'center';
-              ctx.font = 'bold 8px monospace';
+              ctx.textBaseline = 'middle';
+              ctx.font = 'bold 8.5px monospace';
 
               // Top Packet
+              const txLabel = 'TX DATA (Ch A) ▶';
+              const txW = Math.max(106, Math.ceil(ctx.measureText(txLabel).width) + 18);
+              const txH = 19;
+              const txPktX = (waveStart + txW / 2) + prog * Math.max(0, waveLen - txW);
+              const txPktY = topY - 38;
               ctx.fillStyle = '#1e1b4b'; ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1.2;
-              ctx.beginPath(); ctx.roundRect(txPktX - 48, topY - 34, 96, 17, 4); ctx.fill(); ctx.stroke();
+              drawRoundRect(ctx, txPktX - txW / 2, txPktY - txH / 2, txW, txH, 5); ctx.fill(); ctx.stroke();
               ctx.fillStyle = '#e9d5ff';
-              ctx.fillText('TX DATA (Ch A) ▶', txPktX, topY - 23);
+              ctx.fillText(txLabel, txPktX, txPktY + 0.5);
 
               // Bottom Packet
+              const rxLabel = '◀ RX ACK/TELEM (Ch B)';
+              const rxW = Math.max(124, Math.ceil(ctx.measureText(rxLabel).width) + 18);
+              const rxH = 19;
+              const rxPktX = (waveEnd - rxW / 2) - prog * Math.max(0, waveLen - rxW);
+              const rxPktY = botY + 38;
               ctx.fillStyle = '#064e3b'; ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 1.2;
-              ctx.beginPath(); ctx.roundRect(rxPktX - 48, botY + 18, 96, 17, 4); ctx.fill(); ctx.stroke();
+              drawRoundRect(ctx, rxPktX - rxW / 2, rxPktY - rxH / 2, rxW, rxH, 5); ctx.fill(); ctx.stroke();
               ctx.fillStyle = '#bbf7d0';
-              ctx.fillText('◀ RX ACK/TELEM (Ch B)', rxPktX, botY + 29);
+              ctx.fillText(rxLabel, rxPktX, rxPktY + 0.5);
+              ctx.textBaseline = 'alphabetic';
             }
 
             // Left Node Box (Router / Cell Tower)
+            const leftCenterX = boxMargin + boxW / 2;
             ctx.textAlign = 'center';
             ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.roundRect(14, midY - 38, 74, 76, 12); ctx.fill(); ctx.stroke();
+            drawRoundRect(ctx, boxMargin, midY - boxH / 2, boxW, boxH, 12); ctx.fill(); ctx.stroke();
             ctx.fillStyle = '#60a5fa'; ctx.font = 'bold 10px sans-serif';
-            ctx.fillText(wlanScenario === 'ROUTER' ? 'Wi-Fi Router' : 'Cell / sUAS', 51, midY - 12);
+            ctx.fillText(wlanScenario === 'ROUTER' ? 'Wi-Fi Router' : 'Cell / sUAS', leftCenterX, midY - 12);
             ctx.fillStyle = '#94a3b8'; ctx.font = '8px monospace';
-            ctx.fillText(duplexMode === 'FULL' ? 'SIMULTANEOUS' : (wlanStep === 3 ? 'RECEIVING' : 'TRANSMITTING'), 51, midY + 4);
+            ctx.fillText(duplexMode === 'FULL' ? 'SIMULTANEOUS' : (wlanStep === 3 ? 'RECEIVING' : 'TRANSMITTING'), leftCenterX, midY + 4);
             ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 8px monospace';
-            ctx.fillText('I·sin + Q·cos', 51, midY + 20);
+            ctx.fillText('I·sin + Q·cos', leftCenterX, midY + 20);
 
             // Right Node Box (Smartphone / Drone)
+            const rightCenterX = w - boxMargin - boxW / 2;
             ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.roundRect(w - 88, midY - 38, 74, 76, 12); ctx.fill(); ctx.stroke();
+            drawRoundRect(ctx, rightEdge, midY - boxH / 2, boxW, boxH, 12); ctx.fill(); ctx.stroke();
             ctx.fillStyle = '#f87171'; ctx.font = 'bold 10px sans-serif';
-            ctx.fillText(wlanScenario === 'ROUTER' ? 'Smartphone' : 'Drone / Phone', w - 51, midY - 12);
+            ctx.fillText(wlanScenario === 'ROUTER' ? 'Smartphone' : 'Drone / Phone', rightCenterX, midY - 12);
             ctx.fillStyle = '#94a3b8'; ctx.font = '8px monospace';
-            ctx.fillText(duplexMode === 'FULL' ? 'SIMULTANEOUS' : (wlanStep === 3 ? 'SENDING ACK' : 'LISTENING'), w - 51, midY + 4);
+            ctx.fillText(duplexMode === 'FULL' ? 'SIMULTANEOUS' : (wlanStep === 3 ? 'SENDING ACK' : 'LISTENING'), rightCenterX, midY + 4);
             ctx.fillStyle = '#facc15'; ctx.font = 'bold 8px monospace';
-            ctx.fillText('Demodulates', w - 51, midY + 20);
+            ctx.fillText('Demodulates', rightCenterX, midY + 20);
 
             ctx.textAlign = 'left';
           }
 
           // 1. FREQUENCY CANVAS
           if (activeTab === 'FREQ' && freqCanvasRef.current) {
-            const ctx = freqCanvasRef.current.getContext('2d');
-            const w = freqCanvasRef.current.width, h = freqCanvasRef.current.height;
+            const w = 400, h = 230;
+            const ctx = setupHiDPICanvas(freqCanvasRef.current, w, h);
+            if (!ctx) return;
             ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, w, h);
 
             const drawWave = (freqMultiplier, color, offset, label, dataRate) => {
-              ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2;
+              ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round';
               for (let x = 0; x < w; x++) {
                 const y = offset - 15 * Math.sin((x * 0.02 * freqMultiplier) - time * 2);
                 if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
               }
               ctx.stroke();
 
-              ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '10px monospace';
+              ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = '10px monospace';
               ctx.fillText(label, 10, offset - 20);
 
               if (dataRate) {
-                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.fillStyle = 'rgba(255,255,255,0.45)';
                 ctx.textAlign = 'right';
                 ctx.fillText(`Capacity: ~${dataRate}`, w - 10, offset - 20);
                 ctx.textAlign = 'left';
@@ -650,7 +786,9 @@
               const cycle = Math.floor(time * 2) % 4;
               ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
               ctx.fillRect(w/2 - 20, 0, 40, h);
-              ctx.fillStyle = 'rgba(239, 68, 68, 0.5)'; ctx.fillText("INTERFERENCE", w/2 - 35, 20);
+              ctx.fillStyle = 'rgba(239, 68, 68, 0.6)'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+              ctx.fillText("INTERFERENCE", w/2, 20);
+              ctx.textAlign = 'left';
 
               const hoppingData = [
                 { mult: mult900, color: '#22c55e', label: `Hop: ${freqValues.f900} MHz`, rate: rate900 },
@@ -669,8 +807,9 @@
 
           // 2. SYNC / PLL CANVAS
           if (activeTab === 'SYNC' && syncPhase === 'PLL' && syncCanvasRef.current) {
-            const ctx = syncCanvasRef.current.getContext('2d');
-            const w = syncCanvasRef.current.width, h = syncCanvasRef.current.height, cy = h/2;
+            const w = 540, h = 150, cy = h / 2;
+            const ctx = setupHiDPICanvas(syncCanvasRef.current, w, h);
+            if (!ctx) return;
             ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, w, h);
 
             ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
@@ -687,9 +826,9 @@
             setLockProgress(localLock);
 
             // Wave 1: Incoming Preamble Wave (Purple)
-            ctx.strokeStyle = 'rgba(168, 85, 247, 0.9)'; ctx.lineWidth = 3; ctx.beginPath();
+            ctx.strokeStyle = 'rgba(168, 85, 247, 0.9)'; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.beginPath();
             for (let x = 0; x < w; x++) {
-              const y = cy - 42 * Math.sin((x * (targetFreq * 0.0005)) - (time * (targetFreq / 18)));
+              const y = cy - 40 * Math.sin((x * (targetFreq * 0.00065)) - (time * (targetFreq / 18)));
               if (x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
             }
             ctx.stroke();
@@ -701,22 +840,24 @@
             if (!localLocked) ctx.setLineDash([6, 4]);
             ctx.beginPath();
             for (let x = 0; x < w; x++) {
-              const y = cy - 42 * Math.sin((x * (activeFreq * 0.0005)) - (time * (activeFreq / 18)));
+              const y = cy - 40 * Math.sin((x * (activeFreq * 0.00065)) - (time * (activeFreq / 18)));
               if (x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
             }
             ctx.stroke();
             ctx.setLineDash([]);
 
-            ctx.fillStyle = '#c084fc'; ctx.font = 'bold 11px monospace';
+            ctx.fillStyle = '#c084fc'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'left';
             ctx.fillText(`● Incoming Preamble (${targetFreq} Hz)`, 12, 20);
-            ctx.fillStyle = '#4ade80';
-            ctx.fillText(`● Your Local Oscillator (${activeFreq} Hz)`, 260, 20);
+            ctx.fillStyle = '#4ade80'; ctx.textAlign = 'right';
+            ctx.fillText(`● Your Oscillator (${activeFreq} Hz)`, w - 12, 20);
+            ctx.textAlign = 'left';
           }
 
           // 2B. EXPLORER CANVAS
           if (activeTab === 'SYNC' && syncPhase === 'EXPLORE' && exploreCanvasRef.current) {
-            const ctx = exploreCanvasRef.current.getContext('2d');
             const w = 240, h = 240, cx = 120, cy = 120, scale = 30;
+            const ctx = setupHiDPICanvas(exploreCanvasRef.current, w, h);
+            if (!ctx) return;
             ctx.fillStyle = '#0f172a'; ctx.fillRect(0,0,w,h);
 
             ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
@@ -735,8 +876,8 @@
 
             for (let i = -3; i <= 3; i+=2) {
               for (let q = -3; q <= 3; q+=2) {
-                ctx.fillStyle = (i === hoverI && q === hoverQ) ? '#a855f7' : 'rgba(255,255,255,0.2)';
-                ctx.beginPath(); ctx.arc(cx + i*scale, cy - q*scale, (i === hoverI && q === hoverQ) ? 8 : 3, 0, 2*Math.PI);
+                ctx.fillStyle = (i === hoverI && q === hoverQ) ? '#a855f7' : 'rgba(255,255,255,0.22)';
+                ctx.beginPath(); ctx.arc(cx + i*scale, cy - q*scale, (i === hoverI && q === hoverQ) ? 8 : 3.5, 0, 2*Math.PI);
                 if (i === hoverI && q === hoverQ) { ctx.shadowBlur = 10; ctx.shadowColor = '#a855f7'; }
                 ctx.fill(); ctx.shadowBlur = 0;
               }
@@ -745,9 +886,10 @@
 
           // 3. I/Q WAVES CANVAS
           if (activeTab === 'WAVES' && wavesGridRef.current && wavesOscRef.current) {
-            const gridCtx = wavesGridRef.current.getContext('2d');
-            const gW = wavesGridRef.current.width, gH = wavesGridRef.current.height;
+            const gW = 220, gH = 220;
+            const gridCtx = setupHiDPICanvas(wavesGridRef.current, gW, gH);
             const cx = gW / 2, cy = gH / 2, scale = 28;
+            if (!gridCtx) return;
             gridCtx.fillStyle = '#0f172a'; gridCtx.fillRect(0,0,gW,gH);
 
             gridCtx.strokeStyle = '#1e293b'; gridCtx.lineWidth = 1;
@@ -778,14 +920,15 @@
             gridCtx.fillStyle='#ffffff'; gridCtx.font='bold 10px monospace';
             gridCtx.fillText(`(${wavesI}, ${wavesQ})`, Math.min(gW - 45, Math.max(6, tX + 8)), Math.max(14, tY - 8));
 
-            const waveCtx = wavesOscRef.current.getContext('2d');
-            const wW = wavesOscRef.current.width, wH = wavesOscRef.current.height, wy = wH / 2;
+            const wW = 260, wH = 220, wy = wH / 2;
+            const waveCtx = setupHiDPICanvas(wavesOscRef.current, wW, wH);
+            if (!waveCtx) return;
             waveCtx.fillStyle = '#0f172a'; waveCtx.fillRect(0,0,wW,wH);
             waveCtx.strokeStyle = '#334155'; waveCtx.lineWidth = 1;
             waveCtx.beginPath(); waveCtx.moveTo(0,wy); waveCtx.lineTo(wW,wy); waveCtx.stroke();
 
             const drawSandboxWave = (amp, phase, color, lineWidth = 3) => {
-              waveCtx.beginPath(); waveCtx.strokeStyle=color; waveCtx.lineWidth=lineWidth;
+              waveCtx.beginPath(); waveCtx.strokeStyle=color; waveCtx.lineWidth=lineWidth; waveCtx.lineJoin='round';
               for(let x=0; x<wW; x++) {
                 const y = wy - (amp*14)*Math.sin((x*0.045)-time+phase);
                 if(x===0) waveCtx.moveTo(x,y); else waveCtx.lineTo(x,y);
@@ -797,7 +940,7 @@
             drawSandboxWave(wavesQ, Math.PI/2, '#ef4444', 3);
 
             if (showCombinedPreview) {
-              waveCtx.beginPath(); waveCtx.strokeStyle='rgba(168, 85, 247, 0.85)'; waveCtx.lineWidth=2;
+              waveCtx.beginPath(); waveCtx.strokeStyle='rgba(168, 85, 247, 0.85)'; waveCtx.lineWidth=2; waveCtx.lineJoin='round';
               waveCtx.setLineDash([4, 4]);
               for(let x=0; x<wW; x++) {
                 const y = wy - ((wavesI*14)*Math.sin((x*0.045)-time) + (wavesQ*14)*Math.sin((x*0.045)-time+Math.PI/2));
@@ -817,8 +960,9 @@
 
           // 4. TRANSMIT CANVAS
           if (activeTab === 'QAM' && gridCanvasRef.current && waveCanvasRef.current) {
-            const gridCtx = gridCanvasRef.current.getContext('2d');
             const gW = 220, gH = 220, cx = 110, cy = 110, scale = 30;
+            const gridCtx = setupHiDPICanvas(gridCanvasRef.current, gW, gH);
+            if (!gridCtx) return;
             gridCtx.fillStyle = '#0f172a'; gridCtx.fillRect(0,0,gW,gH);
             gridCtx.strokeStyle = '#334155'; gridCtx.lineWidth=1;
             for (let i=-3; i<=3; i+=2) {
@@ -845,14 +989,15 @@
               gridCtx.fillStyle='#a855f7'; gridCtx.beginPath(); gridCtx.arc(tX,tY,8,0,2*Math.PI); gridCtx.fill();
             }
 
-            const waveCtx = waveCanvasRef.current.getContext('2d');
             const wW = 320, wH = 220, wy = 110;
+            const waveCtx = setupHiDPICanvas(waveCanvasRef.current, wW, wH);
+            if (!waveCtx) return;
             waveCtx.fillStyle = '#0f172a'; waveCtx.fillRect(0,0,wW,wH);
             waveCtx.strokeStyle = '#334155'; waveCtx.beginPath(); waveCtx.moveTo(0,wy); waveCtx.lineTo(wW,wy); waveCtx.stroke();
 
             if (activeSymbol) {
-              const drawW = (amp, phase, color, w) => {
-                waveCtx.beginPath(); waveCtx.strokeStyle=color; waveCtx.lineWidth=w;
+              const drawW = (amp, phase, color, lw) => {
+                waveCtx.beginPath(); waveCtx.strokeStyle=color; waveCtx.lineWidth=lw; waveCtx.lineJoin='round';
                 for(let x=0; x<wW; x++) {
                   const y = wy - (amp*12)*Math.sin((x*0.05)-time+phase);
                   if(x===0) waveCtx.moveTo(x,y); else waveCtx.lineTo(x,y);
@@ -861,7 +1006,7 @@
               };
               drawW(curI, 0, 'rgba(59,130,246,0.6)', 2);
               drawW(curQ, Math.PI/2, 'rgba(239,68,68,0.6)', 2);
-              waveCtx.beginPath(); waveCtx.strokeStyle='#a855f7'; waveCtx.lineWidth=3;
+              waveCtx.beginPath(); waveCtx.strokeStyle='#a855f7'; waveCtx.lineWidth=3; waveCtx.lineJoin='round';
               for(let x=0; x<wW; x++) {
                 const y = wy - ((curI*12)*Math.sin((x*0.05)-time) + (curQ*12)*Math.sin((x*0.05)-time+Math.PI/2));
                 if(x===0) waveCtx.moveTo(x,y); else waveCtx.lineTo(x,y);
@@ -872,18 +1017,20 @@
 
           // 5. MATH DEMODULATOR CANVAS
           if (activeTab === 'MATH' && mathSubTab === 'SIMULATOR' && mathTopRef.current && mathMidRef.current && mathBotRef.current) {
-            const w = 400, h = 115, cy = 58;
-            const topCtx = mathTopRef.current.getContext('2d');
-            const midCtx = mathMidRef.current.getContext('2d');
-            const botCtx = mathBotRef.current.getContext('2d');
+            const w = 400, h = 124, cy = 62;
+            const topCtx = setupHiDPICanvas(mathTopRef.current, w, h);
+            const midCtx = setupHiDPICanvas(mathMidRef.current, w, h);
+            const botCtx = setupHiDPICanvas(mathBotRef.current, w, h);
+            if (!topCtx || !midCtx || !botCtx) return;
             const isSine = demodRefType === 'SINE';
 
             [topCtx, midCtx, botCtx].forEach(ctx => {
               ctx.fillStyle = '#0f172a'; ctx.fillRect(0,0,w,h);
               ctx.strokeStyle = '#475569'; ctx.lineWidth=1;
               ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(w,cy); ctx.stroke();
-              ctx.fillStyle = '#64748b'; ctx.font = '9px monospace';
-              ctx.fillText('0V Centerline', w - 78, cy - 4);
+              ctx.fillStyle = '#64748b'; ctx.font = '9px monospace'; ctx.textAlign = 'right';
+              ctx.fillText('0V Centerline', w - 8, cy - 4);
+              ctx.textAlign = 'left';
             });
 
             if (showHiddenIngredients) {
@@ -905,7 +1052,7 @@
               topCtx.setLineDash([]);
             }
 
-            topCtx.beginPath(); topCtx.strokeStyle='#a855f7'; topCtx.lineWidth=2.5;
+            topCtx.beginPath(); topCtx.strokeStyle='#a855f7'; topCtx.lineWidth=2.5; topCtx.lineJoin='round';
             for(let x=0; x<w; x++) {
               const t = (x*0.05)-time;
               const val = demodI*Math.sin(t) + demodQ*Math.cos(t);
@@ -919,12 +1066,12 @@
             topCtx.fillText(`● Graph 1 Formula: (${demodI})·sin(t) + (${demodQ})·cos(t)`, 8, 14);
             if (showHiddenIngredients) {
               topCtx.fillStyle = '#60a5fa'; topCtx.fillText(`-- Blue: X=${demodI}·sin(t)`, 8, h - 8);
-              topCtx.fillStyle = '#f87171'; topCtx.fillText(`-- Red: Y=${demodQ}·cos(t)`, 155, h - 8);
+              topCtx.fillStyle = '#f87171'; topCtx.fillText(`-- Red: Y=${demodQ}·cos(t)`, 160, h - 8);
             }
 
             midCtx.beginPath();
             midCtx.strokeStyle = isSine ? '#3b82f6' : '#ef4444';
-            midCtx.lineWidth=2.5;
+            midCtx.lineWidth=2.5; midCtx.lineJoin='round';
             for(let x=0; x<w; x++) {
               const t = (x*0.05)-time;
               const val = isSine ? 2*Math.sin(t) : 2*Math.cos(t);
@@ -946,7 +1093,7 @@
             botCtx.fillStyle = isSine ? 'rgba(59, 130, 246, 0.15)' : 'rgba(239, 68, 68, 0.15)';
             botCtx.fillRect(0, Math.min(cy, avgY), w, Math.abs(avgY - cy));
 
-            botCtx.beginPath(); botCtx.strokeStyle = isSine ? '#3b82f6' : '#ef4444'; botCtx.lineWidth=2;
+            botCtx.beginPath(); botCtx.strokeStyle = isSine ? '#3b82f6' : '#ef4444'; botCtx.lineWidth=2; botCtx.lineJoin='round';
             for(let x=0; x<w; x++) {
               const t = (x*0.05)-time;
               const purpleVal = demodI*Math.sin(t) + demodQ*Math.cos(t);
@@ -972,38 +1119,40 @@
             botCtx.fillText(
               `-- Dotted Line: Average = ${targetAverage} (Recovered ${isSine ? 'X' : 'Y'}!)`,
               8,
-              avgY < 30 ? avgY + 14 : avgY - 6
+              avgY < 32 ? avgY + 14 : avgY - 6
             );
 
             if (mathGridRef.current) {
-              const mCtx = mathGridRef.current.getContext('2d');
               const mW = 140, mH = 140, mCx = 70, mCy = 70, mScale = 16;
-              mCtx.fillStyle = '#0f172a'; mCtx.fillRect(0, 0, mW, mH);
+              const mCtx = setupHiDPICanvas(mathGridRef.current, mW, mH);
+              if (mCtx) {
+                mCtx.fillStyle = '#0f172a'; mCtx.fillRect(0, 0, mW, mH);
 
-              mCtx.strokeStyle = '#1e293b'; mCtx.lineWidth = 1;
-              for (let i = -3; i <= 3; i += 2) {
-                mCtx.beginPath(); mCtx.moveTo(mCx + i * mScale, 0); mCtx.lineTo(mCx + i * mScale, mH); mCtx.stroke();
-                mCtx.beginPath(); mCtx.moveTo(0, mCy - i * mScale); mCtx.lineTo(mW, mCy - i * mScale); mCtx.stroke();
+                mCtx.strokeStyle = '#1e293b'; mCtx.lineWidth = 1;
+                for (let i = -3; i <= 3; i += 2) {
+                  mCtx.beginPath(); mCtx.moveTo(mCx + i * mScale, 0); mCtx.lineTo(mCx + i * mScale, mH); mCtx.stroke();
+                  mCtx.beginPath(); mCtx.moveTo(0, mCy - i * mScale); mCtx.lineTo(mW, mCy - i * mScale); mCtx.stroke();
+                }
+
+                mCtx.strokeStyle = '#3b82f6'; mCtx.lineWidth = 1.5;
+                mCtx.beginPath(); mCtx.moveTo(0, mCy); mCtx.lineTo(mW, mCy); mCtx.stroke();
+                mCtx.strokeStyle = '#ef4444'; mCtx.lineWidth = 1.5;
+                mCtx.beginPath(); mCtx.moveTo(mCx, 0); mCtx.lineTo(mCx, mH); mCtx.stroke();
+
+                const ptX = mCx + demodI * mScale;
+                const ptY = mCy - demodQ * mScale;
+                if (isSine) {
+                  mCtx.strokeStyle = '#60a5fa'; mCtx.lineWidth = 3;
+                  mCtx.beginPath(); mCtx.moveTo(ptX, 0); mCtx.lineTo(ptX, mH); mCtx.stroke();
+                } else {
+                  mCtx.strokeStyle = '#f87171'; mCtx.lineWidth = 3;
+                  mCtx.beginPath(); mCtx.moveTo(0, ptY); mCtx.lineTo(mW, ptY); mCtx.stroke();
+                }
+
+                mCtx.fillStyle = '#a855f7';
+                mCtx.beginPath(); mCtx.arc(ptX, ptY, 6, 0, 2 * Math.PI); mCtx.fill();
+                mCtx.strokeStyle = '#ffffff'; mCtx.lineWidth = 1.5; mCtx.stroke();
               }
-
-              mCtx.strokeStyle = '#3b82f6'; mCtx.lineWidth = 1.5;
-              mCtx.beginPath(); mCtx.moveTo(0, mCy); mCtx.lineTo(mW, mCy); mCtx.stroke();
-              mCtx.strokeStyle = '#ef4444'; mCtx.lineWidth = 1.5;
-              mCtx.beginPath(); mCtx.moveTo(mCx, 0); mCtx.lineTo(mCx, mH); mCtx.stroke();
-
-              const ptX = mCx + demodI * mScale;
-              const ptY = mCy - demodQ * mScale;
-              if (isSine) {
-                mCtx.strokeStyle = '#60a5fa'; mCtx.lineWidth = 3;
-                mCtx.beginPath(); mCtx.moveTo(ptX, 0); mCtx.lineTo(ptX, mH); mCtx.stroke();
-              } else {
-                mCtx.strokeStyle = '#f87171'; mCtx.lineWidth = 3;
-                mCtx.beginPath(); mCtx.moveTo(0, ptY); mCtx.lineTo(mW, ptY); mCtx.stroke();
-              }
-
-              mCtx.fillStyle = '#a855f7';
-              mCtx.beginPath(); mCtx.arc(ptX, ptY, 6, 0, 2 * Math.PI); mCtx.fill();
-              mCtx.strokeStyle = '#ffffff'; mCtx.lineWidth = 1.5; mCtx.stroke();
             }
           }
 
@@ -1019,15 +1168,87 @@
         showHopping, showHiddenIngredients, isWavePaused
       ]);
 
-      // --- Styles ---
+      // --- Styles (Cross-Browser, Mobile & Touch-Accessible) ---
       const customStyles = `
+        :root { --target-size: 24px; }
+        @media (pointer: coarse) {
+          :root { --target-size: 44px; }
+        }
+        body {
+          overflow-wrap: break-word;
+          -webkit-text-size-adjust: 100%;
+          text-size-adjust: 100%;
+        }
+        :where(a, code) { overflow-wrap: anywhere; }
+        h1, h2, h3 { text-wrap: balance; }
+        p, li { text-wrap: pretty; }
+        canvas { max-inline-size: 100%; block-size: auto; display: block; }
+        .app-shell {
+          min-height: 100vh;
+          min-height: 100dvh;
+          padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+          padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+          padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+          padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+        }
+        :where(button, select, textarea, input:not([type="checkbox"], [type="radio"]), .touch-target) {
+          min-block-size: var(--target-size);
+          min-inline-size: var(--target-size);
+        }
+        .icon-button {
+          position: relative;
+          min-block-size: 24px;
+          min-inline-size: 24px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .icon-button::after {
+          content: "";
+          position: absolute;
+          inset: -10px;
+        }
+        input[type="range"] {
+          touch-action: manipulation;
+          -webkit-appearance: none;
+          appearance: none;
+          min-block-size: auto;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          border-radius: 9999px;
+          background: currentColor;
+          border: 2px solid #ffffff;
+          box-shadow: 0 1px 4px rgba(15, 23, 42, 0.45);
+          cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+          width: 20px;
+          height: 20px;
+          border-radius: 9999px;
+          background: currentColor;
+          border: 2px solid #ffffff;
+          box-shadow: 0 1px 4px rgba(15, 23, 42, 0.45);
+          cursor: pointer;
+        }
+        @media (pointer: coarse) {
+          input[type="range"]::-webkit-slider-thumb { width: 26px; height: 26px; }
+          input[type="range"]::-moz-range-thumb { width: 26px; height: 26px; }
+        }
         @keyframes scanlineMove { 0% { background-position: 0 0, 0 0; } 100% { background-position: 0 100px, 0 0; } }
         @keyframes certGlow { 0% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.2); } 50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.5); } 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.2); } }
         @keyframes payloadFlash { 0% { box-shadow: 0 0 20px #a855f7; border-color: #a855f7; background-color: #3b0764; transform: scale(1.05); } 100% { box-shadow: 0 0 0 transparent; border-color: #475569; background-color: #1e293b; transform: scale(1); } }
         @keyframes goldShimmer { 0% { filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.4)); } 50% { filter: drop-shadow(0 0 14px rgba(250, 204, 21, 0.8)); } 100% { filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.4)); } }
         .anti-forge-text {
+          color: #c084fc;
           background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.8) 0px, rgba(0,0,0,0.8) 2px, transparent 2px, transparent 4px), linear-gradient(90deg, #3b82f6, #a855f7, #ef4444);
-          background-size: 100% 4px, 100% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+          background-size: 100% 4px, 100% 100%;
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
           animation: scanlineMove 1.5s linear infinite;
         }
         .flash-payload {
@@ -1036,58 +1257,61 @@
         .gold-stamp-glow {
           animation: goldShimmer 3s ease-in-out infinite;
         }
+        @media (prefers-reduced-motion: reduce) {
+          .anti-forge-text, .flash-payload, .gold-stamp-glow { animation: none !important; }
+        }
       `;
 
       return (
-        <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans relative">
+        <div className="app-shell bg-slate-100 flex flex-col items-center justify-start md:justify-center font-sans relative">
           <style>{customStyles}</style>
 
           {/* Top Bar: Back to Homepage & Title */}
           <div className="max-w-6xl w-full flex flex-wrap items-center justify-between gap-2 mb-3">
-            <a href="index.html#bcc-classes" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-amber-300 hover:bg-slate-800 text-xs font-bold shadow-sm transition-colors">
+            <a href="index.html#bcc-classes" className="touch-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-amber-300 hover:bg-slate-800 text-xs font-bold shadow-sm transition-colors">
               &larr; Back to Home
             </a>
-            <div className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wider">
+            <div className="text-[11px] sm:text-xs font-mono font-bold text-slate-600 uppercase tracking-wider">
               BCC CBIS 15 &bull; QAM Communications Simulator
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex flex-wrap mb-4 max-w-6xl w-full gap-1">
-            <button onClick={() => { setActiveTab('INTRO'); silenceAudio(); }} className={`flex-1 py-3 px-2 sm:px-3 rounded-t-xl font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'INTRO' ? 'bg-white text-indigo-600 shadow-md' : 'bg-slate-300 text-slate-500 hover:bg-slate-200'}`}>
-              <Layers className="w-4 h-4 mr-1 sm:mr-1.5" /> OSI Intro
+          {/* Tabs (Clean 2-col touch grid on mobile, classic folder tabs on desktop) */}
+          <nav aria-label="Simulator Labs" className="grid grid-cols-2 sm:grid-cols-4 md:flex md:flex-nowrap mb-3 md:mb-0 max-w-6xl w-full gap-1.5 md:gap-1">
+            <button onClick={() => { setActiveTab('INTRO'); silenceAudio(); }} className={`md:flex-1 py-2.5 md:py-3 px-2 sm:px-3 rounded-lg md:rounded-t-xl md:rounded-b-none font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'INTRO' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-indigo-200 md:ring-0' : 'bg-slate-300 text-slate-600 hover:bg-slate-200'}`}>
+              <Layers className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" /> OSI Intro
             </button>
-            <button onClick={() => { setActiveTab('PACKET'); silenceAudio(); }} className={`flex-1 py-3 px-2 sm:px-3 rounded-t-xl font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'PACKET' ? 'bg-white text-purple-600 shadow-md' : 'bg-slate-300 text-slate-500 hover:bg-slate-200'}`}>
-              <Wifi className="w-4 h-4 mr-1 sm:mr-1.5" /> Packet Journey
+            <button onClick={() => { setActiveTab('PACKET'); silenceAudio(); }} className={`md:flex-1 py-2.5 md:py-3 px-2 sm:px-3 rounded-lg md:rounded-t-xl md:rounded-b-none font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'PACKET' ? 'bg-white text-purple-600 shadow-md ring-1 ring-purple-200 md:ring-0' : 'bg-slate-300 text-slate-600 hover:bg-slate-200'}`}>
+              <Wifi className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" /> Packet Journey
             </button>
-            <button onClick={() => { setActiveTab('FREQ'); silenceAudio(); }} className={`flex-1 py-3 px-2 sm:px-3 rounded-t-xl font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'FREQ' ? 'bg-white text-teal-600 shadow-md' : 'bg-slate-300 text-slate-500 hover:bg-slate-200'}`}>
-              <Radio className="w-4 h-4 mr-1 sm:mr-1.5" /> 1. Frequencies
+            <button onClick={() => { setActiveTab('FREQ'); silenceAudio(); }} className={`md:flex-1 py-2.5 md:py-3 px-2 sm:px-3 rounded-lg md:rounded-t-xl md:rounded-b-none font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'FREQ' ? 'bg-white text-teal-600 shadow-md ring-1 ring-teal-200 md:ring-0' : 'bg-slate-300 text-slate-600 hover:bg-slate-200'}`}>
+              <Radio className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" /> 1. Frequencies
             </button>
-            <button onClick={() => { if(isSyncUnlocked) { setActiveTab('SYNC'); silenceAudio(); } }} disabled={!isSyncUnlocked} className={`flex-1 py-3 px-2 sm:px-3 rounded-t-xl font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'SYNC' ? 'bg-white text-blue-600 shadow-md' : (isSyncUnlocked ? 'bg-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300/50 text-slate-400 cursor-not-allowed')}`}>
-              {isSyncUnlocked ? <Settings className="w-4 h-4 mr-1 sm:mr-1.5" /> : <Lock className="w-4 h-4 mr-1 sm:mr-1.5" />} 2. Sync
+            <button onClick={() => { if(isSyncUnlocked) { setActiveTab('SYNC'); silenceAudio(); } }} disabled={!isSyncUnlocked} className={`md:flex-1 py-2.5 md:py-3 px-2 sm:px-3 rounded-lg md:rounded-t-xl md:rounded-b-none font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'SYNC' ? 'bg-white text-blue-600 shadow-md ring-1 ring-blue-200 md:ring-0' : (isSyncUnlocked ? 'bg-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300/60 text-slate-400 cursor-not-allowed')}`}>
+              {isSyncUnlocked ? <Settings className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" /> : <Lock className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" />} 2. Sync
             </button>
-            <button onClick={() => { if(isWavesUnlocked) { setActiveTab('WAVES'); silenceAudio(); } }} disabled={!isWavesUnlocked} className={`flex-1 py-3 px-2 sm:px-3 rounded-t-xl font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'WAVES' ? 'bg-white text-indigo-500 shadow-md' : (isWavesUnlocked ? 'bg-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300/50 text-slate-400 cursor-not-allowed')}`}>
-              {isWavesUnlocked ? <Activity className="w-4 h-4 mr-1 sm:mr-1.5" /> : <Lock className="w-4 h-4 mr-1 sm:mr-1.5" />} 3. I/Q Waves
+            <button onClick={() => { if(isWavesUnlocked) { setActiveTab('WAVES'); silenceAudio(); } }} disabled={!isWavesUnlocked} className={`md:flex-1 py-2.5 md:py-3 px-2 sm:px-3 rounded-lg md:rounded-t-xl md:rounded-b-none font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'WAVES' ? 'bg-white text-indigo-500 shadow-md ring-1 ring-indigo-200 md:ring-0' : (isWavesUnlocked ? 'bg-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300/60 text-slate-400 cursor-not-allowed')}`}>
+              {isWavesUnlocked ? <Activity className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" /> : <Lock className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" />} 3. I/Q Waves
             </button>
-            <button onClick={() => { if(isUnlocked) setActiveTab('QAM'); }} disabled={!isUnlocked} className={`flex-1 py-3 px-2 sm:px-3 rounded-t-xl font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'QAM' ? 'bg-white text-purple-600 shadow-md' : (isUnlocked ? 'bg-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300/50 text-slate-400 cursor-not-allowed')}`}>
-              {isUnlocked ? <Unlock className="w-4 h-4 mr-1 sm:mr-1.5" /> : <Lock className="w-4 h-4 mr-1 sm:mr-1.5" />} 4. Transmit
+            <button onClick={() => { if(isUnlocked) setActiveTab('QAM'); }} disabled={!isUnlocked} className={`md:flex-1 py-2.5 md:py-3 px-2 sm:px-3 rounded-lg md:rounded-t-xl md:rounded-b-none font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'QAM' ? 'bg-white text-purple-600 shadow-md ring-1 ring-purple-200 md:ring-0' : (isUnlocked ? 'bg-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300/60 text-slate-400 cursor-not-allowed')}`}>
+              {isUnlocked ? <Unlock className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" /> : <Lock className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" />} 4. Transmit
             </button>
-            <button onClick={() => { if(isMathUnlocked) { setActiveTab('MATH'); silenceAudio(); } }} disabled={!isMathUnlocked} className={`flex-1 py-3 px-2 sm:px-3 rounded-t-xl font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'MATH' ? 'bg-white text-yellow-600 shadow-md' : (isMathUnlocked ? 'bg-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300/50 text-slate-400 cursor-not-allowed')}`}>
-              {isMathUnlocked ? <Calculator className="w-4 h-4 mr-1 sm:mr-1.5" /> : <Lock className="w-4 h-4 mr-1 sm:mr-1.5" />} 5. Demodulate
+            <button onClick={() => { if(isMathUnlocked) { setActiveTab('MATH'); silenceAudio(); } }} disabled={!isMathUnlocked} className={`md:flex-1 py-2.5 md:py-3 px-2 sm:px-3 rounded-lg md:rounded-t-xl md:rounded-b-none font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'MATH' ? 'bg-white text-yellow-600 shadow-md ring-1 ring-yellow-300 md:ring-0' : (isMathUnlocked ? 'bg-slate-300 text-slate-700 hover:bg-slate-200' : 'bg-slate-300/60 text-slate-400 cursor-not-allowed')}`}>
+              {isMathUnlocked ? <Calculator className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" /> : <Lock className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" />} 5. Demodulate
             </button>
             {certUnlocked && (
-              <button onClick={() => { setActiveTab('CERT'); silenceAudio(); }} className={`flex-1 py-3 px-2 sm:px-3 rounded-t-xl font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'CERT' ? 'bg-white text-green-600 shadow-md' : 'bg-slate-300 text-slate-700 hover:bg-slate-200'}`}>
-                <Award className="w-4 h-4 mr-1 sm:mr-1.5" /> 6. Certificate
+              <button onClick={() => { setActiveTab('CERT'); silenceAudio(); }} className={`md:flex-1 py-2.5 md:py-3 px-2 sm:px-3 rounded-lg md:rounded-t-xl md:rounded-b-none font-bold flex items-center justify-center transition-colors text-xs sm:text-sm ${activeTab === 'CERT' ? 'bg-white text-green-600 shadow-md ring-1 ring-green-200 md:ring-0' : 'bg-slate-300 text-slate-700 hover:bg-slate-200'}`}>
+                <Award className="w-4 h-4 mr-1 sm:mr-1.5 flex-shrink-0" /> 6. Certificate
               </button>
             )}
-          </div>
+          </nav>
 
-          <div className="bg-white rounded-b-xl rounded-t-none shadow-2xl max-w-6xl w-full overflow-hidden border border-slate-200 flex flex-col md:flex-row min-h-[550px]">
+          <div className="bg-white rounded-xl md:rounded-t-none shadow-2xl max-w-6xl w-full overflow-hidden border border-slate-200 flex flex-col md:flex-row min-h-[550px]">
 
             {/* --- TAB 0: INTRO & OSI MODEL --- */}
             {activeTab === 'INTRO' && (
-              <div className="w-full p-6 sm:p-8 flex flex-col items-center justify-center bg-slate-50">
-                <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-full">
+              <div className="w-full p-4 sm:p-8 flex flex-col items-center justify-center bg-slate-50">
+                <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-center justify-center w-full">
                   <div className="flex-1 max-w-md w-full">
                     <h3 className="text-sm font-bold text-slate-400 tracking-widest uppercase mb-4 text-center md:text-left">The OSI Model</h3>
                     <div className="flex flex-col gap-2">
@@ -1100,23 +1324,23 @@
                         { num: 2, name: 'Data Link', desc: 'MAC, Packets, CSMA/CA', status: 'FUTURE LAB' },
                         { num: 1, name: 'Physical', desc: 'QAM, RF Waves, Cables', status: 'CURRENT LAB' },
                       ].map((layer) => (
-                        <div key={layer.num} className={`relative flex items-center p-3 rounded-lg border-2 transition-all ${layer.num === 1 ? 'bg-purple-600 border-purple-400 shadow-lg scale-105 z-10 text-white' : layer.num === 2 ? 'bg-indigo-50 border-indigo-200 text-indigo-900 shadow-sm' : 'bg-slate-100 border-slate-200 text-slate-400 opacity-70'}`}>
-                          <div className={`font-black text-2xl mr-4 w-8 text-center ${layer.num === 1 ? 'text-purple-300' : layer.num === 2 ? 'text-indigo-300' : 'text-slate-300'}`}>{layer.num}</div>
-                          <div className="flex-grow">
-                            <div className="font-bold uppercase tracking-wider">{layer.name} Layer</div>
+                        <div key={layer.num} className={`relative flex items-center p-3 rounded-lg border-2 transition-all ${layer.num === 1 ? 'bg-purple-600 border-purple-400 shadow-lg sm:scale-105 z-10 text-white' : layer.num === 2 ? 'bg-indigo-50 border-indigo-200 text-indigo-900 shadow-sm' : 'bg-slate-100 border-slate-200 text-slate-400 opacity-70'}`}>
+                          <div className={`font-black text-2xl mr-4 w-8 text-center flex-shrink-0 ${layer.num === 1 ? 'text-purple-300' : layer.num === 2 ? 'text-indigo-300' : 'text-slate-300'}`}>{layer.num}</div>
+                          <div className="flex-grow min-w-0">
+                            <div className="font-bold uppercase tracking-wider text-sm sm:text-base">{layer.name} Layer</div>
                             <div className={`text-xs ${layer.num === 1 ? 'text-purple-200' : layer.num === 2 ? 'text-indigo-500' : 'text-slate-400'}`}>{layer.desc}</div>
                           </div>
-                          {layer.status === 'CURRENT LAB' && <div className="absolute -right-3 -top-3 bg-green-500 text-white text-[10px] font-black px-2 py-1 rounded-full shadow-md transform rotate-12">YOU ARE HERE</div>}
-                          {layer.status === 'FUTURE LAB' && <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-indigo-200 text-indigo-800 text-[10px] font-bold px-2 py-1 rounded shadow-sm">COMING SOON</div>}
+                          {layer.status === 'CURRENT LAB' && <div className="absolute right-2 sm:-right-3 -top-3 bg-green-500 text-white text-[10px] font-black px-2 py-1 rounded-full shadow-md transform rotate-6 sm:rotate-12">YOU ARE HERE</div>}
+                          {layer.status === 'FUTURE LAB' && <div className="flex-shrink-0 ml-2 bg-indigo-200 text-indigo-800 text-[10px] font-bold px-2 py-1 rounded shadow-sm">COMING SOON</div>}
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="flex-1 max-w-lg bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+                  <div className="flex-1 max-w-lg w-full bg-white p-5 sm:p-8 rounded-2xl shadow-xl border border-slate-200">
                     <div className="flex items-center text-purple-700 mb-4 border-b border-purple-100 pb-4">
-                      <Layers className="w-8 h-8 mr-3" />
-                      <h2 className="font-black text-2xl">Layer 1: The Physical Layer</h2>
+                      <Layers className="w-7 h-7 sm:w-8 sm:h-8 mr-3 flex-shrink-0" />
+                      <h2 className="font-black text-xl sm:text-2xl">Layer 1: The Physical Layer</h2>
                     </div>
                     <div className="text-slate-600 text-sm leading-relaxed mb-6 space-y-4">
                       <p>
@@ -1133,9 +1357,9 @@
                         <li><strong>Layer 2 (Data Link):</strong> Deals with etiquette and rules (MAC addresses, ACK packets, Collision Avoidance) deciding <em>when</em> it is safe to transmit that signal.</li>
                       </ul>
                     </div>
-                    <div className="flex justify-between items-center mt-8">
-                      <a href="https://en.wikipedia.org/wiki/OSI_model" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline text-sm flex items-center"><BookOpen className="w-4 h-4 mr-1"/> OSI on Wikipedia</a>
-                      <button onClick={() => setActiveTab('PACKET')} className="bg-purple-600 text-white px-6 py-3 rounded-lg font-black tracking-widest shadow-lg hover:bg-purple-700 transition-colors">NEXT: PACKET JOURNEY &rarr;</button>
+                    <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mt-6 sm:mt-8">
+                      <a href="https://en.wikipedia.org/wiki/OSI_model" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline text-sm inline-flex items-center justify-center sm:justify-start py-2"><BookOpen className="w-4 h-4 mr-1.5 flex-shrink-0"/> OSI on Wikipedia</a>
+                      <button onClick={() => setActiveTab('PACKET')} className="bg-purple-600 text-white px-5 sm:px-6 py-3 rounded-lg font-black tracking-wider sm:tracking-widest shadow-lg hover:bg-purple-700 transition-colors text-xs sm:text-sm">NEXT: PACKET JOURNEY &rarr;</button>
                     </div>
                   </div>
                 </div>
@@ -1144,47 +1368,47 @@
 
             {/* --- TAB 0B: PACKET JOURNEY (DEDICATED WIRELESS VISUALIZER TAB) --- */}
             {activeTab === 'PACKET' && (
-              <div className="w-full p-6 sm:p-8 flex flex-col justify-between bg-slate-900 text-white">
+              <div className="w-full p-4 sm:p-8 flex flex-col justify-between bg-slate-900 text-white">
                 <div>
                   {/* Header & Mode Toggles */}
                   <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 border-b border-slate-800 pb-5">
                     <div>
                       <div className="text-xs font-mono uppercase tracking-widest text-purple-400 font-bold flex items-center gap-2">
-                        <Wifi className="w-4 h-4" /> Real-World Context: How Wireless Packets Travel
+                        <Wifi className="w-4 h-4 flex-shrink-0" /> Real-World Context: How Wireless Packets Travel
                       </div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">
+                      <h2 className="text-xl sm:text-3xl font-black text-white mt-1">
                         From Digital Packet to Physical Radio Wave (and Back!)
                       </h2>
                     </div>
 
                     {/* Scenario & Duplex Toggles */}
-                    <div className="flex flex-wrap gap-3">
-                      <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-2.5 w-full lg:w-auto">
+                      <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700 w-full sm:w-auto">
                         <button
                           onClick={() => setWlanScenario('ROUTER')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${wlanScenario === 'ROUTER' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                          className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${wlanScenario === 'ROUTER' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                         >
-                          <Wifi className="w-3.5 h-3.5" /> Wi-Fi Router ↔ Phone
+                          <Wifi className="w-3.5 h-3.5 flex-shrink-0" /> Wi-Fi Router ↔ Phone
                         </button>
                         <button
                           onClick={() => setWlanScenario('TOWER')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${wlanScenario === 'TOWER' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                          className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${wlanScenario === 'TOWER' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                         >
-                          <Radio className="w-3.5 h-3.5" /> Cell Tower / sUAS ↔ Drone
+                          <Radio className="w-3.5 h-3.5 flex-shrink-0" /> Cell Tower / sUAS ↔ Drone
                         </button>
                       </div>
 
                       {/* Half-Duplex vs Full-Duplex Toggle */}
-                      <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+                      <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700 w-full sm:w-auto">
                         <button
                           onClick={() => setDuplexMode('HALF')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${duplexMode === 'HALF' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
+                          className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-colors ${duplexMode === 'HALF' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
                         >
                           Half-Duplex (Take Turns)
                         </button>
                         <button
                           onClick={() => setDuplexMode('FULL')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${duplexMode === 'FULL' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
+                          className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-colors ${duplexMode === 'FULL' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
                         >
                           Full-Duplex (Simultaneous)
                         </button>
@@ -1193,13 +1417,14 @@
                   </div>
 
                   {/* Main Visualizer Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                    <div className="lg:col-span-7 flex flex-col items-center">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+                    <div className="lg:col-span-7 flex flex-col items-center w-full min-w-0">
                       <canvas
                         ref={introCanvasRef}
                         width="540"
-                        height="210"
-                        className="w-full bg-slate-950 rounded-2xl border border-slate-800 shadow-inner"
+                        height="220"
+                        style={{ aspectRatio: '540 / 220' }}
+                        className="w-full h-auto bg-slate-950 rounded-2xl border border-slate-800 shadow-inner"
                       />
 
                       <div className="flex flex-wrap justify-between items-center w-full mt-3 px-1 gap-2">
@@ -1212,7 +1437,7 @@
                         </div>
                         <button
                           onClick={() => setSmoothTransition(!smoothTransition)}
-                          className="text-[11px] font-mono px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                          className="text-[11px] font-mono px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
                         >
                           Wave Filter: <strong className="text-purple-300">{smoothTransition ? 'Smooth (Pulse-Shaped)' : 'Raw Textbook Jump'}</strong>
                         </button>
@@ -1224,7 +1449,7 @@
                       </div>
                     </div>
 
-                    <div className="lg:col-span-5 space-y-3 text-xs sm:text-sm">
+                    <div className="lg:col-span-5 space-y-3 text-xs sm:text-sm min-w-0">
                       <div className="p-3.5 rounded-xl bg-slate-800/90 border border-slate-700">
                         <div className="font-black text-amber-400 uppercase tracking-wider text-xs mb-1">
                           {duplexMode === 'HALF' ? 'Half-Duplex (Walkie-Talkie Style — Wi-Fi)' : 'Full-Duplex (Two-Lane Highway — Cellular / FDD)'}
@@ -1249,9 +1474,9 @@
                   </div>
                 </div>
 
-                <div className="mt-8 pt-4 border-t border-slate-800 flex justify-between items-center">
-                  <button onClick={() => setActiveTab('INTRO')} className="text-slate-400 hover:text-white text-sm font-bold">&larr; Back to OSI Model</button>
-                  <button onClick={() => setActiveTab('FREQ')} className="bg-purple-600 text-white px-8 py-3 rounded-xl font-black tracking-widest shadow-lg hover:bg-purple-700 transition-colors">
+                <div className="mt-8 pt-4 border-t border-slate-800 flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                  <button onClick={() => setActiveTab('INTRO')} className="text-slate-400 hover:text-white text-sm font-bold py-2">&larr; Back to OSI Model</button>
+                  <button onClick={() => setActiveTab('FREQ')} className="bg-purple-600 text-white px-6 sm:px-8 py-3 rounded-xl font-black tracking-wider sm:tracking-widest shadow-lg hover:bg-purple-700 transition-colors text-xs sm:text-sm">
                     START LAB 1: FREQUENCIES &rarr;
                   </button>
                 </div>
@@ -1261,11 +1486,11 @@
             {/* --- TAB 1: FREQUENCIES --- */}
             {activeTab === 'FREQ' && (
               <div className="w-full flex flex-col h-full bg-slate-50">
-                <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 w-full border-b border-slate-200">
+                <div className="p-4 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 w-full border-b border-slate-200">
 
-                  <div className="flex flex-col space-y-6 text-slate-700">
+                  <div className="flex flex-col space-y-6 text-slate-700 min-w-0">
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-4 flex items-center"><Zap className="w-6 h-6 mr-2 text-yellow-500" /> Wave Physics &amp; sUAS</h2>
+                      <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-4 flex items-center"><Zap className="w-6 h-6 mr-2 text-yellow-500 flex-shrink-0" /> Wave Physics &amp; sUAS</h2>
 
                       <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg shadow-sm">
                         <p className="text-sm text-blue-900 font-bold mb-1">Lab Instructions:</p>
@@ -1282,9 +1507,9 @@
                         <li><strong>Lower Frequencies (900 MHz):</strong> Longer wavelengths easily bend around objects and penetrate dense materials like trees and concrete.</li>
                         <li><strong>Higher Frequencies &amp; Data Rates:</strong> Shorter wavelengths are easily blocked by obstacles. However, the frequency (Hertz) directly dictates how much data (Bits) can be carried. More wave cycles per second acts like a faster conveyor belt. Millions of cycles (MHz) carry Megabits per second (Mbps). Billions of cycles (GHz) can carry Gigabits per second (Gbps)!</li>
                         <li>
-                          <div className="flex items-center flex-wrap">
+                          <div className="flex items-center flex-wrap gap-1">
                             <strong>Frequency Hopping Spread Spectrum (FHSS):</strong>
-                            <button onClick={() => setActiveTooltip(activeTooltip === 'FHSS' ? null : 'FHSS')} className={`ml-2 p-1 rounded-full transition-colors ${activeTooltip === 'FHSS' ? 'bg-purple-500 text-white' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`} title="Learn about Hedy Lamarr"><Info className="w-3 h-3" /></button>
+                            <button onClick={() => setActiveTooltip(activeTooltip === 'FHSS' ? null : 'FHSS')} aria-label="Learn about Hedy Lamarr and FHSS" className={`icon-button ml-1 p-1 rounded-full transition-colors ${activeTooltip === 'FHSS' ? 'bg-purple-500 text-white' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`} title="Learn about Hedy Lamarr"><Info className="w-3.5 h-3.5" /></button>
                           </div>
                           {activeTooltip === 'FHSS' && (
                             <div className="mt-2 mb-2 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-900 leading-relaxed shadow-sm block">
@@ -1298,33 +1523,33 @@
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center">
+                  <div className="flex flex-col items-center min-w-0">
                     <div className="w-full bg-slate-900 p-4 rounded-xl border border-slate-700 shadow-inner relative">
-                      <div className="flex justify-between items-center mb-3">
+                      <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
                         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Live Waveform Comparator</h3>
-                        <button onClick={() => setShowHopping(!showHopping)} className={`px-3 py-1 rounded text-xs font-bold flex items-center transition-colors ${showHopping ? 'bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
-                          <Shield className="w-3 h-3 mr-1" /> {showHopping ? 'FHSS Active' : 'Test FHSS'}
+                        <button onClick={() => setShowHopping(!showHopping)} className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center transition-colors ${showHopping ? 'bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                          <Shield className="w-3.5 h-3.5 mr-1 flex-shrink-0" /> {showHopping ? 'FHSS Active' : 'Test FHSS'}
                         </button>
                       </div>
-                      <canvas ref={freqCanvasRef} width="400" height="230" className="w-full bg-[#050b14] rounded border border-slate-800"></canvas>
+                      <canvas ref={freqCanvasRef} width="400" height="230" style={{ aspectRatio: '400 / 230' }} className="w-full h-auto bg-[#050b14] rounded border border-slate-800"></canvas>
 
                       {!showHopping && (
-                        <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                           <div>
-                            <label className="text-[10px] font-bold text-green-500 uppercase flex justify-between"><span>900 MHz Band</span><span>{freqValues.f900} MHz</span></label>
-                            <input type="range" min="902" max="928" value={freqValues.f900} onChange={(e) => handleFreqChange('f900', e.target.value)} className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-green-500 bg-slate-700" />
+                            <label className="text-xs sm:text-[11px] font-bold text-green-400 uppercase flex justify-between mb-1"><span>900 MHz Band</span><span>{freqValues.f900} MHz</span></label>
+                            <input type="range" min="902" max="928" value={freqValues.f900} onChange={(e) => handleFreqChange('f900', e.target.value)} className="w-full h-2.5 rounded-lg cursor-pointer text-green-500 accent-green-500 bg-slate-700" />
                           </div>
                           <div>
-                            <label className="text-[10px] font-bold text-blue-500 uppercase flex justify-between"><span>2.4 GHz Band</span><span>{(freqValues.f24/1000).toFixed(4)} GHz</span></label>
-                            <input type="range" min="2400" max="2484" value={freqValues.f24} onChange={(e) => handleFreqChange('f24', e.target.value)} className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-blue-500 bg-slate-700" />
+                            <label className="text-xs sm:text-[11px] font-bold text-blue-400 uppercase flex justify-between mb-1"><span>2.4 GHz Band</span><span>{(freqValues.f24/1000).toFixed(4)} GHz</span></label>
+                            <input type="range" min="2400" max="2484" value={freqValues.f24} onChange={(e) => handleFreqChange('f24', e.target.value)} className="w-full h-2.5 rounded-lg cursor-pointer text-blue-500 accent-blue-500 bg-slate-700" />
                           </div>
                           <div>
-                            <label className="text-[10px] font-bold text-purple-500 uppercase flex justify-between"><span>5.2 GHz Band</span><span>{(freqValues.f52/1000).toFixed(3)} GHz</span></label>
-                            <input type="range" min="5150" max="5250" value={freqValues.f52} onChange={(e) => handleFreqChange('f52', e.target.value)} className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-purple-500 bg-slate-700" />
+                            <label className="text-xs sm:text-[11px] font-bold text-purple-400 uppercase flex justify-between mb-1"><span>5.2 GHz Band</span><span>{(freqValues.f52/1000).toFixed(3)} GHz</span></label>
+                            <input type="range" min="5150" max="5250" value={freqValues.f52} onChange={(e) => handleFreqChange('f52', e.target.value)} className="w-full h-2.5 rounded-lg cursor-pointer text-purple-500 accent-purple-500 bg-slate-700" />
                           </div>
                           <div>
-                            <label className="text-[10px] font-bold text-red-500 uppercase flex justify-between"><span>5.8 GHz Band</span><span>{(freqValues.f58/1000).toFixed(3)} GHz</span></label>
-                            <input type="range" min="5725" max="5850" value={freqValues.f58} onChange={(e) => handleFreqChange('f58', e.target.value)} className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-red-500 bg-slate-700" />
+                            <label className="text-xs sm:text-[11px] font-bold text-red-400 uppercase flex justify-between mb-1"><span>5.8 GHz Band</span><span>{(freqValues.f58/1000).toFixed(3)} GHz</span></label>
+                            <input type="range" min="5725" max="5850" value={freqValues.f58} onChange={(e) => handleFreqChange('f58', e.target.value)} className="w-full h-2.5 rounded-lg cursor-pointer text-red-500 accent-red-500 bg-slate-700" />
                           </div>
                         </div>
                       )}
@@ -1332,12 +1557,12 @@
                   </div>
                 </div>
 
-                <div className="p-8 bg-white flex-grow flex flex-col justify-center">
-                  <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center border-b pb-2"><Target className="w-5 h-5 mr-2 text-indigo-600" /> Operational Knowledge Check</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-4 sm:p-8 bg-white flex-grow flex flex-col justify-center">
+                  <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center border-b pb-2"><Target className="w-5 h-5 mr-2 text-indigo-600 flex-shrink-0" /> Operational Knowledge Check</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                       <label className="block text-sm font-bold text-slate-700 mb-2">1. You are flying behind an abandoned concrete factory. Which provides the most reliable control link?</label>
-                      <select value={quiz.q1} onChange={(e) => setQuiz({...quiz, q1: e.target.value})} className={`w-full p-2 border rounded outline-none ${quiz.q1 === '900' ? 'border-green-500 bg-green-50 text-green-900' : 'border-slate-300'}`}>
+                      <select value={quiz.q1} onChange={(e) => setQuiz({...quiz, q1: e.target.value})} className={`w-full p-2.5 text-base sm:text-sm border rounded-lg outline-none ${quiz.q1 === '900' ? 'border-green-500 bg-green-50 text-green-900' : 'border-slate-300 bg-white'}`}>
                         <option value="">Select Frequency...</option>
                         <option value="900">900 MHz Band</option>
                         <option value="24">2.4 GHz Band</option>
@@ -1346,7 +1571,7 @@
                     </div>
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                       <label className="block text-sm font-bold text-slate-700 mb-2">2. You are hovering in a wide-open field and need to stream 4K video. Which is best?</label>
-                      <select value={quiz.q2} onChange={(e) => setQuiz({...quiz, q2: e.target.value})} className={`w-full p-2 border rounded outline-none ${quiz.q2 === '58' ? 'border-green-500 bg-green-50 text-green-900' : 'border-slate-300'}`}>
+                      <select value={quiz.q2} onChange={(e) => setQuiz({...quiz, q2: e.target.value})} className={`w-full p-2.5 text-base sm:text-sm border rounded-lg outline-none ${quiz.q2 === '58' ? 'border-green-500 bg-green-50 text-green-900' : 'border-slate-300 bg-white'}`}>
                         <option value="">Select Frequency...</option>
                         <option value="900">900 MHz Band</option>
                         <option value="24">2.4 GHz Band</option>
@@ -1355,7 +1580,7 @@
                     </div>
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                       <label className="block text-sm font-bold text-slate-700 mb-2">3. Someone attempts to intentionally jam your 2.4 GHz control signal. What prevents a flyaway?</label>
-                      <select value={quiz.q3} onChange={(e) => setQuiz({...quiz, q3: e.target.value})} className={`w-full p-2 border rounded outline-none ${quiz.q3 === 'HOPPING' ? 'border-green-500 bg-green-50 text-green-900' : 'border-slate-300'}`}>
+                      <select value={quiz.q3} onChange={(e) => setQuiz({...quiz, q3: e.target.value})} className={`w-full p-2.5 text-base sm:text-sm border rounded-lg outline-none ${quiz.q3 === 'HOPPING' ? 'border-green-500 bg-green-50 text-green-900' : 'border-slate-300 bg-white'}`}>
                         <option value="">Select Technology...</option>
                         <option value="HOPPING">Frequency Hopping (FHSS)</option>
                         <option value="ANTENNA">Bigger Antennas</option>
@@ -1364,11 +1589,11 @@
                     </div>
                   </div>
 
-                  <div className="mt-8 flex justify-end">
+                  <div className="mt-6 sm:mt-8 flex justify-end">
                     <button
                       onClick={() => setActiveTab('SYNC')}
                       disabled={!isSyncUnlocked}
-                      className={`py-3 px-8 rounded-lg font-black tracking-widest shadow-lg transition-all ${isSyncUnlocked ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                      className={`w-full sm:w-auto py-3 px-6 sm:px-8 rounded-lg font-black tracking-wider sm:tracking-widest text-xs sm:text-sm shadow-lg transition-all ${isSyncUnlocked ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
                     >
                       {isSyncUnlocked ? 'KNOWLEDGE VERIFIED - ENTER LAB 2' : 'INTERACT WITH SLIDERS & PASS QUIZ TO UNLOCK'}
                     </button>
@@ -1379,29 +1604,34 @@
 
             {/* --- TAB 2: SYNC & EXPLORE --- */}
             {activeTab === 'SYNC' && syncPhase === 'PLL' && (
-              <div className="w-full p-8 flex flex-col items-center justify-center">
-                <div className="max-w-3xl w-full text-center mb-8">
-                  <h2 className="text-3xl font-black text-slate-800 mb-4">Phase-Locked Loop (PLL)</h2>
-                  <p className="text-slate-600 mb-6">Match your Local Oscillator (Green) to the incoming Preamble (Purple).</p>
+              <div className="w-full p-4 sm:p-8 flex flex-col items-center justify-center">
+                <div className="max-w-3xl w-full text-center mb-6 sm:mb-8">
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-800 mb-3 sm:mb-4">Phase-Locked Loop (PLL)</h2>
+                  <p className="text-slate-600 text-sm sm:text-base mb-5 sm:mb-6">Match your Local Oscillator (Green) to the incoming Preamble (Purple).</p>
 
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg shadow-sm text-left text-sm text-blue-900 leading-relaxed mb-6">
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg shadow-sm text-left text-sm text-blue-900 leading-relaxed mb-4 sm:mb-6">
                     <strong>Why are we syncing these waves?</strong> Before a drone's receiver can extract data from a radio wave, it must perfectly align its own internal clock with the incoming signal. If they are even slightly out of phase, the data will read as corrupted noise.
                     <br/><br/>
                     <strong>Real-World Scenario:</strong> Imagine your Skydio X10 or Autel drone encounters intense jamming and instantly hops to a backup frequency. The moment it switches, the controller in your hands must use a Phase-Locked Loop (PLL) to rapidly "catch" and lock onto this brand new carrier wave before the video feed drops!
                   </div>
                 </div>
-                <div className="bg-slate-900 p-6 rounded-xl border border-slate-700 w-full max-w-3xl relative">
-                  <canvas ref={syncCanvasRef} width="700" height="150" className="w-full bg-slate-900 rounded-lg shadow-inner mb-6"></canvas>
-                  <div className="bg-slate-800 p-6 rounded-lg">
-                    <input type="range" min="20" max="80" value={userFreq} onChange={(e) => setUserFreq(Number(e.target.value))} className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-green-500"/>
-                    <div className="mt-4 w-full bg-slate-700 rounded-full h-4 overflow-hidden"><div className={`h-full ${isPhaseLocked ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${lockProgress}%` }}></div></div>
+                <div className="bg-slate-900 p-4 sm:p-6 rounded-xl border border-slate-700 w-full max-w-3xl relative">
+                  <canvas ref={syncCanvasRef} width="540" height="150" style={{ aspectRatio: '540 / 150' }} className="w-full h-auto bg-slate-900 rounded-lg shadow-inner mb-5 sm:mb-6"></canvas>
+                  <div className="bg-slate-800 p-4 sm:p-6 rounded-lg">
+                    <div className="flex justify-between text-xs font-mono text-slate-300 mb-2">
+                      <span>20 Hz</span>
+                      <span className="text-green-400 font-bold">Oscillator: {userFreq} Hz</span>
+                      <span>80 Hz</span>
+                    </div>
+                    <input type="range" min="20" max="80" value={userFreq} onChange={(e) => setUserFreq(Number(e.target.value))} aria-label="Local oscillator frequency" className="w-full h-3 bg-slate-700 rounded-lg cursor-pointer text-green-500 accent-green-500"/>
+                    <div className="mt-4 w-full bg-slate-700 rounded-full h-4 overflow-hidden"><div className={`h-full transition-all ${isPhaseLocked ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${lockProgress}%` }}></div></div>
                   </div>
                   {isPhaseLocked && (
-                    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-10">
-                      <Unlock className="w-16 h-16 text-green-400 mb-4 animate-bounce" />
-                      <h3 className="text-2xl font-black text-white mb-6 tracking-widest">PLL LOCKED</h3>
-                      <button onClick={() => { setSyncPhase('EXPLORE'); setIsUnlocked(true); }} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full flex items-center">
-                        Proceed to Map Explorer <BookOpen className="w-5 h-5 ml-2" />
+                    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-10 p-4 text-center">
+                      <Unlock className="w-14 h-14 sm:w-16 sm:h-16 text-green-400 mb-3 sm:mb-4 animate-bounce" />
+                      <h3 className="text-xl sm:text-2xl font-black text-white mb-4 sm:mb-6 tracking-widest">PLL LOCKED</h3>
+                      <button onClick={() => { setSyncPhase('EXPLORE'); setIsUnlocked(true); }} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 sm:px-8 rounded-full flex items-center text-sm sm:text-base">
+                        Proceed to Map Explorer <BookOpen className="w-5 h-5 ml-2 flex-shrink-0" />
                       </button>
                     </div>
                   )}
@@ -1410,13 +1640,21 @@
             )}
 
             {activeTab === 'SYNC' && syncPhase === 'EXPLORE' && (
-              <div className="w-full p-8 flex flex-col lg:flex-row gap-8 bg-slate-50 items-center justify-center">
-                <div className="flex-1 max-w-md flex flex-col items-center">
+              <div className="w-full p-4 sm:p-8 flex flex-col lg:flex-row gap-6 sm:gap-8 bg-slate-50 items-center justify-center">
+                <div className="flex-1 max-w-md w-full flex flex-col items-center">
                   <h2 className="text-xl font-bold text-slate-800 mb-2">Constellation Explorer</h2>
-                  <p className="text-sm text-slate-500 mb-4 text-center">Hover or drag across the grid to reveal the binary coordinates.</p>
+                  <p className="text-sm text-slate-500 mb-4 text-center">Hover, tap, or drag across the grid to reveal the binary coordinates.</p>
 
-                  <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 relative">
-                    <canvas ref={exploreCanvasRef} width="240" height="240" onMouseMove={handleExploreMouseMove} onTouchMove={(e) => { e.preventDefault(); handleExploreMouseMove(e.touches[0]); }} className="bg-slate-900 rounded-lg cursor-crosshair shadow-inner" />
+                  <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 relative max-w-full">
+                    <canvas
+                      ref={exploreCanvasRef}
+                      width="240"
+                      height="240"
+                      style={{ width: '240px', maxWidth: '100%', aspectRatio: '1 / 1' }}
+                      onPointerDown={handleExplorePointer}
+                      onPointerMove={handleExplorePointer}
+                      className="bg-slate-900 rounded-lg cursor-crosshair shadow-inner touch-none select-none"
+                    />
                   </div>
 
                   <div className="mt-6 bg-white border border-slate-200 p-4 rounded-lg w-full text-center shadow-sm">
@@ -1425,21 +1663,21 @@
                       <span className="text-blue-500">{bitsMap[hoverI]}</span>
                       <span className="text-red-500">{bitsMap[hoverQ]}</span>
                     </div>
-                    <div className="flex justify-between mt-2 text-sm font-mono px-4">
+                    <div className="flex justify-between mt-2 text-sm font-mono px-2 sm:px-4">
                       <span className="text-blue-600">I-Axis (X): {hoverI}</span>
                       <span className="text-red-600">Q-Axis (Y): {hoverQ}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-lg text-sm text-slate-700 leading-relaxed max-w-lg">
+                <div className="flex-1 bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-lg text-sm text-slate-700 leading-relaxed max-w-lg w-full">
                   <div className="bg-indigo-50 text-indigo-900 p-4 rounded-lg border border-indigo-200 mb-6 text-xs shadow-sm leading-relaxed">
-                    <strong className="flex items-center mb-1 text-sm"><Target className="w-4 h-4 mr-1"/> Coming up next...</strong>
+                    <strong className="flex items-center mb-1 text-sm"><Target className="w-4 h-4 mr-1 flex-shrink-0"/> Coming up next...</strong>
                     You are currently looking at digital dots plotted on a screen. But how do we physically transmit an X and Y coordinate through the air? In Lab 3, you'll learn that the <strong>X (I) and Y (Q) coordinates are physically created by changing the <em>amplitudes</em> (heights) of two separate radio waves!</strong>
                   </div>
 
                   <div className="flex items-center text-purple-700 mb-4 border-b border-purple-100 pb-2">
-                    <Info className="w-6 h-6 mr-2" />
+                    <Info className="w-6 h-6 mr-2 flex-shrink-0" />
                     <h3 className="font-bold text-lg">The Genius of Gray Code</h3>
                   </div>
                   <p className="mb-4">
@@ -1451,9 +1689,9 @@
                   <p className="mb-6">
                     <strong>Why use it in Wi-Fi?</strong> In Gray code, adjacent points on the grid differ by only <em>one single bit</em>. If radio interference accidentally bumps a wave's amplitude into a neighboring coordinate, only one bit of data is corrupted instead of multiple bits. This mathematical trick dramatically reduces signal error rates!
                   </p>
-                  <div className="flex justify-between items-center">
-                    <a href="https://en.wikipedia.org/wiki/Gray_code" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">Read more on Wikipedia &rarr;</a>
-                    <button onClick={() => { setIsWavesUnlocked(true); setActiveTab('WAVES'); }} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-indigo-700">Learn about I/Q Waves</button>
+                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                    <a href="https://en.wikipedia.org/wiki/Gray_code" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline text-center sm:text-left py-2">Read more on Wikipedia &rarr;</a>
+                    <button onClick={() => { setIsWavesUnlocked(true); setActiveTab('WAVES'); }} className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-bold shadow hover:bg-indigo-700">Learn about I/Q Waves</button>
                   </div>
                 </div>
               </div>
@@ -1462,15 +1700,15 @@
             {/* --- TAB 3: I/Q WAVES --- */}
             {activeTab === 'WAVES' && (
               <div className="flex flex-col lg:flex-row w-full h-full">
-                <div className="p-8 lg:w-1/2 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white overflow-y-auto">
-                  <h2 className="text-2xl font-black text-slate-800 mb-2 flex items-center"><Activity className="w-6 h-6 mr-2 text-indigo-600" /> Sines, Cosines &amp; The X/Y Grid</h2>
+                <div className="p-4 sm:p-8 lg:w-1/2 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white overflow-y-auto">
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-800 mb-2 flex items-center"><Activity className="w-6 h-6 mr-2 text-indigo-600 flex-shrink-0" /> Sines, Cosines &amp; The X/Y Grid</h2>
                   <p className="text-sm text-slate-600 mb-6 leading-relaxed">
                     You've seen the Constellation Grid, but how do we physically transmit an X and Y coordinate over a single radio frequency? The secret lies in generating two mathematically distinct waves simultaneously.
                   </p>
 
                   <div className="space-y-4">
                     <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl shadow-sm">
-                      <h3 className="font-black text-blue-800 mb-1 flex justify-between items-center"><span>1. In-Phase (I)</span> <span className="text-xs font-mono bg-blue-200 text-blue-800 px-2 py-0.5 rounded">X-Axis</span></h3>
+                      <h3 className="font-black text-blue-800 mb-1 flex justify-between items-center gap-2"><span>1. In-Phase (I)</span> <span className="text-xs font-mono bg-blue-200 text-blue-800 px-2 py-0.5 rounded flex-shrink-0">X-Axis</span></h3>
                       <p className="text-sm text-blue-900 leading-relaxed">
                         <strong>What is it?</strong> This is our primary "baseline" radio wave. It perfectly aligns (is "in phase") with the transmitter's master clock.<br/>
                         <strong>The Math:</strong> It uses a <strong>Sine wave</strong>, which naturally starts its cycle exactly at 0.<br/>
@@ -1479,7 +1717,7 @@
                     </div>
 
                     <div className="bg-red-50 border border-red-200 p-4 rounded-xl shadow-sm">
-                      <h3 className="font-black text-red-800 mb-1 flex justify-between items-center"><span>2. Quadrature (Q)</span> <span className="text-xs font-mono bg-red-200 text-red-800 px-2 py-0.5 rounded">Y-Axis</span></h3>
+                      <h3 className="font-black text-red-800 mb-1 flex justify-between items-center gap-2"><span>2. Quadrature (Q)</span> <span className="text-xs font-mono bg-red-200 text-red-800 px-2 py-0.5 rounded flex-shrink-0">Y-Axis</span></h3>
                       <p className="text-sm text-red-900 leading-relaxed">
                         <strong>What is it?</strong> This is our secondary, shifted radio wave. "Quadrature" implies it is shifted by exactly a quarter-cycle (90 degrees).<br/>
                         <strong>The Math:</strong> It uses a <strong>Cosine wave</strong>, which is identical to a Sine wave but starts its cycle at its absolute peak (1).<br/>
@@ -1488,51 +1726,51 @@
                     </div>
 
                     <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm">
-                      <h3 className="font-bold text-amber-900 mb-1 flex items-center"><Radio className="w-4 h-4 mr-1.5 text-amber-600" /> Everyday Analogy: Touch-Tone Phones (DTMF)</h3>
+                      <h3 className="font-bold text-amber-900 mb-1 flex items-center"><Radio className="w-4 h-4 mr-1.5 text-amber-600 flex-shrink-0" /> Everyday Analogy: Touch-Tone Phones (DTMF)</h3>
                       <p className="text-xs text-amber-900 leading-relaxed">
                         Old push-button phones used a similar 2D grid idea called <strong>Dual-Tone Multi-Frequency (DTMF)</strong>. Pressing a number played a <strong>Column tone (X)</strong> and a <strong>Row tone (Y)</strong> at the same time down the phone wire. While phones used two <em>different</em> frequencies for X and Y, QAM goes one step further: by shifting the Cosine wave by <strong>90°</strong>, QAM sends both X and Y on the <strong>exact same frequency</strong> without them interfering!
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-8 flex justify-end">
-                    <button onClick={() => { setIsUnlocked(true); setActiveTab('QAM'); }} className="bg-purple-600 text-white px-8 py-3 rounded-lg font-black tracking-widest shadow-lg hover:bg-purple-700 transition-colors">ENTER TRANSMITTER &rarr;</button>
+                  <div className="mt-6 sm:mt-8 flex justify-end">
+                    <button onClick={() => { setIsUnlocked(true); setActiveTab('QAM'); }} className="w-full sm:w-auto bg-purple-600 text-white px-8 py-3 rounded-lg font-black tracking-widest shadow-lg hover:bg-purple-700 transition-colors">ENTER TRANSMITTER &rarr;</button>
                   </div>
                 </div>
 
-                <div className="lg:w-1/2 bg-slate-900 p-8 flex flex-col relative text-white items-center justify-center">
-                  <div className="flex justify-between items-center w-full mb-2">
+                <div className="lg:w-1/2 bg-slate-900 p-4 sm:p-8 flex flex-col relative text-white items-center justify-center">
+                  <div className="flex flex-wrap justify-between items-center gap-2 w-full mb-2">
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Interactive I/Q Sandbox</h3>
                     <button
                       onClick={() => setShowCombinedPreview(!showCombinedPreview)}
-                      className={`text-xs px-3 py-1 rounded-full font-bold border transition-colors ${showCombinedPreview ? 'bg-purple-900/60 border-purple-400 text-purple-200' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
+                      className={`text-xs px-3 py-1.5 rounded-full font-bold border transition-colors ${showCombinedPreview ? 'bg-purple-900/60 border-purple-400 text-purple-200' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
                     >
                       {showCombinedPreview ? 'Showing Combined Wave (X+Y)' : 'Show Combined Wave (X+Y)'}
                     </button>
                   </div>
-                  <p className="text-xs text-slate-400 mb-6 w-full text-left">Move the sliders below! Watch how the <strong>Blue (X / Sine)</strong> slider moves the dot horizontally and stretches the Blue wave, while the <strong>Red (Y / Cosine)</strong> slider moves the dot vertically and stretches the Red wave.</p>
+                  <p className="text-xs text-slate-400 mb-5 sm:mb-6 w-full text-left">Move the sliders below! Watch how the <strong>Blue (X / Sine)</strong> slider moves the dot horizontally and stretches the Blue wave, while the <strong>Red (Y / Cosine)</strong> slider moves the dot vertically and stretches the Red wave.</p>
 
-                  <div className="flex gap-4 w-full max-w-md mb-6">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md mb-6">
                     <div className="flex-1 bg-slate-800 p-4 rounded-xl border border-blue-500/40 text-center">
                       <label className="block text-xs font-bold text-blue-400 mb-2 uppercase tracking-wider">X-Axis / Blue Amp (I)</label>
-                      <input type="range" min="-3" max="3" step="1" value={wavesI} onChange={(e) => setWavesI(Number(e.target.value))} className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                      <input type="range" min="-3" max="3" step="1" value={wavesI} onChange={(e) => setWavesI(Number(e.target.value))} className="w-full h-2.5 bg-blue-200 rounded-lg cursor-pointer text-blue-500 accent-blue-500" />
                       <div className="mt-2 font-mono text-lg font-black text-blue-400">X = {wavesI}</div>
                     </div>
                     <div className="flex-1 bg-slate-800 p-4 rounded-xl border border-red-500/40 text-center">
                       <label className="block text-xs font-bold text-red-400 mb-2 uppercase tracking-wider">Y-Axis / Red Amp (Q)</label>
-                      <input type="range" min="-3" max="3" step="1" value={wavesQ} onChange={(e) => setWavesQ(Number(e.target.value))} className="w-full h-2 bg-red-200 rounded-lg appearance-none cursor-pointer accent-red-500" />
+                      <input type="range" min="-3" max="3" step="1" value={wavesQ} onChange={(e) => setWavesQ(Number(e.target.value))} className="w-full h-2.5 bg-red-200 rounded-lg cursor-pointer text-red-500 accent-red-500" />
                       <div className="mt-2 font-mono text-lg font-black text-red-400">Y = {wavesQ}</div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col xl:flex-row items-center justify-center gap-6 w-full">
-                    <div className="flex flex-col items-center bg-slate-800 p-4 rounded-xl border border-slate-700">
+                  <div className="flex flex-col xl:flex-row items-center justify-center gap-4 sm:gap-6 w-full">
+                    <div className="flex flex-col items-center bg-slate-800 p-4 rounded-xl border border-slate-700 w-full sm:w-auto">
                       <div className="text-[10px] text-slate-400 font-bold uppercase mb-2 tracking-widest">X/Y Constellation Grid</div>
-                      <canvas ref={wavesGridRef} width="220" height="220" className="bg-slate-900 rounded-lg shadow-inner"></canvas>
+                      <canvas ref={wavesGridRef} width="220" height="220" style={{ width: '220px', maxWidth: '100%', aspectRatio: '1 / 1' }} className="bg-slate-900 rounded-lg shadow-inner"></canvas>
                     </div>
-                    <div className="flex flex-col items-center bg-slate-800 p-4 rounded-xl border border-slate-700">
+                    <div className="flex flex-col items-center bg-slate-800 p-4 rounded-xl border border-slate-700 w-full sm:w-auto">
                       <div className="text-[10px] text-slate-400 font-bold uppercase mb-2 tracking-widest">Physical Radio Waves (X &amp; Y)</div>
-                      <canvas ref={wavesOscRef} width="260" height="220" className="bg-slate-900 rounded-lg shadow-inner"></canvas>
+                      <canvas ref={wavesOscRef} width="260" height="220" style={{ width: '260px', maxWidth: '100%', aspectRatio: '260 / 220' }} className="bg-slate-900 rounded-lg shadow-inner"></canvas>
                     </div>
                   </div>
                 </div>
@@ -1542,9 +1780,9 @@
             {/* --- TAB 4: QAM TRANSMIT --- */}
             {activeTab === 'QAM' && (
               <div className="flex flex-col md:flex-row w-full h-full">
-                <div className="p-6 md:w-[40%] border-b md:border-b-0 md:border-r border-slate-200 flex flex-col bg-white">
-                  <div className="flex bg-slate-200 rounded-lg p-1 mb-6">
-                    <button onClick={() => { setQamMode('MANUAL'); if(isPlaying) silenceAudio(); }} className={`flex-1 py-2 text-sm font-bold rounded-md flex justify-center items-center ${qamMode === 'MANUAL' ? 'bg-purple-600 shadow text-white' : 'text-slate-500 hover:bg-slate-300'}`}><Target className="w-4 h-4 mr-1"/> Operator Mode</button>
+                <div className="p-4 sm:p-6 md:w-[40%] border-b md:border-b-0 md:border-r border-slate-200 flex flex-col bg-white">
+                  <div className="flex bg-slate-200 rounded-lg p-1 mb-5 sm:mb-6">
+                    <button onClick={() => { setQamMode('MANUAL'); if(isPlaying) silenceAudio(); }} className={`flex-1 py-2 text-sm font-bold rounded-md flex justify-center items-center ${qamMode === 'MANUAL' ? 'bg-purple-600 shadow text-white' : 'text-slate-500 hover:bg-slate-300'}`}><Target className="w-4 h-4 mr-1 flex-shrink-0"/> Operator Mode</button>
                   </div>
 
                   <div className="flex-grow flex flex-col justify-center">
@@ -1569,7 +1807,7 @@
                           </ol>
                         </div>
 
-                        <input type="text" value={targetWord} onChange={(e) => setTargetWord(e.target.value.toUpperCase())} maxLength={6} className="w-full text-center border border-slate-300 rounded-lg p-3 font-bold text-xl mb-4 uppercase" placeholder="TARGET WORD" />
+                        <input type="text" value={targetWord} onChange={(e) => setTargetWord(e.target.value.toUpperCase())} maxLength={6} aria-label="Target transmission word" className="w-full text-center border border-slate-300 rounded-lg p-3 font-bold text-xl mb-4 uppercase" placeholder="TARGET WORD" />
                         <button onClick={startGame} className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-black tracking-wider text-lg shadow-lg">START MISSION</button>
                       </div>
                     ) : (
@@ -1581,7 +1819,7 @@
 
                         <div className="bg-purple-50 p-3 rounded-lg border border-purple-200 mb-4 text-xs">
                           <div className="font-bold text-purple-800 mb-2 flex items-center justify-center">
-                            <Info className="w-4 h-4 mr-1" /> Gray Code Decoder Key
+                            <Info className="w-4 h-4 mr-1 flex-shrink-0" /> Gray Code Decoder Key
                           </div>
                           <div className="grid grid-cols-4 gap-2 text-center font-mono">
                             <div className="bg-white border border-purple-200 rounded py-1 px-0 shadow-sm flex flex-col items-center">
@@ -1610,31 +1848,31 @@
                         <div className="space-y-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
                           <div>
                             <label className="flex justify-between text-sm font-bold text-blue-700 mb-2"><span>Blue Wave (I / X-Axis)</span><span className="font-mono bg-blue-200 px-2 rounded">Amp: {userI}</span></label>
-                            <input type="range" min="-3" max="3" step="2" value={userI} onChange={(e) => handleSliderChange('I', e.target.value)} className="w-full h-4 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                            <input type="range" min="-3" max="3" step="2" value={userI} onChange={(e) => handleSliderChange('I', e.target.value)} className="w-full h-3.5 bg-blue-200 rounded-lg cursor-pointer text-blue-600 accent-blue-600" />
                           </div>
                           <div>
                             <label className="flex justify-between text-sm font-bold text-red-700 mb-2"><span>Red Wave (Q / Y-Axis)</span><span className="font-mono bg-red-200 px-2 rounded">Amp: {userQ}</span></label>
-                            <input type="range" min="-3" max="3" step="2" value={userQ} onChange={(e) => handleSliderChange('Q', e.target.value)} className="w-full h-4 bg-red-200 rounded-lg appearance-none cursor-pointer accent-red-600" />
+                            <input type="range" min="-3" max="3" step="2" value={userQ} onChange={(e) => handleSliderChange('Q', e.target.value)} className="w-full h-3.5 bg-red-200 rounded-lg cursor-pointer text-red-600 accent-red-600" />
                           </div>
                         </div>
 
                         <button onClick={transmitManualSymbol} className={`w-full py-4 rounded-lg font-black tracking-widest text-lg shadow-lg mt-4 transition-colors ${feedback === 'CORRECT' ? 'bg-green-500 text-white' : feedback === 'MISMATCH' ? 'bg-red-500 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}>
                           {feedback === 'CORRECT' ? 'LOCK SUCCESS!' : feedback === 'MISMATCH' ? 'MAPPING ERROR!' : 'TRANSMIT SYMBOL'}
                         </button>
-                        <button onClick={() => setGameActive(false)} className="mt-3 text-xs text-slate-400 hover:text-slate-600 underline">Cancel</button>
+                        <button onClick={() => { setGameActive(false); silenceAudio(); }} className="mt-3 text-xs text-slate-500 hover:text-slate-700 underline py-2">Cancel</button>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-slate-900 md:w-[60%] p-6 flex flex-col relative text-white">
-                  <div className="flex justify-between items-center mb-6">
+                <div className="bg-slate-900 md:w-[60%] p-4 sm:p-6 flex flex-col relative text-white">
+                  <div className="flex justify-between items-center mb-5 sm:mb-6">
                     <div className="flex items-start gap-3">
                       <div>
                         <h2 className="font-mono text-sm tracking-widest text-slate-400 uppercase">Oscilloscope &amp; Grid</h2>
                         <div className={`mt-1 inline-flex px-3 py-1 rounded-full text-xs font-bold border ${gameActive ? 'bg-orange-900/50 border-orange-500 text-orange-200' : 'bg-slate-800 border-slate-600 text-slate-400'}`}>{status}</div>
                       </div>
-                      <button onClick={() => setActiveTooltip(activeTooltip === 'ADDITION' ? null : 'ADDITION')} className={`mt-1 p-1 rounded-full transition-colors ${activeTooltip === 'ADDITION' ? 'bg-purple-500 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}><Info className="w-4 h-4" /></button>
+                      <button onClick={() => setActiveTooltip(activeTooltip === 'ADDITION' ? null : 'ADDITION')} aria-label="Explain transmitter wave addition math" className={`icon-button mt-1 p-1 rounded-full transition-colors ${activeTooltip === 'ADDITION' ? 'bg-purple-500 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}><Info className="w-4 h-4" /></button>
                     </div>
                   </div>
 
@@ -1644,28 +1882,28 @@
                     </div>
                   )}
 
-                  <div className="flex-grow flex flex-col xl:flex-row items-center justify-center gap-6">
+                  <div className="flex-grow flex flex-col xl:flex-row items-center justify-center gap-5 sm:gap-6">
                     {/* Left Column: X,Y Grid + Target Payload (8-bit) Underneath */}
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="flex flex-col items-center bg-slate-800 p-4 rounded-xl border border-slate-700">
+                    <div className="flex flex-col items-center gap-4 w-full sm:w-auto">
+                      <div className="flex flex-col items-center bg-slate-800 p-4 rounded-xl border border-slate-700 w-full sm:w-auto">
                         <div className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-2">X,Y Constellation Grid</div>
-                        <canvas ref={gridCanvasRef} width="220" height="220" className="bg-slate-900 rounded-lg shadow-inner"></canvas>
+                        <canvas ref={gridCanvasRef} width="220" height="220" style={{ width: '220px', maxWidth: '100%', aspectRatio: '1 / 1' }} className="bg-slate-900 rounded-lg shadow-inner"></canvas>
                       </div>
 
                       {gameActive && activeSymbol && (
                         <div key={`payload-${currentSymbolIndex}`} className="bg-slate-800 p-3.5 rounded-xl border border-slate-600 w-full flash-payload shadow-lg">
-                          <div className="flex justify-between items-center mb-1.5">
+                          <div className="flex justify-between items-center gap-2 mb-1.5">
                             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Target Payload (8-bit)</span>
-                            <span className="text-[10px] font-mono bg-purple-900/70 text-purple-200 px-2 py-0.5 rounded border border-purple-500/40">
+                            <span className="text-[10px] font-mono bg-purple-900/70 text-purple-200 px-2 py-0.5 rounded border border-purple-500/40 flex-shrink-0">
                               Symbol {activeSymbol.isFirstHalf ? '1 of 2' : '2 of 2'}
                             </span>
                           </div>
-                          <div className="flex justify-between items-center bg-slate-900 px-3 py-2 rounded-lg border border-slate-700">
+                          <div className="flex justify-between items-center bg-slate-900 px-3 py-2 rounded-lg border border-slate-700 gap-2">
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-slate-400 font-mono">Letter:</span>
                               <span className="font-black text-2xl text-white">{activeSymbol.char}</span>
                             </div>
-                            <span className="font-mono text-lg tracking-widest border-l border-slate-700 pl-3 flex">
+                            <span className="font-mono text-base sm:text-lg tracking-widest border-l border-slate-700 pl-3 flex">
                               {activeSymbol.isFirstHalf ? (
                                 <>
                                   <span className="text-blue-400 font-bold">{activeSymbol.fullBinary.substring(0,2)}</span>
@@ -1688,17 +1926,17 @@
                     {/* Right Column: Live Oscilloscope */}
                     <div className="flex-1 flex flex-col items-center bg-slate-800 p-4 rounded-xl border border-slate-700 w-full">
                       <div className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-2">Transmitted RF Waveform</div>
-                      <canvas ref={waveCanvasRef} width="320" height="220" className="bg-slate-900 rounded-lg w-full shadow-inner"></canvas>
+                      <canvas ref={waveCanvasRef} width="320" height="220" style={{ aspectRatio: '320 / 220' }} className="bg-slate-900 rounded-lg w-full h-auto shadow-inner"></canvas>
                     </div>
                   </div>
 
                   {feedback === 'MISSION COMPLETE!' && (
-                    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 p-8 text-center">
-                      <Trophy className="w-20 h-20 text-yellow-400 mb-4 animate-bounce" />
-                      <h3 className="text-3xl font-black text-white mb-2 tracking-widest">TRANSMISSION SUCCESS</h3>
-                      <p className="text-purple-300 font-mono text-lg mb-8">Final Score: {finalScore}</p>
-                      <button onClick={() => { setMathSubTab('WALKTHROUGH'); setActiveTab('MATH'); }} className="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-black py-4 px-10 rounded-full shadow-[0_0_20px_rgba(234,179,8,0.4)] transition-all flex items-center text-lg">
-                        <Calculator className="w-6 h-6 mr-3" /> Enter Math Intro &amp; Demodulator Lab
+                    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 p-5 sm:p-8 text-center">
+                      <Trophy className="w-16 h-16 sm:w-20 sm:h-20 text-yellow-400 mb-4 animate-bounce" />
+                      <h3 className="text-2xl sm:text-3xl font-black text-white mb-2 tracking-widest">TRANSMISSION SUCCESS</h3>
+                      <p className="text-purple-300 font-mono text-lg mb-6 sm:mb-8">Final Score: {finalScore}</p>
+                      <button onClick={() => { setMathSubTab('WALKTHROUGH'); setActiveTab('MATH'); }} className="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-black py-3.5 px-6 sm:py-4 sm:px-10 rounded-full shadow-[0_0_20px_rgba(234,179,8,0.4)] transition-all flex items-center text-sm sm:text-lg">
+                        <Calculator className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 flex-shrink-0" /> Enter Math Intro &amp; Demodulator Lab
                       </button>
                     </div>
                   )}
@@ -1711,21 +1949,21 @@
               <div className="w-full flex flex-col h-full bg-slate-50">
 
                 {/* Sub-Navigation Banner: Part 1 (By-Hand Math Intro) vs Part 2 (Live Wave Simulator) */}
-                <div className="bg-slate-900 px-6 py-3 border-b border-slate-700 flex flex-wrap justify-between items-center gap-3">
+                <div className="bg-slate-900 px-4 sm:px-6 py-3 border-b border-slate-700 flex flex-wrap justify-between items-center gap-3">
                   <div className="flex items-center gap-2 text-white">
-                    <Calculator className="w-5 h-5 text-yellow-400" />
-                    <span className="font-black tracking-wider text-sm uppercase">Lab 5: Demodulation Mathematics</span>
+                    <Calculator className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                    <span className="font-black tracking-wider text-xs sm:text-sm uppercase">Lab 5: Demodulation Mathematics</span>
                   </div>
-                  <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700 gap-1">
+                  <div className="flex flex-col sm:flex-row bg-slate-800 p-1 rounded-xl border border-slate-700 gap-1 w-full sm:w-auto">
                     <button
                       onClick={() => setMathSubTab('WALKTHROUGH')}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${mathSubTab === 'WALKTHROUGH' ? 'bg-yellow-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'}`}
+                      className={`px-3 sm:px-4 py-2 sm:py-1.5 rounded-lg text-xs font-black transition-all ${mathSubTab === 'WALKTHROUGH' ? 'bg-yellow-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'}`}
                     >
                       Part 1: Step-by-Step Math Intro (By Hand)
                     </button>
                     <button
                       onClick={() => setMathSubTab('SIMULATOR')}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${mathSubTab === 'SIMULATOR' ? 'bg-yellow-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'}`}
+                      className={`px-3 sm:px-4 py-2 sm:py-1.5 rounded-lg text-xs font-black transition-all ${mathSubTab === 'SIMULATOR' ? 'bg-yellow-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'}`}
                     >
                       Part 2: Live Wave Demodulator
                     </button>
@@ -1734,11 +1972,11 @@
 
                 {/* PART 1: STEP-BY-STEP MATH WALKTHROUGH (SOLVE BY HAND) */}
                 {mathSubTab === 'WALKTHROUGH' && (
-                  <div className="p-6 sm:p-8 flex flex-col gap-6 max-w-5xl mx-auto w-full">
+                  <div className="p-4 sm:p-8 flex flex-col gap-5 sm:gap-6 max-w-5xl mx-auto w-full">
 
                     {/* Intro & Preset Selector */}
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                      <h2 className="text-2xl font-black text-slate-800 mb-2">
+                    <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                      <h2 className="text-xl sm:text-2xl font-black text-slate-800 mb-2">
                         How to Separate Two Combined Waves by Hand
                       </h2>
                       <p className="text-sm text-slate-600 leading-relaxed mb-4">
@@ -1761,7 +1999,7 @@
                             <button
                               key={idx}
                               onClick={() => { setDemodI(preset.i); setDemodQ(preset.q); }}
-                              className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${demodI === preset.i && demodQ === preset.q ? 'bg-purple-600 text-white border-purple-600 shadow-md scale-105' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'}`}
+                              className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${demodI === preset.i && demodQ === preset.q ? 'bg-purple-600 text-white border-purple-600 shadow-md sm:scale-105' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'}`}
                             >
                               {preset.label}
                             </button>
@@ -1771,22 +2009,22 @@
 
                       {/* Which Variable to Solve For */}
                       <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-100">
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                           <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Currently Plugged In:</span>
                           <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-mono font-black text-sm">X = {demodI}</span>
                           <span className="px-3 py-1 rounded-full bg-red-100 text-red-800 font-mono font-black text-sm">Y = {demodQ}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Solve By Hand For:</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 w-full sm:w-auto">Solve By Hand For:</span>
                           <button
                             onClick={() => setDemodRefType('SINE')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${demodRefType === 'SINE' ? 'bg-blue-600 text-white shadow' : 'bg-slate-200 text-slate-700'}`}
+                            className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-black transition-all ${demodRefType === 'SINE' ? 'bg-blue-600 text-white shadow' : 'bg-slate-200 text-slate-700'}`}
                           >
                             Solve for X = {demodI} (Multiply by Sine)
                           </button>
                           <button
                             onClick={() => setDemodRefType('COSINE')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${demodRefType === 'COSINE' ? 'bg-red-600 text-white shadow' : 'bg-slate-200 text-slate-700'}`}
+                            className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-black transition-all ${demodRefType === 'COSINE' ? 'bg-red-600 text-white shadow' : 'bg-slate-200 text-slate-700'}`}
                           >
                             Solve for Y = {demodQ} (Multiply by Cosine)
                           </button>
@@ -1795,7 +2033,7 @@
                     </div>
 
                     {/* WHY DON'T WE SUBTRACT CALLOUT */}
-                    <div className="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-xl shadow-sm">
+                    <div className="bg-amber-50 border-l-4 border-amber-500 p-4 sm:p-5 rounded-r-xl shadow-sm">
                       <h3 className="text-sm font-black text-amber-900 flex items-center gap-2 mb-1">
                         <HelpCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
                         Wait—If the Transmitter ADDED the two waves, why don't we just SUBTRACT to undo it?
@@ -1813,8 +2051,8 @@
                       <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                         <div className="md:col-span-7 p-4 bg-slate-900 text-white font-mono text-xs sm:text-sm flex flex-col justify-center">
                           <div className="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Step 1: Plug Numbers into the 2 Wave Equations</div>
-                          <div className="text-blue-400 font-bold">Equation 1 (Blue X Wave) = {demodI} · sin(t)</div>
-                          <div className="text-red-400 font-bold mt-1">Equation 2 (Red Y Wave)  = {demodQ} · cos(t)</div>
+                          <div className="text-blue-400 font-bold break-words">Equation 1 (Blue X Wave) = {demodI} · sin(t)</div>
+                          <div className="text-red-400 font-bold mt-1 break-words">Equation 2 (Red Y Wave)  = {demodQ} · cos(t)</div>
                         </div>
                         <div className="md:col-span-5 p-4 text-xs text-slate-600 flex items-center bg-slate-50">
                           <span><strong>Explanation:</strong> At the transmitter, we plug your chosen coordinates (<strong>X = {demodI}</strong> and <strong>Y = {demodQ}</strong>) in as the amplitudes (heights) of two separate waves: a Sine wave and a Cosine wave.</span>
@@ -1825,7 +2063,7 @@
                       <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                         <div className="md:col-span-7 p-4 bg-slate-900 text-white font-mono text-xs sm:text-sm flex flex-col justify-center">
                           <div className="text-[10px] text-purple-300 uppercase tracking-widest mb-1">Step 2: Add Together to Transmit (Graph 1)</div>
-                          <div className="text-purple-300 font-bold">
+                          <div className="text-purple-300 font-bold break-words">
                             Graph 1 (Purple) = ({demodI})·sin(t) + ({demodQ})·cos(t)
                           </div>
                         </div>
@@ -1840,10 +2078,10 @@
                           <div className="text-[10px] text-yellow-400 uppercase tracking-widest mb-1">
                             Step 3: Multiply by Reference Wave (Graph 1 × Graph 2)
                           </div>
-                          <div className="text-white font-bold">
+                          <div className="text-white font-bold break-words">
                             Result = [({demodI})·sin(t) + ({demodQ})·cos(t)] × <span className={demodRefType === 'SINE' ? 'text-blue-400' : 'text-red-400'}>2·{demodRefType === 'SINE' ? 'sin(t)' : 'cos(t)'}</span>
                           </div>
-                          <div className="text-slate-300 mt-1 text-xs">
+                          <div className="text-slate-300 mt-1 text-xs break-words">
                             {demodRefType === 'SINE'
                               ? `= (${demodI}) · 2sin²(t)  +  (${demodQ}) · 2sin(t)cos(t)`
                               : `= (${demodI}) · 2sin(t)cos(t)  +  (${demodQ}) · 2cos²(t)`}
@@ -1862,7 +2100,7 @@
                           <div className="text-[10px] text-emerald-400 uppercase tracking-widest mb-2">
                             Step 4: Plug In 4 Points Around 1 Wave Cycle (0°, 90°, 180°, 270°)
                           </div>
-                          <div className="grid grid-cols-4 gap-1.5 text-center">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                             {[
                               { deg: '0°', s: 0, c: 1 },
                               { deg: '90°', s: 1, c: 0 },
@@ -1899,12 +2137,12 @@
                             Step 5: Average the 4 Result Values to Recover the Coordinate!
                           </div>
                           {demodRefType === 'SINE' ? (
-                            <div className="text-yellow-300 font-black text-base">
-                              Average = (0 + {2 * demodI} + 0 + {2 * demodI}) ÷ 4 = {4 * demodI} ÷ 4 = <span className="underline text-white bg-blue-600 px-2 py-0.5 rounded">X = {demodI}</span>
+                            <div className="text-yellow-300 font-black text-sm sm:text-base break-words leading-relaxed">
+                              Average = (0 + {2 * demodI} + 0 + {2 * demodI}) ÷ 4 = {4 * demodI} ÷ 4 = <span className="underline text-white bg-blue-600 px-2 py-0.5 rounded inline-block">X = {demodI}</span>
                             </div>
                           ) : (
-                            <div className="text-yellow-300 font-black text-base">
-                              Average = ({2 * demodQ} + 0 + {2 * demodQ} + 0) ÷ 4 = {4 * demodQ} ÷ 4 = <span className="underline text-white bg-red-600 px-2 py-0.5 rounded">Y = {demodQ}</span>
+                            <div className="text-yellow-300 font-black text-sm sm:text-base break-words leading-relaxed">
+                              Average = ({2 * demodQ} + 0 + {2 * demodQ} + 0) ÷ 4 = {4 * demodQ} ÷ 4 = <span className="underline text-white bg-red-600 px-2 py-0.5 rounded inline-block">Y = {demodQ}</span>
                             </div>
                           )}
                         </div>
@@ -1919,7 +2157,7 @@
                     <div className="flex justify-end">
                       <button
                         onClick={() => setMathSubTab('SIMULATOR')}
-                        className="bg-purple-600 hover:bg-purple-700 text-white font-black py-3.5 px-8 rounded-xl shadow-lg flex items-center gap-2 tracking-wider"
+                        className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-black py-3.5 px-6 sm:px-8 rounded-xl shadow-lg flex items-center justify-center gap-2 tracking-wider text-sm"
                       >
                         Launch Part 2: Live Wave Demodulator &rarr;
                       </button>
@@ -1930,12 +2168,12 @@
                 {/* PART 2: LIVE WAVE DEMODULATOR SIMULATOR */}
                 {mathSubTab === 'SIMULATOR' && (
                   <div className="w-full flex flex-col lg:flex-row h-full">
-                    <div className="p-6 lg:w-[38%] bg-slate-50 border-r border-slate-200 flex flex-col justify-start overflow-y-auto">
-                      <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-xl font-black text-slate-800">Live Wave Demodulator</h2>
+                    <div className="p-4 sm:p-6 lg:w-[38%] bg-slate-50 border-b lg:border-b-0 lg:border-r border-slate-200 flex flex-col justify-start overflow-y-auto">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <h2 className="text-lg sm:text-xl font-black text-slate-800">Live Wave Demodulator</h2>
                         <button
                           onClick={() => setMathSubTab('WALKTHROUGH')}
-                          className="text-xs font-bold text-purple-600 hover:underline"
+                          className="text-xs font-bold text-purple-600 hover:underline py-1"
                         >
                           &larr; View By-Hand Steps
                         </button>
@@ -1952,30 +2190,30 @@
 
                       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-3">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">1. Set Graph 1 Amplitudes (Transmitter)</h3>
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                           <div className="flex-1 bg-blue-50/60 p-2.5 rounded-lg border border-blue-200">
                             <label className="text-xs font-black text-blue-700 block mb-1">X-Axis (I / Sine): {demodI}</label>
-                            <input type="range" min="-3" max="3" step="2" value={demodI} onChange={e=>setDemodI(Number(e.target.value))} className="w-full accent-blue-600" />
+                            <input type="range" min="-3" max="3" step="2" value={demodI} onChange={e=>setDemodI(Number(e.target.value))} className="w-full h-2.5 bg-blue-200 rounded-lg cursor-pointer text-blue-600 accent-blue-600" />
                           </div>
                           <div className="flex-1 bg-red-50/60 p-2.5 rounded-lg border border-red-200">
                             <label className="text-xs font-black text-red-700 block mb-1">Y-Axis (Q / Cosine): {demodQ}</label>
-                            <input type="range" min="-3" max="3" step="2" value={demodQ} onChange={e=>setDemodQ(Number(e.target.value))} className="w-full accent-red-600" />
+                            <input type="range" min="-3" max="3" step="2" value={demodQ} onChange={e=>setDemodQ(Number(e.target.value))} className="w-full h-2.5 bg-red-200 rounded-lg cursor-pointer text-red-600 accent-red-600" />
                           </div>
                         </div>
                       </div>
 
                       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-3">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">2. Choose Graph 2 Multiplier (Receiver)</h3>
-                        <div className="flex bg-slate-100 p-1 rounded-lg gap-1">
-                          <button onClick={()=>setDemodRefType('SINE')} className={`flex-1 py-2 text-xs font-black rounded transition-all ${demodRefType === 'SINE' ? 'bg-blue-600 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}>Multiply by 2·sin(t) [Find X]</button>
-                          <button onClick={()=>setDemodRefType('COSINE')} className={`flex-1 py-2 text-xs font-black rounded transition-all ${demodRefType === 'COSINE' ? 'bg-red-600 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}>Multiply by 2·cos(t) [Find Y]</button>
+                        <div className="flex flex-col sm:flex-row bg-slate-100 p-1 rounded-lg gap-1">
+                          <button onClick={()=>setDemodRefType('SINE')} className={`flex-1 py-2.5 sm:py-2 px-2 text-xs font-black rounded transition-all ${demodRefType === 'SINE' ? 'bg-blue-600 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}>Multiply by 2·sin(t) [Find X]</button>
+                          <button onClick={()=>setDemodRefType('COSINE')} className={`flex-1 py-2.5 sm:py-2 px-2 text-xs font-black rounded transition-all ${demodRefType === 'COSINE' ? 'bg-red-600 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}>Multiply by 2·cos(t) [Find Y]</button>
                         </div>
                       </div>
 
                       {/* Live Receiver Grid & Step-by-Step Math Summary */}
-                      <div className="bg-slate-900 text-white p-3.5 rounded-xl border border-slate-700 flex items-center gap-4 mb-4">
-                        <canvas ref={mathGridRef} width="140" height="140" className="rounded border border-slate-700 flex-shrink-0"></canvas>
-                        <div className="text-xs space-y-1.5">
+                      <div className="bg-slate-900 text-white p-3.5 rounded-xl border border-slate-700 flex flex-col sm:flex-row items-center gap-4 mb-4">
+                        <canvas ref={mathGridRef} width="140" height="140" style={{ width: '140px', maxWidth: '100%', aspectRatio: '1 / 1' }} className="rounded border border-slate-700 flex-shrink-0"></canvas>
+                        <div className="text-xs space-y-1.5 text-center sm:text-left">
                           <div className="text-[10px] font-mono uppercase tracking-widest text-slate-400">Recovered Point on Grid</div>
                           <div className="font-mono text-sm">
                             <span className={`px-1.5 py-0.5 rounded font-bold mr-1 ${demodRefType === 'SINE' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-blue-400'}`}>X = {demodI}</span>
@@ -1990,11 +2228,11 @@
                       </div>
 
                       <button onClick={() => { setActiveTab('CLAIM'); silenceAudio(); }} className="mt-auto bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center">
-                        <FileSignature className="w-5 h-5 mr-2" /> Proceed to Certification
+                        <FileSignature className="w-5 h-5 mr-2 flex-shrink-0" /> Proceed to Certification
                       </button>
                     </div>
 
-                    <div className="lg:w-[62%] bg-slate-900 p-6 flex flex-col gap-3 overflow-y-auto">
+                    <div className="lg:w-[62%] bg-slate-900 p-4 sm:p-6 flex flex-col gap-3 overflow-y-auto">
                       {/* Top Controls Bar for Struggling Students */}
                       <div className="flex flex-wrap justify-between items-center bg-slate-800/80 px-4 py-2.5 rounded-xl border border-slate-700 gap-2">
                         <div className="text-xs text-slate-300 font-bold flex items-center gap-2">
@@ -2003,13 +2241,13 @@
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => setShowHiddenIngredients(!showHiddenIngredients)}
-                            className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${showHiddenIngredients ? 'bg-purple-600 border-purple-400 text-white' : 'bg-slate-700 border-slate-600 text-slate-300'}`}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${showHiddenIngredients ? 'bg-purple-600 border-purple-400 text-white' : 'bg-slate-700 border-slate-600 text-slate-300'}`}
                           >
                             {showHiddenIngredients ? '✓ Showing Hidden X & Y Waves' : 'Peek Inside: Show X & Y Waves'}
                           </button>
                           <button
                             onClick={() => setIsWavePaused(!isWavePaused)}
-                            className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1 transition-colors ${isWavePaused ? 'bg-amber-500 border-amber-300 text-slate-950' : 'bg-slate-700 border-slate-600 text-slate-300'}`}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1 transition-colors ${isWavePaused ? 'bg-amber-500 border-amber-300 text-slate-950' : 'bg-slate-700 border-slate-600 text-slate-300'}`}
                           >
                             {isWavePaused ? <><Play className="w-3 h-3" /> Resume Waves</> : <><Square className="w-3 h-3" /> Freeze Waves</>}
                           </button>
@@ -2017,17 +2255,17 @@
                       </div>
 
                       {/* GRAPH 1: INCOMING MIXED WAVE */}
-                      <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="bg-purple-600 text-white text-[10px] font-black px-2 py-0.5 rounded font-mono uppercase">
+                      <div className="bg-slate-800 p-3.5 sm:p-4 rounded-xl border border-slate-700">
+                        <div className="flex justify-between items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <span className="bg-purple-600 text-white text-[10px] font-black px-2 py-0.5 rounded font-mono uppercase flex-shrink-0">
                               GRAPH 1
                             </span>
-                            <h4 className="text-xs font-mono text-purple-300 uppercase tracking-widest font-bold">
+                            <h4 className="text-xs font-mono text-purple-300 uppercase tracking-wider sm:tracking-widest font-bold break-words">
                               Incoming Wave: ({demodI})·sin(t) + ({demodQ})·cos(t)
                             </h4>
                           </div>
-                          <button onClick={() => setActiveTooltip(activeTooltip === 'PURPLE' ? null : 'PURPLE')} className={`p-1 rounded-full transition-colors ${activeTooltip === 'PURPLE' ? 'bg-purple-500 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}><Info className="w-4 h-4" /></button>
+                          <button onClick={() => setActiveTooltip(activeTooltip === 'PURPLE' ? null : 'PURPLE')} aria-label="Explain Graph 1 incoming combined wave" className={`icon-button p-1 rounded-full transition-colors flex-shrink-0 ${activeTooltip === 'PURPLE' ? 'bg-purple-500 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}><Info className="w-4 h-4" /></button>
                         </div>
                         {activeTooltip === 'PURPLE' && (
                           <div className="mb-3 p-3 bg-purple-900/40 border border-purple-500/30 rounded-lg text-xs text-purple-100 leading-relaxed">
@@ -2035,23 +2273,23 @@
                             <a href="https://en.wikipedia.org/wiki/Quadrature_amplitude_modulation" target="_blank" rel="noreferrer" className="block mt-1 text-purple-300 font-bold hover:underline">Read about QAM on Wikipedia &rarr;</a>
                           </div>
                         )}
-                        <canvas ref={mathTopRef} width="400" height="115" className="w-full bg-slate-900 rounded border border-slate-700"></canvas>
+                        <canvas ref={mathTopRef} width="400" height="124" style={{ aspectRatio: '400 / 124' }} className="w-full h-auto bg-slate-900 rounded border border-slate-700"></canvas>
                       </div>
 
-                      <div className="text-center font-black text-xl text-slate-400 my-[-6px]">× <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 align-middle">(Graph 1 Multiplied by Graph 2)</span></div>
+                      <div className="text-center font-black text-xl text-slate-400 my-[-4px]">× <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 align-middle">(Graph 1 Multiplied by Graph 2)</span></div>
 
                       {/* GRAPH 2: LOCAL REFERENCE WAVE */}
-                      <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded font-mono uppercase text-white ${demodRefType === 'SINE' ? 'bg-blue-600' : 'bg-red-600'}`}>
+                      <div className="bg-slate-800 p-3.5 sm:p-4 rounded-xl border border-slate-700">
+                        <div className="flex justify-between items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded font-mono uppercase text-white flex-shrink-0 ${demodRefType === 'SINE' ? 'bg-blue-600' : 'bg-red-600'}`}>
                               GRAPH 2
                             </span>
-                            <h4 className={`text-xs font-mono uppercase tracking-widest font-bold ${demodRefType === 'SINE' ? 'text-blue-400' : 'text-red-400'}`}>
+                            <h4 className={`text-xs font-mono uppercase tracking-wider sm:tracking-widest font-bold break-words ${demodRefType === 'SINE' ? 'text-blue-400' : 'text-red-400'}`}>
                               Receiver Reference Wave: {demodRefType === 'SINE' ? '2·sin(t) [Extracts X]' : '2·cos(t) [Extracts Y]'}
                             </h4>
                           </div>
-                          <button onClick={() => setActiveTooltip(activeTooltip === 'REF' ? null : 'REF')} className={`p-1 rounded-full transition-colors ${activeTooltip === 'REF' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}><Info className="w-4 h-4" /></button>
+                          <button onClick={() => setActiveTooltip(activeTooltip === 'REF' ? null : 'REF')} aria-label="Explain Graph 2 receiver reference wave" className={`icon-button p-1 rounded-full transition-colors flex-shrink-0 ${activeTooltip === 'REF' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}><Info className="w-4 h-4" /></button>
                         </div>
                         {activeTooltip === 'REF' && (
                           <div className="mb-3 p-3 bg-blue-900/40 border border-blue-500/30 rounded-lg text-xs text-blue-100 leading-relaxed">
@@ -2059,25 +2297,25 @@
                             <a href="https://en.wikipedia.org/wiki/Local_oscillator" target="_blank" rel="noreferrer" className="block mt-1 text-blue-300 font-bold hover:underline">Read about Local Oscillators &rarr;</a>
                           </div>
                         )}
-                        <canvas ref={mathMidRef} width="400" height="115" className="w-full bg-slate-900 rounded border border-slate-700"></canvas>
+                        <canvas ref={mathMidRef} width="400" height="124" style={{ aspectRatio: '400 / 124' }} className="w-full h-auto bg-slate-900 rounded border border-slate-700"></canvas>
                       </div>
 
-                      <div className="text-center font-black text-xl text-slate-400 my-[-6px]">= <span className="text-[10px] font-mono uppercase tracking-widest text-yellow-400 align-middle">(Equals The Result Wave Below)</span></div>
+                      <div className="text-center font-black text-xl text-slate-400 my-[-4px]">= <span className="text-[10px] font-mono uppercase tracking-widest text-yellow-400 align-middle">(Equals The Result Wave Below)</span></div>
 
                       {/* RESULT: MULTIPLIED PRODUCT & AVERAGE */}
-                      <div className={`bg-slate-800 p-4 rounded-xl border relative ${demodRefType === 'SINE' ? 'border-blue-500/60' : 'border-red-500/60'}`}>
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="bg-yellow-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded font-mono uppercase">
+                      <div className={`bg-slate-800 p-3.5 sm:p-4 rounded-xl border relative ${demodRefType === 'SINE' ? 'border-blue-500/60' : 'border-red-500/60'}`}>
+                        <div className="flex justify-between items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <span className="bg-yellow-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded font-mono uppercase flex-shrink-0">
                               RESULT
                             </span>
-                            <h4 className={`text-xs font-mono tracking-wider font-bold ${demodRefType === 'SINE' ? 'text-blue-300' : 'text-red-300'}`}>
+                            <h4 className={`text-xs font-mono tracking-wider font-bold break-words ${demodRefType === 'SINE' ? 'text-blue-300' : 'text-red-300'}`}>
                               {demodRefType === 'SINE'
                                 ? `[ (${demodI})·sin(t) + (${demodQ})·cos(t) ] × 2·sin(t)  →  Avg X = ${demodI}`
                                 : `[ (${demodI})·sin(t) + (${demodQ})·cos(t) ] × 2·cos(t)  →  Avg Y = ${demodQ}`}
                             </h4>
                           </div>
-                          <button onClick={() => setActiveTooltip(activeTooltip === 'OUT' ? null : 'OUT')} className={`p-1 rounded-full transition-colors ${activeTooltip === 'OUT' ? (demodRefType === 'SINE' ? 'bg-blue-500 text-white' : 'bg-red-500 text-white') : 'bg-slate-700 text-slate-400 hover:text-white'}`}><Info className="w-4 h-4" /></button>
+                          <button onClick={() => setActiveTooltip(activeTooltip === 'OUT' ? null : 'OUT')} aria-label="Explain demodulation product result formula" className={`icon-button p-1 rounded-full transition-colors flex-shrink-0 ${activeTooltip === 'OUT' ? (demodRefType === 'SINE' ? 'bg-blue-500 text-white' : 'bg-red-500 text-white') : 'bg-slate-700 text-slate-400 hover:text-white'}`}><Info className="w-4 h-4" /></button>
                         </div>
                         {activeTooltip === 'OUT' && (
                           <div className={`mb-3 p-3 border rounded-lg text-xs leading-relaxed ${demodRefType === 'SINE' ? 'bg-blue-900/40 border-blue-500/30 text-blue-100' : 'bg-red-900/40 border-red-500/30 text-red-100'}`}>
@@ -2085,7 +2323,7 @@
                             <a href="https://en.wikipedia.org/wiki/Orthogonality" target="_blank" rel="noreferrer" className={`block mt-1 font-bold hover:underline ${demodRefType === 'SINE' ? 'text-blue-300' : 'text-red-300'}`}>Read about Orthogonal Functions &rarr;</a>
                           </div>
                         )}
-                        <canvas ref={mathBotRef} width="400" height="115" className="w-full bg-slate-900 rounded border border-slate-700"></canvas>
+                        <canvas ref={mathBotRef} width="400" height="124" style={{ aspectRatio: '400 / 124' }} className="w-full h-auto bg-slate-900 rounded border border-slate-700"></canvas>
                       </div>
                     </div>
                   </div>
@@ -2095,9 +2333,9 @@
 
             {/* --- TAB 6A: CLAIM CERTIFICATE --- */}
             {activeTab === 'CLAIM' && (
-              <div className="w-full p-8 flex flex-col items-center justify-center bg-slate-50">
-                <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full">
-                  <div className="text-center mb-8">
+              <div className="w-full p-4 sm:p-8 flex flex-col items-center justify-center bg-slate-50">
+                <div className="bg-white p-5 sm:p-8 rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full">
+                  <div className="text-center mb-6 sm:mb-8">
                     <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4"><FileSignature className="w-8 h-8" /></div>
                     <h2 className="text-2xl font-black text-slate-800">Register Certification</h2>
                     <p className="text-slate-500 mt-2 text-sm">Enter your name exactly as it should appear on your official digital certificate.</p>
@@ -2113,10 +2351,10 @@
                     }}
                   >
                     <div className="mb-6">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Official Learner Name</label>
-                      <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} className="w-full border-2 border-slate-200 rounded-lg p-4 text-xl font-bold text-slate-800 focus:border-orange-500 outline-none" placeholder="Enter Full Name" required />
+                      <label htmlFor="learner-name" className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Official Learner Name</label>
+                      <input id="learner-name" type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} className="w-full border-2 border-slate-200 rounded-lg p-4 text-xl font-bold text-slate-800 focus:border-orange-500 outline-none" placeholder="Enter Full Name" required />
                     </div>
-                    <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-lg shadow-lg flex items-center justify-center">Generate Secure Certificate <Award className="w-5 h-5 ml-2" /></button>
+                    <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-lg shadow-lg flex items-center justify-center">Generate Secure Certificate <Award className="w-5 h-5 ml-2 flex-shrink-0" /></button>
                   </form>
                 </div>
               </div>
@@ -2124,22 +2362,22 @@
 
             {/* --- TAB 6B: CERTIFICATE --- */}
             {activeTab === 'CERT' && (
-              <div className="w-full p-6 sm:p-8 flex flex-col items-center justify-center bg-slate-900">
+              <div className="w-full p-4 sm:p-8 flex flex-col items-center justify-center bg-slate-900">
                 <div className="relative bg-slate-800 rounded-xl p-1 max-w-3xl w-full" style={{ animation: 'certGlow 4s infinite' }}>
-                  <div className="bg-slate-900 rounded-lg p-6 sm:p-8 h-full border border-slate-700 relative overflow-hidden">
+                  <div className="bg-slate-900 rounded-lg p-4 sm:p-8 h-full border border-slate-700 relative overflow-hidden">
                     <Activity className="absolute -bottom-10 -right-10 w-64 h-64 text-slate-800 opacity-50 pointer-events-none" />
                     <Target className="absolute -top-10 -left-10 w-48 h-48 text-slate-800 opacity-50 pointer-events-none" />
 
-                    <div className="relative z-10 text-center border-2 border-yellow-600/40 p-6 sm:p-8 rounded-lg bg-slate-900/60">
-                      <div className="flex justify-center mb-4"><Trophy className="w-14 h-14 text-yellow-500" /></div>
-                      <h4 className="text-purple-400 font-mono tracking-widest text-xs sm:text-sm mb-1 uppercase">Official Layer 1 RF &amp; Communications</h4>
-                      <h2 className="text-3xl sm:text-4xl font-black text-white mb-1">CERTIFIED QAM OPERATOR</h2>
-                      <div className="text-xs text-purple-300 font-mono tracking-widest mb-6 uppercase">Quadrature Amplitude Modulation</div>
+                    <div className="relative z-10 text-center border-2 border-yellow-600/40 p-4 sm:p-8 rounded-lg bg-slate-900/60">
+                      <div className="flex justify-center mb-4"><Trophy className="w-12 h-12 sm:w-14 sm:h-14 text-yellow-500" /></div>
+                      <h4 className="text-purple-400 font-mono tracking-widest text-[11px] sm:text-sm mb-1 uppercase">Official Layer 1 RF &amp; Communications</h4>
+                      <h2 className="text-2xl sm:text-4xl font-black text-white mb-1">CERTIFIED QAM OPERATOR</h2>
+                      <div className="text-[11px] sm:text-xs text-purple-300 font-mono tracking-widest mb-6 uppercase">Quadrature Amplitude Modulation</div>
 
                       <p className="text-slate-400 text-sm mb-3">This certifies that</p>
-                      <div className="mb-6"><span className="text-4xl sm:text-6xl font-black anti-forge-text break-words">{studentName}</span></div>
+                      <div className="mb-6"><span className="text-3xl sm:text-6xl font-black anti-forge-text break-words">{studentName}</span></div>
 
-                      <p className="text-slate-300 text-sm mb-6 leading-relaxed max-w-lg mx-auto">
+                      <p className="text-slate-300 text-xs sm:text-sm mb-6 leading-relaxed max-w-lg mx-auto">
                         has successfully demonstrated practical competency in sUAS frequency spectrum analysis, PLL synchronization, I/Q wave orthogonality, manual 16-QAM modulation, and receiver demodulation mathematics.
                       </p>
 
@@ -2168,7 +2406,7 @@
                           <div className="font-serif italic text-xl text-slate-200 tracking-wide mb-1 select-none">
                             Timothy Brinkley
                           </div>
-                          <div className="w-40 mx-auto h-px bg-gradient-to-r from-transparent via-slate-500 to-transparent mb-1.5"></div>
+                          <div className="w-full max-w-[10rem] mx-auto h-px bg-gradient-to-r from-transparent via-slate-500 to-transparent mb-1.5"></div>
                           <div className="text-xs font-bold text-white uppercase tracking-wider">Timothy Brinkley</div>
                           <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Lead Instructor</div>
                         </div>
@@ -2229,7 +2467,7 @@
                           <div className="font-serif italic text-xl text-slate-200 tracking-wide mb-1 select-none">
                             Wes Frogge
                           </div>
-                          <div className="w-40 mx-auto h-px bg-gradient-to-r from-transparent via-slate-500 to-transparent mb-1.5"></div>
+                          <div className="w-full max-w-[10rem] mx-auto h-px bg-gradient-to-r from-transparent via-slate-500 to-transparent mb-1.5"></div>
                           <div className="text-xs font-bold text-white uppercase tracking-wider">Wes Frogge</div>
                           <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Lead Instructor</div>
                         </div>
