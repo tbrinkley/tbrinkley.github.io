@@ -1,0 +1,2102 @@
+/* ==========================================================================
+   tbrinkley.github.io — 16-Bit Creative Scrollytelling Stylesheet
+   Mojave Pixel Odyssey · SNES / Arcade RPG Aesthetic + Modern CSS
+   ========================================================================== */
+
+@layer reset, tokens, base, layout, components, scrolly, utilities;
+
+/* --------------------------------------------------------------------------
+   1. DESIGN TOKENS
+   -------------------------------------------------------------------------- */
+@layer tokens {
+  :root {
+    color-scheme: dark;
+
+    /* Tier 1: 16-Bit Mojave SNES Palette */
+    --ink-void: #070b17;
+    --ink-night: #0c1226;
+    --ink-indigo: #131c38;
+    --ink-slate: #1b274b;
+    --ink-elevated: #23325e;
+    --ink-rpg-blue: #12245c;
+    --ink-rpg-deep: #0b163d;
+
+    --pixel-white: #f4f7ff;
+    --pixel-ice: #d5e1fa;
+    --pixel-muted: #a1b6de;
+
+    --gold-400: #ffd15c;
+    --gold-500: #f5b324;
+    --gold-700: #996508;
+
+    --cyan-400: #4be3ff;
+    --cyan-500: #1ab7e5;
+    --cyan-700: #0c5d82;
+
+    --emerald-400: #4ade80;
+    --emerald-600: #16a34a;
+
+    --coral-400: #ff7575;
+    --coral-600: #d93848;
+
+    --violet-400: #c084fc;
+    --violet-600: #7c3aed;
+
+    --desert-dusk: #3a2359;
+    --desert-mesa: #5c3368;
+    --desert-ochre: #b85d43;
+
+    /* Tier 2: Semantic Surface & Text Tokens */
+    --bg-canvas: var(--ink-night);
+    --bg-surface: var(--ink-indigo);
+    --bg-card: var(--ink-slate);
+    --bg-card-hover: var(--ink-elevated);
+    --bg-crt: #091124;
+
+    --text-primary: var(--pixel-white);
+    --text-secondary: var(--pixel-ice);
+    --text-muted: var(--pixel-muted);
+
+    --accent-primary: var(--gold-400);
+    --accent-secondary: var(--cyan-400);
+    --accent-success: var(--emerald-400);
+    --accent-alert: var(--coral-400);
+    --accent-magic: var(--violet-400);
+
+    /* Tier 3: Pixel Bevel, Borders & Elevation */
+    --border-pixel: #617db8;
+    --border-bright: #95b0eb;
+    --bevel-light: rgba(255, 255, 255, 0.22);
+    --bevel-dark: rgba(4, 7, 18, 0.55);
+    --pixel-drop: #040712;
+    --focus-ring: var(--gold-400);
+
+    /* Typography (font-relative rem + clamp with max <= 2.5x min) */
+    --font-pixel: 'Press Start 2P', 'Courier New', ui-monospace, monospace;
+    --font-ui: 'Silkscreen', 'Courier New', ui-monospace, monospace;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-body: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1.05rem;
+    --text-lg: clamp(1.05rem, 0.95rem + 0.5vw, 1.25rem);
+    --text-h4: clamp(0.9rem, 0.8rem + 0.45vw, 1.1rem);
+    --text-h3: clamp(1.05rem, 0.9rem + 0.7vw, 1.35rem);
+    --text-h2: clamp(1.25rem, 0.95rem + 1.4vw, 2rem);
+    --text-h1: clamp(1.65rem, 1.05rem + 2.4vw, 3.1rem);
+
+    /* Layout & Spacing */
+    --hud-height: 4.5rem;
+    --container-max: 76rem;
+    --space-1: 0.5rem;
+    --space-2: 1rem;
+    --space-3: 1.5rem;
+    --space-4: 2rem;
+    --space-5: 3rem;
+    --space-6: clamp(3.5rem, 2.5rem + 4vw, 6rem);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. ELEMENT-SCOPED RESET (No global `*` reset)
+   -------------------------------------------------------------------------- */
+@layer reset {
+  html, body, header, nav, main, section, article, aside, footer,
+  div, figure, figcaption, ul, ol, li, p, h1, h2, h3, h4, h5, h6,
+  a, button, img, svg, canvas, code, pre {
+    box-sizing: border-box;
+  }
+
+  body, h1, h2, h3, h4, h5, h6, p, figure, ul, ol {
+    margin: 0;
+  }
+
+  img, svg, canvas {
+    display: block;
+    max-inline-size: 100%;
+    block-size: auto;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. BASE TYPOGRAPHY, LINKS & FOCUS
+   -------------------------------------------------------------------------- */
+@layer base {
+  html {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    scroll-padding-top: calc(var(--hud-height) + 1.25rem);
+    -webkit-text-size-adjust: 100%;
+
+    @media (prefers-reduced-motion: no-preference) {
+      scroll-behavior: smooth;
+    }
+  }
+
+  html[data-motion="paused"] {
+    scroll-behavior: auto;
+  }
+
+  body {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: 1.65;
+    text-align: start;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    overflow-x: clip;
+    overflow-wrap: break-word;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-pixel);
+    line-height: 1.35;
+    letter-spacing: 0.03em;
+    color: var(--text-primary);
+    text-wrap: balance;
+  }
+
+  h1 { font-size: var(--text-h1); }
+  h2 { font-size: var(--text-h2); }
+  h3 { font-size: var(--text-h3); }
+  h4 { font-size: var(--text-h4); font-family: var(--font-ui); }
+
+  p {
+    max-inline-size: 65ch;
+    text-wrap: pretty;
+    color: var(--text-secondary);
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    color: var(--accent-secondary);
+    background-color: var(--ink-void);
+    border: 2px solid var(--cyan-700);
+    padding-block: 0.1em;
+    padding-inline: 0.4em;
+  }
+
+  a {
+    color: var(--accent-secondary);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.22em;
+  }
+
+  a:hover {
+    color: var(--accent-primary);
+  }
+
+  :where(a:any-link, button, [tabindex="-1"]):focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 3px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   4. LAYOUT & BIOME SECTIONS
+   -------------------------------------------------------------------------- */
+@layer layout {
+  .container {
+    inline-size: min(100% - 2rem, var(--container-max));
+    margin-inline: auto;
+  }
+
+  .world-section {
+    position: relative;
+    padding-block: var(--space-6);
+    border-block-start: 4px solid var(--pixel-drop);
+  }
+
+  /* Subtle 16-bit tile patterns per world biome */
+  .world-cbis {
+    background-color: var(--ink-night);
+    background-image:
+      linear-gradient(rgba(75, 227, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(75, 227, 255, 0.045) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .world-innovation {
+    background-color: #111830;
+    background-image:
+      radial-gradient(rgba(255, 209, 92, 0.14) 1.5px, transparent 1.5px);
+    background-size: 20px 20px;
+  }
+
+  .world-labs {
+    background-color: #0e1428;
+    background-image:
+      linear-gradient(180deg, rgba(192, 132, 252, 0.08) 0%, transparent 40%),
+      linear-gradient(rgba(192, 132, 252, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(192, 132, 252, 0.04) 1px, transparent 1px);
+    background-size: 100% 100%, 32px 32px, 32px 32px;
+  }
+
+  .world-legacy {
+    background-color: #131b36;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.025) 0 4px,
+        transparent 4px 16px
+      );
+  }
+
+  .world-arcade {
+    background-color: #090e1f;
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(75, 227, 255, 0.14), transparent 55%),
+      linear-gradient(rgba(74, 222, 128, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74, 222, 128, 0.04) 1px, transparent 1px);
+    background-size: 100% 100%, 28px 28px, 28px 28px;
+  }
+
+  /* 16-Bit Dither Pixel Biome Divider */
+  .pixel-divider {
+    block-size: 16px;
+    inline-size: 100%;
+    background-color: var(--ink-void);
+    background-image:
+      linear-gradient(45deg, var(--divider-color, var(--ink-indigo)) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--divider-color, var(--ink-indigo)) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--divider-color, var(--ink-indigo)) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--divider-color, var(--ink-indigo)) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
+
+  .divider-cbis       { --divider-color: #131c38; }
+  .divider-innovation { --divider-color: #111830; }
+  .divider-labs       { --divider-color: #0e1428; }
+  .divider-legacy     { --divider-color: #131b36; }
+  .divider-arcade     { --divider-color: #090e1f; }
+
+  .section-header {
+    text-align: center;
+    margin-block-end: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.9rem;
+  }
+
+  .section-header p {
+    margin-inline: auto;
+    color: var(--text-muted);
+    font-size: var(--text-lg);
+  }
+
+  .world-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-void);
+    background-color: var(--badge-bg, var(--accent-primary));
+    border: 3px solid var(--pixel-drop);
+    box-shadow:
+      inset 2px 2px 0 rgba(255, 255, 255, 0.45),
+      inset -2px -2px 0 rgba(0, 0, 0, 0.28),
+      0 4px 0 var(--pixel-drop);
+    padding-block: 0.35rem;
+    padding-inline: 0.85rem;
+  }
+
+  .badge-cyan { --badge-bg: var(--accent-secondary); }
+  .badge-emerald { --badge-bg: var(--accent-success); }
+  .badge-violet { --badge-bg: var(--accent-magic); }
+  .badge-coral { --badge-bg: var(--accent-alert); }
+}
+
+/* --------------------------------------------------------------------------
+   5. COMPONENTS (HUD, PIXEL PANELS, BUTTONS, CARDS, RPG DIALOG)
+   -------------------------------------------------------------------------- */
+@layer components {
+  /* Skip Link */
+  .skip-link {
+    position: fixed;
+    inset-block-start: 0.75rem;
+    inset-inline-start: 0.75rem;
+    z-index: 200;
+    background-color: var(--accent-primary);
+    color: var(--ink-void);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    padding-block: 0.75rem;
+    padding-inline: 1.1rem;
+    border: 3px solid var(--pixel-drop);
+    box-shadow: 0 4px 0 var(--pixel-drop);
+    text-decoration: none;
+  }
+
+  /* Optional CRT Scanlines Overlay (Toggled via HUD button) */
+  .crt-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    pointer-events: none;
+    opacity: 0;
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.24) 0 2px,
+      transparent 2px 4px
+    );
+    transition: opacity 0.2s ease;
+  }
+
+  html[data-crt="on"] .crt-overlay {
+    opacity: 1;
+  }
+
+  /* Top Cartridge HUD Navigation */
+  .hud-header {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 100;
+    background-color: rgba(11, 16, 34, 0.96);
+    border-block-end: 3px solid var(--border-pixel);
+    box-shadow: 0 4px 0 var(--pixel-drop);
+  }
+
+  .hud-inner {
+    min-block-size: var(--hud-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .hud-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-family: var(--font-pixel);
+    font-size: clamp(0.7rem, 0.62rem + 0.35vw, 0.88rem);
+    color: var(--accent-primary);
+    text-decoration: none;
+    min-block-size: 2.75rem;
+  }
+
+  .hud-brand:hover {
+    color: var(--text-primary);
+  }
+
+  .hud-brand-icon {
+    inline-size: 28px;
+    block-size: 28px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+  }
+
+  .hud-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .hud-nav-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  .hud-nav-link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.5rem;
+    padding-block: 0.35rem;
+    padding-inline: 0.65rem;
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    text-decoration: none;
+    border: 2px solid transparent;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .hud-nav-link:hover,
+  .hud-nav-link[aria-current="location"] {
+    color: var(--accent-primary);
+    background-color: var(--ink-slate);
+    border-color: var(--accent-primary);
+  }
+
+  .hud-toggle-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .hud-chip-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-block-size: 2.25rem;
+    padding-block: 0.25rem;
+    padding-inline: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--text-secondary);
+    background-color: var(--ink-slate);
+    border: 2px solid var(--border-pixel);
+    box-shadow: 0 2px 0 var(--pixel-drop);
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .hud-chip-btn[aria-pressed="true"] {
+    color: var(--ink-void);
+    background-color: var(--accent-success);
+    border-color: var(--pixel-drop);
+  }
+
+  .hud-chip-btn:hover:not(:disabled) {
+    border-color: var(--accent-primary);
+  }
+
+  .hud-chip-state {
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    padding-inline: 0.25rem;
+    background-color: rgba(7, 11, 23, 0.28);
+  }
+
+  .hud-menu-btn {
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+    min-block-size: 2.75rem;
+    min-inline-size: 2.75rem;
+    padding-inline: 0.75rem;
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--accent-primary);
+    background-color: var(--ink-slate);
+    border: 2px solid var(--border-pixel);
+  }
+
+  /* 16-Bit Segmented XP Scroll Progress Track */
+  .xp-progress-track {
+    position: relative;
+    block-size: 8px;
+    inline-size: 100%;
+    background-color: var(--ink-void);
+    border-block-start: 2px solid var(--pixel-drop);
+    overflow: hidden;
+  }
+
+  .xp-progress-fill {
+    block-size: 100%;
+    inline-size: 100%;
+    background-image: linear-gradient(
+      90deg,
+      var(--emerald-400) 0%,
+      var(--cyan-400) 50%,
+      var(--gold-400) 100%
+    );
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+  }
+
+  .xp-progress-ticks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent 0 18px,
+      rgba(7, 11, 23, 0.55) 18px 20px
+    );
+  }
+
+  /* Tactile 16-Bit Pixel Buttons */
+  .pixel-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    min-block-size: 2.85rem;
+    padding-block: 0.65rem;
+    padding-inline: 1.25rem;
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--ink-void);
+    background-color: var(--accent-primary);
+    border: 3px solid var(--pixel-drop);
+    box-shadow:
+      inset 3px 3px 0 rgba(255, 255, 255, 0.45),
+      inset -3px -3px 0 rgba(0, 0, 0, 0.25),
+      0 5px 0 var(--pixel-drop);
+    transition: transform 0.12s steps(2), background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .pixel-btn:hover:not(:disabled) {
+    color: var(--ink-void);
+    background-color: #ffe08a;
+    transform: translateY(-2px);
+  }
+
+  .pixel-btn:active:not(:disabled) {
+    transform: translateY(3px);
+  }
+
+  .pixel-btn-cyan {
+    background-color: var(--accent-secondary);
+  }
+
+  .pixel-btn-cyan:hover:not(:disabled) {
+    background-color: #82ecff;
+  }
+
+  .pixel-btn-ghost {
+    color: var(--text-primary);
+    background-color: var(--ink-slate);
+    border-color: var(--border-bright);
+  }
+
+  .pixel-btn-ghost:hover:not(:disabled) {
+    color: var(--ink-void);
+    background-color: var(--accent-secondary);
+    border-color: var(--pixel-drop);
+  }
+
+  .pixel-btn-sm {
+    min-block-size: 2.5rem;
+    padding-block: 0.45rem;
+    padding-inline: 0.9rem;
+    font-size: var(--text-xs);
+  }
+
+  /* Standard 16-Bit Beveled Pixel Panel */
+  .pixel-panel {
+    background-color: var(--bg-card);
+    border: 3px solid var(--border-pixel);
+    box-shadow:
+      inset 3px 3px 0 var(--bevel-light),
+      inset -3px -3px 0 var(--bevel-dark),
+      0 6px 0 var(--pixel-drop);
+    padding: var(--space-3);
+  }
+
+  /* Hero Parallax World 1-1 */
+  .hero-world {
+    position: relative;
+    min-block-size: 96dvh;
+    padding-block-start: calc(var(--hud-height) + 2.5rem);
+    padding-block-end: 4.5rem;
+    display: grid;
+    place-items: center;
+    overflow: clip;
+    background: linear-gradient(
+      180deg,
+      #090d22 0%,
+      #171942 36%,
+      #34225b 68%,
+      #6a3556 88%,
+      #221736 100%
+    );
+  }
+
+  .parallax-stage {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: clip;
+  }
+
+  .parallax-layer {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  .parallax-svg {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    image-rendering: pixelated;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 4;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    inline-size: min(100%, 54rem);
+    margin-inline: auto;
+    padding: clamp(1.5rem, 1rem + 2.2vw, 2.75rem);
+    background-color: rgba(12, 18, 38, 0.88);
+    border: 4px solid var(--accent-primary);
+    box-shadow:
+      inset 4px 4px 0 rgba(255, 255, 255, 0.16),
+      inset -4px -4px 0 rgba(0, 0, 0, 0.55),
+      0 10px 0 var(--pixel-drop);
+  }
+
+  .hero-crest {
+    inline-size: 72px;
+    block-size: 72px;
+    image-rendering: pixelated;
+  }
+
+  .hero-kicker {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    letter-spacing: 0.14em;
+    color: var(--accent-success);
+    background-color: var(--ink-void);
+    border: 2px solid var(--emerald-600);
+    padding-block: 0.3rem;
+    padding-inline: 0.85rem;
+  }
+
+  .hero-title {
+    color: var(--pixel-white);
+    text-shadow:
+      4px 4px 0 var(--desert-dusk),
+      6px 6px 0 var(--pixel-drop);
+  }
+
+  .hero-subtitle {
+    font-family: var(--font-ui);
+    font-size: clamp(1rem, 0.85rem + 0.8vw, 1.45rem);
+    color: var(--accent-secondary);
+    text-wrap: balance;
+  }
+
+  .hero-bio {
+    font-size: var(--text-lg);
+    color: var(--text-secondary);
+    max-inline-size: 60ch;
+    margin-inline: auto;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-block-start: 0.5rem;
+  }
+
+  .hero-stats {
+    list-style: none;
+    padding: 0;
+    margin-block-start: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    inline-size: 100%;
+    border-block-start: 2px dashed var(--border-pixel);
+    padding-block-start: 1.25rem;
+  }
+
+  .hero-stat-pill {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    background-color: var(--ink-void);
+    border: 2px solid var(--border-pixel);
+    padding-block: 0.35rem;
+    padding-inline: 0.75rem;
+  }
+
+  .hero-stat-pill strong {
+    color: var(--accent-primary);
+  }
+
+  .scroll-cue {
+    margin-block-start: 0.25rem;
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--accent-primary);
+    letter-spacing: 0.12em;
+  }
+
+  /* --------------------------------------------------------------------------
+     WORLD 1-2: SCROLLYTELLING CBIS QUEST STAGE
+     -------------------------------------------------------------------------- */
+  .scrolly-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: clamp(1.5rem, 1rem + 2vw, 3rem);
+    align-items: start;
+  }
+
+  .quest-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  .quest-step {
+    min-block-size: 64dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: 1.5rem;
+  }
+
+  .quest-card {
+    background-color: var(--bg-card);
+    border: 3px solid var(--border-pixel);
+    box-shadow:
+      inset 3px 3px 0 var(--bevel-light),
+      inset -3px -3px 0 var(--bevel-dark),
+      0 6px 0 var(--pixel-drop);
+    padding: clamp(1.25rem, 1rem + 1.2vw, 2rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    transition: border-color 0.25s ease, background-color 0.25s ease;
+  }
+
+  .quest-step.is-active .quest-card {
+    border-color: var(--accent-primary);
+    background-color: var(--bg-card-hover);
+  }
+
+  .quest-level-tag {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--accent-primary);
+    background-color: var(--ink-void);
+    border: 2px solid var(--gold-700);
+    padding-block: 0.25rem;
+    padding-inline: 0.65rem;
+  }
+
+  .quest-card h3 {
+    color: var(--accent-secondary);
+  }
+
+  .quest-tags {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-block-start: 0.25rem;
+  }
+
+  .quest-tag {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    background-color: var(--ink-void);
+    border: 2px solid var(--border-pixel);
+    padding-block: 0.2rem;
+    padding-inline: 0.55rem;
+  }
+
+  .quest-lab-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-block-start: 0.5rem;
+    padding-block-start: 0.85rem;
+    border-block-start: 2px dashed var(--border-pixel);
+  }
+
+  /* Inline mobile lab preview (only shown on narrow screens) */
+  .quest-inline-lab {
+    display: none;
+    margin-block-start: 0.5rem;
+    padding: 1rem;
+    background-color: var(--bg-crt);
+    border: 2px solid var(--cyan-700);
+    font-size: var(--text-sm);
+  }
+
+  .quest-inline-lab strong {
+    color: var(--accent-success);
+    font-family: var(--font-ui);
+    display: block;
+    margin-block-end: 0.35rem;
+  }
+
+  /* Sticky 16-Bit CRT Lab Monitor */
+  .crt-monitor-column {
+    position: sticky;
+    inset-block-start: calc(var(--hud-height) + 1.5rem);
+  }
+
+  .crt-bezel {
+    background-color: #202b4a;
+    border: 4px solid var(--border-bright);
+    box-shadow:
+      inset 4px 4px 0 rgba(255, 255, 255, 0.22),
+      inset -4px -4px 0 rgba(0, 0, 0, 0.5),
+      0 10px 0 var(--pixel-drop);
+    padding: clamp(0.9rem, 0.7rem + 1vw, 1.4rem);
+  }
+
+  .crt-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-block-end: 0.85rem;
+    padding-block-end: 0.65rem;
+    border-block-end: 3px solid var(--ink-void);
+  }
+
+  .crt-model-label {
+    font-family: var(--font-pixel);
+    font-size: 0.68rem;
+    color: var(--accent-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .crt-led {
+    display: inline-block;
+    inline-size: 10px;
+    block-size: 10px;
+    background-color: var(--accent-success);
+    border: 2px solid var(--pixel-drop);
+  }
+
+  .crt-channel-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .crt-channel-btn {
+    min-block-size: 2.1rem;
+    padding-block: 0.2rem;
+    padding-inline: 0.55rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--text-secondary);
+    background-color: var(--ink-night);
+    border: 2px solid var(--border-pixel);
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .crt-channel-btn:hover,
+  .crt-channel-btn.is-active {
+    color: var(--ink-void);
+    background-color: var(--accent-primary);
+    border-color: var(--pixel-drop);
+  }
+
+  .crt-viewport {
+    position: relative;
+    display: grid;
+    background-color: var(--bg-crt);
+    border: 4px solid var(--pixel-drop);
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.75);
+    overflow: clip;
+  }
+
+  .quest-screen {
+    background-color: var(--bg-crt);
+    background-image:
+      linear-gradient(rgba(75, 227, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(75, 227, 255, 0.05) 1px, transparent 1px);
+    background-size: 16px 16px;
+    padding: clamp(1.25rem, 1rem + 1vw, 1.85rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-block-size: 29rem;
+  }
+
+  .screen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    border-block-end: 2px dashed var(--cyan-700);
+    padding-block-end: 0.65rem;
+  }
+
+  .screen-course-code {
+    font-family: var(--font-pixel);
+    font-size: 0.78rem;
+    color: var(--accent-primary);
+  }
+
+  .screen-xp-badge {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--accent-success);
+    background-color: rgba(22, 163, 74, 0.18);
+    border: 2px solid var(--emerald-600);
+    padding-block: 0.15rem;
+    padding-inline: 0.5rem;
+  }
+
+  .screen-art-box {
+    display: grid;
+    place-items: center;
+    padding-block: 0.75rem;
+    padding-inline: 1rem;
+    background-color: rgba(12, 18, 38, 0.9);
+    border: 2px solid var(--border-pixel);
+  }
+
+  .screen-art-svg {
+    inline-size: min(100%, 240px);
+    block-size: auto;
+    aspect-ratio: 16 / 9;
+    image-rendering: pixelated;
+  }
+
+  .screen-lab-title {
+    font-family: var(--font-ui);
+    font-size: var(--text-h4);
+    color: var(--accent-secondary);
+  }
+
+  .screen-lab-desc {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .stat-meter-group {
+    margin-block-start: auto;
+    display: grid;
+    gap: 0.5rem;
+    padding-block-start: 0.75rem;
+    border-block-start: 2px dashed var(--border-pixel);
+  }
+
+  .stat-meter-row {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr 3rem;
+    align-items: center;
+    gap: 0.65rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .stat-bar-track {
+    block-size: 12px;
+    background-color: var(--ink-void);
+    border: 2px solid var(--border-pixel);
+    overflow: hidden;
+  }
+
+  .stat-bar-fill {
+    block-size: 100%;
+    inline-size: var(--stat-pct, 80%);
+    background-color: var(--stat-color, var(--accent-secondary));
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent 0 8px,
+      rgba(7, 11, 23, 0.35) 8px 10px
+    );
+  }
+
+  .stat-gold    { --stat-color: var(--gold-400); }
+  .stat-cyan    { --stat-color: var(--cyan-400); }
+  .stat-emerald { --stat-color: var(--emerald-400); }
+  .stat-coral   { --stat-color: var(--coral-400); }
+  .stat-violet  { --stat-color: var(--violet-400); }
+
+  .stat-p86 { --stat-pct: 86%; }
+  .stat-p88 { --stat-pct: 88%; }
+  .stat-p90 { --stat-pct: 90%; }
+  .stat-p92 { --stat-pct: 92%; }
+  .stat-p94 { --stat-pct: 94%; }
+  .stat-p95 { --stat-pct: 95%; }
+  .stat-p96 { --stat-pct: 96%; }
+  .stat-p98 { --stat-pct: 98%; }
+
+  .subsection-heading {
+    margin-block-end: 1.15rem;
+    color: var(--accent-primary);
+  }
+
+  .legacy-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* --------------------------------------------------------------------------
+     WORLD 1-3: INNOVATION AT BCC (DRONES & MAKERSPACE)
+     -------------------------------------------------------------------------- */
+  .innovation-stack {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .innovation-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    gap: var(--space-4);
+    align-items: center;
+  }
+
+  .innovation-row-reverse .innovation-media {
+    order: -1;
+  }
+
+  .innovation-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .innovation-copy h3 {
+    color: var(--accent-primary);
+  }
+
+  .equipment-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.65rem;
+    margin-block-start: 0.25rem;
+  }
+
+  .equipment-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--ink-night);
+    border: 2px solid var(--border-pixel);
+    color: var(--text-secondary);
+  }
+
+  .equipment-bullet {
+    font-family: var(--font-pixel);
+    font-size: 0.7rem;
+    color: var(--accent-success);
+    flex-shrink: 0;
+    margin-block-start: 0.25rem;
+  }
+
+  .pixel-media-frame {
+    position: relative;
+    background-color: var(--ink-void);
+    border: 4px solid var(--border-bright);
+    box-shadow:
+      inset 4px 4px 0 rgba(255, 255, 255, 0.14),
+      inset -4px -4px 0 rgba(0, 0, 0, 0.6),
+      0 8px 0 var(--pixel-drop);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .media-hud-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--accent-secondary);
+    border-block-end: 2px dashed var(--cyan-700);
+    padding-block-end: 0.45rem;
+  }
+
+  .media-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background-color: var(--ink-indigo);
+    background-image:
+      linear-gradient(rgba(75, 227, 255, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(75, 227, 255, 0.08) 1px, transparent 1px);
+    background-size: 16px 16px;
+    border: 2px solid var(--border-pixel);
+    overflow: hidden;
+  }
+
+  .media-stage-img {
+    max-block-size: 16rem;
+    inline-size: auto;
+    object-fit: contain;
+  }
+
+  .drone-img {
+    aspect-ratio: 1 / 1;
+  }
+
+  .chair-img {
+    aspect-ratio: 806 / 398;
+  }
+
+  .gif-freeze-canvas {
+    display: none;
+    max-block-size: 16rem;
+    inline-size: auto;
+    aspect-ratio: 806 / 398;
+    object-fit: contain;
+  }
+
+  html[data-motion="paused"] .gif-live {
+    display: none;
+  }
+
+  html[data-motion="paused"] .gif-freeze-canvas.is-ready {
+    display: block;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gif-live {
+      display: none;
+    }
+
+    .gif-freeze-canvas.is-ready {
+      display: block;
+    }
+  }
+
+  .media-caption {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  /* --------------------------------------------------------------------------
+     WORLD 1-4: INTERACTIVE LABS, ATAN2 & PUBLISHED WORKS
+     -------------------------------------------------------------------------- */
+  .labs-pubs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: var(--space-4);
+    align-items: start;
+  }
+
+  .lab-column {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .atan2-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-color: var(--accent-secondary);
+  }
+
+  .atan2-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .atan2-radar {
+    inline-size: 84px;
+    block-size: 84px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+  }
+
+  .sub-labs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: 1rem;
+  }
+
+  .mini-cartridge {
+    background-color: var(--ink-indigo);
+    border: 3px solid var(--border-pixel);
+    box-shadow: 0 5px 0 var(--pixel-drop);
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .mini-cartridge h4 {
+    color: var(--accent-primary);
+  }
+
+  .mini-cartridge p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-block-end: auto;
+  }
+
+  .pubs-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .pub-tome {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 1.25rem;
+    background-color: var(--bg-card);
+    border: 3px solid var(--border-pixel);
+    box-shadow:
+      inset 3px 3px 0 var(--bevel-light),
+      inset -3px -3px 0 var(--bevel-dark),
+      0 5px 0 var(--pixel-drop);
+    text-decoration: none;
+    transition: transform 0.15s steps(2), border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .pub-tome:hover {
+    transform: translateX(4px);
+    border-color: var(--accent-primary);
+    background-color: var(--bg-card-hover);
+  }
+
+  .pub-tome-title {
+    font-family: var(--font-ui);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+  }
+
+  .pub-tome-meta {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--accent-secondary);
+  }
+
+  /* --------------------------------------------------------------------------
+     WORLD 1-5: BHS LEGACY & RPG DIALOG BOX ("THOUGHTS TO PONDER")
+     -------------------------------------------------------------------------- */
+  .legacy-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr);
+    gap: var(--space-4);
+    align-items: start;
+  }
+
+  .legacy-story {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .skill-chips {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .skill-chip {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-primary);
+    background-color: var(--ink-night);
+    border: 2px solid var(--border-pixel);
+    padding-block: 0.35rem;
+    padding-inline: 0.7rem;
+  }
+
+  .aztec-card {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    flex-wrap: wrap;
+    background-color: var(--ink-night);
+    border: 3px solid var(--accent-primary);
+    box-shadow: 0 6px 0 var(--pixel-drop);
+    padding: 1.2rem;
+  }
+
+  .aztec-icon {
+    inline-size: 72px;
+    block-size: 72px;
+    flex-shrink: 0;
+    aspect-ratio: 1 / 1;
+    background-color: var(--pixel-white);
+    padding: 0.35rem;
+    border: 2px solid var(--pixel-drop);
+  }
+
+  .aztec-copy {
+    flex: 1 1 14rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .aztec-copy h3 {
+    font-size: var(--text-h4);
+    color: var(--accent-primary);
+  }
+
+  .aztec-copy p {
+    font-size: var(--text-sm);
+  }
+
+  .indie-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+
+  .indie-mini-card {
+    background-color: var(--ink-night);
+    border: 2px solid var(--border-pixel);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .indie-tracks-img {
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 2366 / 548;
+    object-fit: contain;
+    background-color: #ffffff;
+    border: 2px solid var(--pixel-drop);
+  }
+
+  .indie-mit-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .indie-mini-img {
+    inline-size: 72px;
+    block-size: 72px;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    background-color: #ffffff;
+    border: 2px solid var(--pixel-drop);
+    flex-shrink: 0;
+  }
+
+  .indie-mini-label {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--accent-secondary);
+  }
+
+  .indie-mini-note {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-block-start: 0.2rem;
+  }
+
+  .arcade-local-notice {
+    margin-block-end: var(--space-4);
+    background-color: var(--ink-indigo);
+    border: 3px solid var(--accent-primary);
+    box-shadow: 0 6px 0 var(--pixel-drop);
+    padding: 1.15rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .arcade-local-notice[hidden] {
+    display: none;
+  }
+
+  .arcade-local-notice-title {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: var(--accent-primary);
+  }
+
+  .arcade-local-notice p {
+    font-size: var(--text-sm);
+    max-inline-size: none;
+  }
+
+  /* Iconic 16-Bit RPG Royal Blue Dialog Box */
+  .rpg-dialog-box {
+    background: linear-gradient(180deg, var(--ink-rpg-blue) 0%, var(--ink-rpg-deep) 100%);
+    border: 4px solid var(--pixel-white);
+    outline: 4px solid var(--pixel-drop);
+    box-shadow:
+      inset 0 0 0 3px var(--ink-void),
+      0 10px 0 var(--pixel-drop);
+    padding: clamp(1.25rem, 1rem + 1vw, 1.85rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+  }
+
+  .rpg-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    border-block-end: 2px solid rgba(244, 247, 255, 0.35);
+    padding-block-end: 0.75rem;
+  }
+
+  .rpg-dialog-title {
+    font-family: var(--font-pixel);
+    font-size: 0.85rem;
+    color: var(--accent-primary);
+  }
+
+  .rpg-spotlight {
+    background-color: rgba(7, 11, 23, 0.55);
+    border: 2px solid var(--accent-secondary);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .rpg-spotlight-quote {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--pixel-white);
+    line-height: 1.6;
+  }
+
+  .rpg-spotlight-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .rpg-counter {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--accent-primary);
+  }
+
+  .wisdom-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .wisdom-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    padding: 0.45rem 0.6rem;
+    border: 2px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .wisdom-item.is-featured {
+    background-color: rgba(75, 227, 255, 0.14);
+    border-color: var(--accent-secondary);
+    color: var(--pixel-white);
+  }
+
+  .wisdom-cursor {
+    font-family: var(--font-pixel);
+    font-size: 0.65rem;
+    color: var(--accent-primary);
+    flex-shrink: 0;
+    margin-block-start: 0.3rem;
+  }
+
+  /* --------------------------------------------------------------------------
+     WORLD 1-6: STUDENT-MADE GAME ARCADE
+     -------------------------------------------------------------------------- */
+  .arcade-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: 1.5rem;
+    align-items: start;
+    margin-block-end: var(--space-4);
+  }
+
+  .arcade-card-wrap {
+    container-type: inline-size;
+  }
+
+  .arcade-cabinet {
+    background-color: var(--bg-card);
+    border: 3px solid var(--border-pixel);
+    box-shadow:
+      inset 3px 3px 0 var(--bevel-light),
+      inset -3px -3px 0 var(--bevel-dark),
+      0 8px 0 var(--pixel-drop);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s steps(2), border-color 0.15s ease;
+  }
+
+  .arcade-cabinet:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent-primary);
+  }
+
+  .cabinet-marquee {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-block: 0.45rem;
+    padding-inline: 0.85rem;
+    background-color: var(--ink-void);
+    border-block-end: 3px solid var(--border-pixel);
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    color: var(--accent-primary);
+  }
+
+  .cabinet-screen {
+    background-color: #0b132b;
+    padding: 0.65rem;
+    border-block-end: 3px solid var(--pixel-drop);
+  }
+
+  .cabinet-img {
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: contain;
+    background-color: #101936;
+  }
+
+  .cabinet-body {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .cabinet-body h3 {
+    font-family: var(--font-ui);
+    font-size: 0.98rem;
+    color: var(--text-primary);
+  }
+
+  .cabinet-body p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-block-end: auto;
+  }
+
+  .cabinet-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-block-start: 0.5rem;
+  }
+
+  @container (min-width: 24rem) {
+    .cabinet-actions {
+      flex-direction: row;
+    }
+
+    .cabinet-actions .pixel-btn {
+      flex: 1;
+    }
+  }
+
+  .bonus-stage {
+    text-align: center;
+    background-color: var(--ink-indigo);
+    border: 3px solid var(--border-pixel);
+    box-shadow: 0 6px 0 var(--pixel-drop);
+    padding: clamp(1.25rem, 1rem + 1vw, 2rem);
+  }
+
+  .bonus-stage h3 {
+    color: var(--accent-success);
+    margin-block-end: 1.15rem;
+    font-size: var(--text-h4);
+  }
+
+  .cartridge-chips {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.65rem;
+  }
+
+  .cartridge-link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.5rem;
+    padding-block: 0.4rem;
+    padding-inline: 0.85rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-primary);
+    background-color: var(--ink-night);
+    border: 2px solid var(--border-pixel);
+    box-shadow: 0 3px 0 var(--pixel-drop);
+    text-decoration: none;
+    transition: transform 0.12s steps(2), background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .cartridge-link:hover {
+    color: var(--ink-void);
+    background-color: var(--accent-primary);
+    border-color: var(--pixel-drop);
+    transform: translateY(-2px);
+  }
+
+  /* --------------------------------------------------------------------------
+     FOOTER: GAME CLEAR / CREDITS
+     -------------------------------------------------------------------------- */
+  .credits-footer {
+    background-color: var(--ink-void);
+    border-block-start: 4px solid var(--accent-primary);
+    padding-block: 3rem;
+    text-align: center;
+  }
+
+  .credits-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1rem;
+  }
+
+  .credits-title {
+    font-family: var(--font-pixel);
+    font-size: 0.9rem;
+    color: var(--accent-primary);
+    letter-spacing: 0.08em;
+  }
+
+  .credits-tagline {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: var(--accent-secondary);
+  }
+
+  .credits-links {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  .credits-copy {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6. NATIVE CSS SCROLL-DRIVEN ANIMATIONS, PARALLAX & MOTION ACCESSIBILITY
+   -------------------------------------------------------------------------- */
+@layer scrolly {
+  /* Ambient pixel animations (opt-in only under no-preference & unpaused) */
+  @keyframes star-twinkle {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes drone-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @keyframes cue-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+  }
+
+  /* Scroll-driven keyframes (compositor-only transform & opacity) */
+  @keyframes xp-grow {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+
+  @keyframes hero-parallax-shift {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(var(--px-x, 0px), var(--px-y, 60px), 0);
+    }
+  }
+
+  @keyframes crt-channel-in {
+    from {
+      opacity: 0;
+      transform: translateY(22px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes pixel-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(26px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Opt in to ambient motion only when user has no reduced-motion preference */
+  @media (prefers-reduced-motion: no-preference) {
+    html:not([data-motion="paused"]) {
+      .star-group-a {
+        animation: star-twinkle 3.2s steps(3) infinite;
+      }
+
+      .star-group-b {
+        animation: star-twinkle 4.4s steps(3) 1.2s infinite;
+      }
+
+      .drone-float {
+        animation: drone-bob 3.4s steps(4) infinite;
+      }
+
+      .scroll-cue {
+        animation: cue-bounce 1.8s steps(3) infinite;
+      }
+    }
+  }
+
+  /* 1) Scroll Progress Indicator — native CSS ScrollTimeline */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      html:not([data-motion="paused"]) .xp-progress-fill {
+        animation: xp-grow auto linear;
+        animation-timeline: scroll(root block);
+      }
+    }
+  }
+
+  /* 2) Hero 16-Bit Multi-Layer Parallax — native CSS ViewTimeline */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports ((animation-timeline: view()) and (animation-range: entry)) {
+      html:not([data-motion="paused"]) .hero-world {
+        view-timeline: --hero-parallax block;
+      }
+
+      html:not([data-motion="paused"]) .parallax-layer {
+        animation: hero-parallax-shift linear both;
+        animation-timeline: --hero-parallax;
+        animation-range: exit 0% exit 100%;
+      }
+
+      .parallax-stars { --px-y: 130px; --px-x: 0px; }
+      .parallax-far   { --px-y: 90px;  --px-x: 0px; }
+      .parallax-mid   { --px-y: 48px;  --px-x: 24px; }
+      .parallax-fore  { --px-y: -24px; --px-x: 0px; }
+    }
+  }
+
+  /* 3) Scrollytelling BCC Courses Stage — named ViewTimelines + timeline-scope */
+  @media (min-width: 901px) and (prefers-reduced-motion: no-preference) {
+    @supports ((animation-timeline: scroll()) and (animation-range: 0% 100%)) {
+      html:not([data-motion="paused"]) .scrolly-stage {
+        timeline-scope: --cbis-1, --cbis-2, --cbis-3, --cbis-4;
+      }
+
+      html:not([data-motion="paused"]) .quest-steps {
+        .quest-step:nth-child(1) { view-timeline: --cbis-1 block; }
+        .quest-step:nth-child(2) { view-timeline: --cbis-2 block; }
+        .quest-step:nth-child(3) { view-timeline: --cbis-3 block; }
+        .quest-step:nth-child(4) { view-timeline: --cbis-4 block; }
+      }
+
+      html:not([data-motion="paused"]) .crt-viewport {
+        .quest-screen {
+          grid-area: 1 / 1;
+        }
+
+        .quest-screen:nth-child(1) {
+          z-index: 1;
+          opacity: 1;
+        }
+
+        .quest-screen:nth-child(2) {
+          z-index: 2;
+          animation: crt-channel-in auto linear both;
+          animation-timeline: --cbis-2;
+          animation-range: entry 15% cover 45%;
+        }
+
+        .quest-screen:nth-child(3) {
+          z-index: 3;
+          animation: crt-channel-in auto linear both;
+          animation-timeline: --cbis-3;
+          animation-range: entry 15% cover 45%;
+        }
+
+        .quest-screen:nth-child(4) {
+          z-index: 4;
+          animation: crt-channel-in auto linear both;
+          animation-timeline: --cbis-4;
+          animation-range: entry 15% cover 45%;
+        }
+      }
+    }
+  }
+
+  /* Fallback & Reduced-Motion / Paused Scrollytelling Mode
+     (Only stacks & hides inactive screens after JS adds .scroll-fallback so no-JS stays visible) */
+  .crt-viewport.scroll-fallback .quest-screen {
+    grid-area: 1 / 1;
+    opacity: 0;
+    visibility: hidden;
+    z-index: 1;
+    transition: opacity 0.25s ease;
+  }
+
+  .crt-viewport.scroll-fallback .quest-screen.is-active {
+    opacity: 1;
+    visibility: visible;
+    z-index: 5;
+  }
+
+  /* 4) Scroll Entry Reveals — anonymous view() timeline */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports ((animation-timeline: view()) and (animation-range: entry)) {
+      html:not([data-motion="paused"]) .scroll-reveal {
+        animation: pixel-reveal auto linear backwards;
+        animation-timeline: view(block);
+        animation-range: entry 0% entry 75%;
+      }
+    }
+  }
+
+  /* Fallback Reveal (only active if JS adds .reveal-fallback when native view() unsupported) */
+  .reveal-fallback .scroll-reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+  }
+
+  .reveal-fallback .scroll-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* MANDATORY Safety: Paused Motion or Reduced Motion */
+  @media (prefers-reduced-motion: reduce) {
+    .parallax-layer,
+    .scroll-reveal,
+    .xp-progress-fill,
+    .quest-screen {
+      animation: none !important;
+      transform: none !important;
+    }
+
+    .scroll-reveal {
+      opacity: 1 !important;
+    }
+
+    .crt-viewport.scroll-fallback .quest-screen {
+      transition: none;
+    }
+  }
+
+  html[data-motion="paused"] {
+    .parallax-layer,
+    .scroll-reveal,
+    .xp-progress-fill,
+    .quest-screen {
+      animation: none !important;
+      transform: none !important;
+    }
+
+    .scroll-reveal {
+      opacity: 1 !important;
+    }
+
+    .crt-viewport.scroll-fallback .quest-screen {
+      transition: none;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7. RESPONSIVE BREAKPOINTS, COARSE POINTERS & FORCED COLORS
+   -------------------------------------------------------------------------- */
+@layer utilities {
+  /* Accessible Visually Hidden Utility */
+  .visually-hidden:where(:not(:focus-within, :active)) {
+    position: absolute !important;
+    clip-path: inset(50%) !important;
+    overflow: hidden !important;
+    inline-size: 1px !important;
+    block-size: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  @media (max-width: 960px) {
+    .hud-menu-btn {
+      display: inline-flex;
+    }
+
+    .hud-nav {
+      inline-size: 100%;
+      order: 3;
+      display: none;
+      padding-block-start: 0.5rem;
+      border-block-start: 2px solid var(--border-pixel);
+    }
+
+    .hud-nav.is-open {
+      display: block;
+    }
+
+    .hud-nav-list {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .hud-nav-link {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .scrolly-stage {
+      grid-template-columns: 1fr;
+    }
+
+    .crt-monitor-column {
+      position: static;
+      order: -1;
+    }
+
+    .quest-step {
+      min-block-size: auto;
+      padding-block: 0;
+    }
+
+    .quest-steps {
+      gap: 1.5rem;
+    }
+
+    .quest-inline-lab {
+      display: block;
+    }
+
+    .legacy-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .innovation-row-reverse .innovation-media {
+      order: 0;
+    }
+  }
+
+  /* Bump interactive tap targets on touch / coarse pointers */
+  @media (pointer: coarse) {
+    .hud-nav-link,
+    .hud-chip-btn,
+    .crt-channel-btn,
+    .cartridge-link,
+    .pixel-btn {
+      min-block-size: 2.75rem;
+      min-inline-size: 2.75rem;
+    }
+  }
+
+  /* Windows High Contrast / Forced Colors Mode Support */
+  @media (forced-colors: active) {
+    .crt-overlay,
+    .pixel-divider {
+      display: none;
+    }
+
+    .pixel-panel,
+    .quest-card,
+    .crt-bezel,
+    .crt-viewport,
+    .arcade-cabinet,
+    .pub-tome,
+    .rpg-dialog-box,
+    .pixel-media-frame,
+    .pixel-btn,
+    .hud-chip-btn,
+    .crt-channel-btn,
+    .cartridge-link,
+    .aztec-card,
+    .mini-cartridge,
+    .bonus-stage {
+      border: 2px solid CanvasText;
+      box-shadow: none;
+    }
+
+    .quest-step.is-active .quest-card,
+    .crt-channel-btn.is-active,
+    .hud-nav-link[aria-current="location"] {
+      border-color: Highlight;
+      outline: 2px solid Highlight;
+    }
+
+    .xp-progress-fill,
+    .stat-bar-fill {
+      background-color: Highlight;
+      background-image: none;
+    }
+  }
+}

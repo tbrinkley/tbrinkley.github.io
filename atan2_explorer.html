@@ -1,1 +1,654 @@
-Robot Navigation: Atan vs Atan2 Explorer
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Navigation: Atan vs Atan2 Explorer</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-color: #e2e8f0;
+            --accent-blue: #3b82f6; /* Opposite / Y */
+            --accent-green: #10b981; /* Adjacent / X */
+            --accent-red: #ef4444; /* Glitch */
+            --accent-success: #22c55e; /* Correct */
+            --grid-line: #334155;
+            --heading-color: #f59e0b;
+        }
+
+        html, body, header, main, div, canvas, label, input, a {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-block-size: 100dvh;
+        }
+
+        header {
+            inline-size: 100%;
+            background-color: var(--panel-bg);
+            padding: 1rem 1.25rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25);
+            margin-block-end: 20px;
+            position: relative;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: #38bdf8;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.4rem 0.75rem;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            background: rgba(15, 23, 42, 0.65);
+            margin-block-end: 0.65rem;
+        }
+
+        .back-link:hover {
+            color: var(--heading-color);
+            border-color: var(--heading-color);
+        }
+
+        :where(a, input, canvas):focus-visible {
+            outline: 3px solid var(--heading-color);
+            outline-offset: 3px;
+        }
+
+        h1 { margin: 0; font-size: clamp(1.25rem, 1rem + 1vw, 1.65rem); color: var(--heading-color); }
+        p.subtitle { margin: 6px 0 0; color: #cbd5e1; font-size: 0.95rem; }
+        p.subtitle code {
+            background: rgba(15, 23, 42, 0.8);
+            color: #38bdf8;
+            padding: 0.1rem 0.35rem;
+            border-radius: 4px;
+        }
+
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            inline-size: 100%;
+            max-inline-size: 1200px;
+        }
+
+        /* Canvas Container */
+        .canvas-wrapper {
+            position: relative;
+            background: #171717;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            cursor: crosshair;
+            overflow: hidden;
+            max-inline-size: 100%;
+        }
+
+        canvas {
+            display: block;
+            max-inline-size: 100%;
+            block-size: auto;
+            aspect-ratio: 1 / 1;
+            touch-action: none; /* Prevents scrolling while dragging on mobile */
+        }
+
+        .quadrant-label {
+            position: absolute;
+            inset-block-start: 16px;
+            inset-inline-end: 16px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            background: rgba(0, 0, 0, 0.72);
+            padding: 4px 10px;
+            border-radius: 4px;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        /* Controls Panel */
+        .controls-panel {
+            flex: 1;
+            min-inline-size: min(100%, 300px);
+            max-inline-size: 450px;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-header {
+            font-size: 1.2rem;
+            font-weight: 700;
+            border-block-end: 2px solid var(--grid-line);
+            padding-block-end: 10px;
+            margin: 0 0 5px;
+        }
+
+        .coord-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-block-end: 10px;
+        }
+
+        .coord-box {
+            background: rgba(0, 0, 0, 0.25);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .coord-label {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+        }
+
+        .coord-value {
+            font-family: 'Courier New', monospace;
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-block-start: 4px;
+        }
+
+        .coord-box.x-val { border-inline-start: 4px solid var(--accent-green); }
+        .coord-box.y-val { border-inline-start: 4px solid var(--accent-blue); }
+
+        .math-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid var(--grid-line);
+            transition: border-color 0.2s ease, opacity 0.2s ease;
+        }
+
+        .math-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-block-end: 10px;
+        }
+
+        .math-title {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            inline-size: 44px;
+            block-size: 24px;
+        }
+        .switch input {
+            opacity: 0;
+            inline-size: 44px;
+            block-size: 24px;
+            margin: 0;
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: #475569;
+            transition: background-color 0.3s ease;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            block-size: 16px;
+            inline-size: 16px;
+            inset-inline-start: 4px;
+            inset-block-end: 4px;
+            background-color: white;
+            transition: transform 0.3s ease;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--heading-color); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .switch input:focus-visible + .slider {
+            outline: 3px solid #38bdf8;
+            outline-offset: 2px;
+        }
+
+        .formula {
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            margin-block-end: 8px;
+        }
+
+        .result {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: sans-serif;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .status-error { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid var(--accent-red); }
+        .status-success { background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid var(--accent-success); }
+
+        .glitch-explain {
+            font-size: 0.85rem;
+            margin-block-start: 6px;
+            color: #fca5a5;
+            display: none;
+        }
+
+        .instruction {
+            text-align: center;
+            color: #cbd5e1;
+            font-style: italic;
+            font-size: 0.9rem;
+            margin-block-start: 6px;
+        }
+
+        @media (max-width: 768px) {
+            .canvas-wrapper { inline-size: 100%; }
+            .controls-panel { max-inline-size: 100%; }
+        }
+    </style>
+  <!-- Google Analytics 4 (EDDI) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+  <script src="js/analytics.js"></script>
+</head>
+<body>
+
+    <header>
+        <a href="index.html#interactive" class="back-link">&larr; Back to Home</a>
+        <h1>Robot Navigation Explorer</h1>
+        <p class="subtitle">Why robots crash if you use <code>atan()</code> instead of <code>atan2()</code></p>
+    </header>
+
+    <main class="main-container">
+
+        <!-- VISUALIZATION AREA -->
+        <div class="canvas-wrapper" id="canvasContainer">
+            <canvas
+                id="trigCanvas"
+                width="600"
+                height="600"
+                tabindex="0"
+                role="slider"
+                aria-label="Robot heading vector on 4-quadrant unit circle. Drag with pointer or press Left and Right arrow keys to rotate."
+                aria-valuemin="-180"
+                aria-valuemax="180"
+                aria-valuenow="45"></canvas>
+            <div id="quadrantLabel" class="quadrant-label" aria-live="polite">QUADRANT 1</div>
+        </div>
+
+        <!-- CONTROLS AREA -->
+        <div class="controls-panel">
+            <h2 class="panel-header">Navigation Data</h2>
+
+            <!-- Coordinate Display -->
+            <div class="coord-display">
+                <div class="coord-box x-val">
+                    <div class="coord-label">ADJACENT (X)</div>
+                    <div id="valX" class="coord-value">0</div>
+                </div>
+                <div class="coord-box y-val">
+                    <div class="coord-label">OPPOSITE (Y)</div>
+                    <div id="valY" class="coord-value">0</div>
+                </div>
+            </div>
+
+            <!-- Option A: The Ratio -->
+            <div class="math-card">
+                <div class="math-header">
+                    <div class="math-title">A. The Ratio (tan)</div>
+                    <label class="switch">
+                        <input type="checkbox" id="checkTan" checked aria-label="Show tangent ratio">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="contentTan">
+                    <div class="formula">tan(&theta;) = Opp / Adj</div>
+                    <div class="result">
+                        <span id="calcRatio">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Option B: The Glitch -->
+            <div class="math-card" id="cardAtan">
+                <div class="math-header">
+                    <div class="math-title">B. The Glitch (atan)</div>
+                    <label class="switch">
+                        <input type="checkbox" id="checkAtan" checked aria-label="Show atan calculation">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="contentAtan">
+                    <div class="formula">&theta; = Math.atan(y / x)</div>
+                    <div class="result">
+                        <span id="calcAtan">0&deg;</span>
+                        <span id="statusAtan" class="status-badge status-error" hidden>GLITCH</span>
+                    </div>
+                    <div class="glitch-explain" id="glitchExplain">
+                        Calculated angle points opposite to the robot!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Option C: The Solution -->
+            <div class="math-card">
+                <div class="math-header">
+                    <div class="math-title">C. The Solution (atan2)</div>
+                    <label class="switch">
+                        <input type="checkbox" id="checkAtan2" checked aria-label="Show atan2 calculation">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="contentAtan2">
+                    <div class="formula">&theta; = Math.atan2(y, x)</div>
+                    <div class="result">
+                        <span id="calcAtan2">0&deg;</span>
+                        <span class="status-badge status-success">CORRECT</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="instruction">
+                Drag the orange vector tip (or use Left/Right arrow keys on the canvas) to rotate the robot!
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- Configuration ---
+        const canvas = document.getElementById('trigCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Dimensions & State
+        const width = 600;
+        const height = 600;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const circleRadius = 200;
+
+        // State
+        let angle = -Math.PI / 4; // Start in Quadrant 1 (Math Y is up, Canvas Y is down)
+        let isDragging = false;
+
+        // Elements to update
+        const elValX = document.getElementById('valX');
+        const elValY = document.getElementById('valY');
+        const elQuadLabel = document.getElementById('quadrantLabel');
+
+        const checkTan = document.getElementById('checkTan');
+        const contentTan = document.getElementById('contentTan');
+        const calcRatio = document.getElementById('calcRatio');
+
+        const checkAtan = document.getElementById('checkAtan');
+        const contentAtan = document.getElementById('contentAtan');
+        const cardAtan = document.getElementById('cardAtan');
+        const calcAtan = document.getElementById('calcAtan');
+        const statusAtan = document.getElementById('statusAtan');
+        const glitchExplain = document.getElementById('glitchExplain');
+
+        const checkAtan2 = document.getElementById('checkAtan2');
+        const contentAtan2 = document.getElementById('contentAtan2');
+        const calcAtan2 = document.getElementById('calcAtan2');
+
+        // --- Event Listeners ---
+        function updateToggles() {
+            contentTan.style.opacity = checkTan.checked ? '1' : '0.2';
+            contentAtan.style.opacity = checkAtan.checked ? '1' : '0.2';
+            contentAtan2.style.opacity = checkAtan2.checked ? '1' : '0.2';
+        }
+        [checkTan, checkAtan, checkAtan2].forEach(el => el.addEventListener('change', updateToggles));
+
+        // Drag Logic
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+            const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleStart(evt) {
+            const pos = getMousePos(evt);
+            const dx = pos.x - centerX;
+            const dy = pos.y - centerY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 300) {
+                isDragging = true;
+                updateAngle(pos);
+            }
+        }
+
+        function handleMove(evt) {
+            if (!isDragging) return;
+            evt.preventDefault();
+            const pos = getMousePos(evt);
+            updateAngle(pos);
+        }
+
+        function handleEnd() {
+            isDragging = false;
+        }
+
+        function updateAngle(pos) {
+            const dx = pos.x - centerX;
+            const dy = pos.y - centerY;
+            angle = Math.atan2(dy, dx);
+            draw();
+            updateStats();
+        }
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+
+        // Touch Events
+        canvas.addEventListener('touchstart', handleStart, { passive: true });
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', handleEnd);
+
+        // Keyboard Rotation Support
+        canvas.addEventListener('keydown', (evt) => {
+            const step = evt.shiftKey ? (Math.PI / 12) : (Math.PI / 36);
+            if (evt.key === 'ArrowLeft' || evt.key === 'ArrowUp') {
+                evt.preventDefault();
+                angle -= step;
+                draw();
+                updateStats();
+            } else if (evt.key === 'ArrowRight' || evt.key === 'ArrowDown') {
+                evt.preventDefault();
+                angle += step;
+                draw();
+                updateStats();
+            }
+        });
+
+        // --- Drawing Logic ---
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            const tipX = centerX + Math.cos(angle) * circleRadius;
+            const tipY = centerY + Math.sin(angle) * circleRadius;
+
+            const mathX = Math.cos(angle);
+            const mathY = -Math.sin(angle);
+
+            // 1. Quadrant Highlights
+            ctx.save();
+            let qText = '';
+
+            if (mathX >= 0 && mathY >= 0) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.fillRect(centerX, 0, width / 2, height / 2);
+                qText = 'QUADRANT 1 (+X, +Y)';
+            } else if (mathX < 0 && mathY >= 0) {
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.1)';
+                ctx.fillRect(0, 0, width / 2, height / 2);
+                qText = 'QUADRANT 2 (-X, +Y)';
+            } else if (mathX < 0 && mathY < 0) {
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.1)';
+                ctx.fillRect(0, centerY, width / 2, height / 2);
+                qText = 'QUADRANT 3 (-X, -Y)';
+            } else {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.fillRect(centerX, centerY, width / 2, height / 2);
+                qText = 'QUADRANT 4 (+X, -Y)';
+            }
+            elQuadLabel.textContent = qText;
+            ctx.restore();
+
+            // 2. Grid & Unit Circle
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, centerY); ctx.lineTo(width, centerY);
+            ctx.moveTo(centerX, 0); ctx.lineTo(centerX, height);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#475569';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 3. Triangle Legs
+            ctx.beginPath();
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 4;
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(tipX, centerY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 4;
+            ctx.moveTo(tipX, centerY);
+            ctx.lineTo(tipX, tipY);
+            ctx.stroke();
+
+            // 4. Robot Heading Vector
+            ctx.beginPath();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 5;
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(tipX, tipY);
+            ctx.stroke();
+
+            // 5. Drag Handle
+            ctx.beginPath();
+            ctx.fillStyle = '#f59e0b';
+            ctx.arc(tipX, tipY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 6. Labels on Triangle
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#10b981';
+            ctx.fillText('x', centerX + (tipX - centerX) / 2, centerY + 20);
+
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillText('y', tipX + 10, centerY + (tipY - centerY) / 2);
+        }
+
+        // --- Math & UI Logic ---
+        function updateStats() {
+            let rawX = Math.cos(angle) * 100;
+            let rawY = -Math.sin(angle) * 100;
+
+            if (Math.abs(rawX) < 0.1) rawX = 0;
+            if (Math.abs(rawY) < 0.1) rawY = 0;
+
+            elValX.textContent = rawX.toFixed(1);
+            elValY.textContent = rawY.toFixed(1);
+
+            // A. The Ratio (Tan)
+            if (rawX === 0) {
+                calcRatio.textContent = rawY >= 0 ? '+\u221e' : '-\u221e';
+            } else {
+                const ratio = rawY / rawX;
+                calcRatio.textContent = ratio.toFixed(3);
+            }
+
+            // B. The Glitch (Atan)
+            let atanDeg;
+            if (rawX === 0) {
+                atanDeg = rawY >= 0 ? 90 : -90;
+            } else {
+                atanDeg = (Math.atan(rawY / rawX) * 180) / Math.PI;
+            }
+            calcAtan.textContent = atanDeg.toFixed(1) + '\u00b0';
+
+            // C. The Solution (Atan2)
+            const trueAngleRad = Math.atan2(rawY, rawX);
+            const trueAngleDeg = (trueAngleRad * 180) / Math.PI;
+
+            if (rawX < 0) {
+                statusAtan.hidden = false;
+                glitchExplain.style.display = 'block';
+                cardAtan.style.borderColor = '#ef4444';
+            } else {
+                statusAtan.hidden = true;
+                glitchExplain.style.display = 'none';
+                cardAtan.style.borderColor = 'var(--grid-line)';
+            }
+
+            calcAtan2.textContent = trueAngleDeg.toFixed(1) + '\u00b0';
+            canvas.setAttribute('aria-valuenow', Math.round(trueAngleDeg));
+        }
+
+        draw();
+        updateStats();
+    </script>
+</body>
+</html>

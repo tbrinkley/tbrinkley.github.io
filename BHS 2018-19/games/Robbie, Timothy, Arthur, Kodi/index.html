@@ -2,24 +2,129 @@
 <html lang="en-us">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unity WebGL Player | BattleBuddies</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+    <style>
+      body {
+        margin: 0;
+        background: #0c1226;
+        color: #f4f7ff;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .arcade-topbar {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+      }
+      .arcade-back, .arcade-live {
+        display: inline-block;
+        padding: 9px 15px;
+        text-decoration: none;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 3px 0 #040712;
+      }
+      .arcade-back {
+        background: #1b274b;
+        color: #ffd15c;
+        border: 2px solid #ffd15c;
+      }
+      .arcade-back:hover {
+        background: #ffd15c;
+        color: #070b17;
+      }
+      .arcade-live {
+        background: #ffd15c;
+        color: #070b17;
+        border: 2px solid #040712;
+      }
+      .arcade-live:hover {
+        background: #ffe08a;
+      }
+      .webgl-content .footer .title {
+        color: #d5e1fa;
+      }
+      .file-warning {
+        box-sizing: border-box;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 32px;
+        background: #131c38;
+        border: 3px solid #ffd15c;
+        color: #f4f7ff;
+        gap: 14px;
+      }
+      .file-warning h1 {
+        margin: 0;
+        font-size: 20px;
+        color: #ffd15c;
+      }
+      .file-warning p {
+        margin: 0;
+        max-width: 560px;
+        line-height: 1.6;
+        color: #d5e1fa;
+      }
+      .file-warning .hint {
+        font-size: 13px;
+        color: #a1b6de;
+      }
+      .file-warning-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 6px;
+      }
+      .file-warning code {
+        background: #070b17;
+        color: #4be3ff;
+        padding: 2px 6px;
+        border: 1px solid #0c5d82;
+      }
+    </style>
     <script src="TemplateData/UnityProgress.js"></script>
     <script src="Build/UnityLoader.js"></script>
-    <script>
-      var gameInstance = UnityLoader.instantiate("gameContainer", "Build/Desktop.json", {onProgress: UnityProgress});
-    </script>
-  </head>
+    <!-- Google Analytics 4 (EDDI) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+  <script src="../../../js/analytics.js"></script>
+</head>
   <body>
+    <div class="arcade-topbar">
+      <a class="arcade-back" href="../../../index.html#games">&larr; Back to Student Arcade</a>
+    </div>
     <div class="webgl-content">
       <div id="gameContainer" style="width: 960px; height: 600px"></div>
       <div class="footer">
         <div class="webgl-logo"></div>
-        <div class="fullscreen" onclick="gameInstance.SetFullscreen(1)"></div>
+        <div class="fullscreen" onclick="window.gameInstance && window.gameInstance.SetFullscreen(1)"></div>
         <div class="title">BattleBuddies</div>
       </div>
     </div>
+    <script>
+      if (window.location.protocol === "file:") {
+        document.getElementById("gameContainer").innerHTML =
+          "<div class=\"file-warning\">" +
+          "<h1>Opened Locally via file://</h1>" +
+          "<p>Web browsers block Unity WebGL games when opened directly from a local folder, but they play automatically on GitHub Pages with no setup required.</p>" +
+          "<div class=\"file-warning-actions\">" +
+          "<a class=\"arcade-live\" href=\"https://tbrinkley.github.io/BHS%202018-19/games/Robbie%2C%20Timothy%2C%20Arthur%2C%20Kodi/index.html\">&#9654; Play Live on tbrinkley.github.io &nearr;</a>" +
+          "<a class=\"arcade-back\" href=\"../../../index.html#games\">&larr; Back to Student Arcade</a>" +
+          "</div>" +
+          "<p class=\"hint\">Developer preview tip: you can also preview local edits via VS Code Live Server or <code>http://localhost:8000</code>.</p>" +
+          "</div>";
+      } else {
+        window.gameInstance = UnityLoader.instantiate("gameContainer", "Build/Desktop.json", {onProgress: UnityProgress});
+      }
+    </script>
   </body>
 </html>
