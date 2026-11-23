@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBIS 15 Ch. 8: True QAM Waveform Mapper | Barstow Community College</title>
+  <meta name="description" content="Interactive CBIS 15 Chapter 8 True QAM Waveform Mapper for Barstow Community College: transmit text, image, and video symbols across a live 16-QAM constellation and real-time I, Q, and combined RF oscilloscope.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.9 19.1C1 15.2 1 8.8 4.9 4.9'/%3E%3Cpath d='M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Cpath d='M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5'/%3E%3Cpath d='M19.1 4.9C23 8.8 23 15.1 19.1 19'/%3E%3C/svg%3E">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React 18 & Babel Standalone (zero-build browser JSX runtime) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Analytics 4 (EDDI) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+  <script src="js/analytics.js"></script>
+</head>
+<body class="bg-slate-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Inline Lucide-compatible 24x24 SVG Icon Components
+    const createIcon = (children) => ({ className = "w-4 h-4", ...props }) => (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        aria-hidden="true"
+        {...props}
+      >
+        {children}
+      </svg>
+    );
+
+    const Play = createIcon(<polygon points="6 3 20 12 6 21 6 3" />);
+    const Square = createIcon(<rect width="18" height="18" x="3" y="3" rx="2" />);
+    const ImageIcon = createIcon(<>
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+    </>);
+    const Video = createIcon(<>
+      <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
+      <rect x="2" y="6" width="14" height="12" rx="2" />
+    </>);
+    const FileText = createIcon(<>
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+      <path d="M10 9H8" />
+      <path d="M16 13H8" />
+      <path d="M16 17H8" />
+    </>);
+    const Info = createIcon(<>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </>);
+    const Radio = createIcon(<>
+      <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+      <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" />
+      <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />
+    </>);
+    const Activity = createIcon(<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />);
+
+    function App() {
+      const [inputText, setInputText] = useState('HELLO');
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [status, setStatus] = useState('Ready to transmit');
+      const [activeSymbol, setActiveSymbol] = useState(null);
+      const [txMode, setTxMode] = useState('Text');
+      
+      const audioCtxRef = useRef(null);
+      const oscIRef = useRef(null); 
+      const oscQRef = useRef(null); 
+      const gainIRef = useRef(null);
+      const gainQRef = useRef(null);
+      
+      const gridCanvasRef = useRef(null);
+      const waveCanvasRef = useRef(null);
+      const isTransmittingRef = useRef(false);
+      const txIdRef = useRef(0);
+      const animationTimeRef = useRef(0);
+      const animationRef = useRef(null);
+
+      const initAudio = () => {
+        if (!audioCtxRef.current) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          audioCtxRef.current = new Ctx();
+          
+          const masterGain = audioCtxRef.current.createGain();
+          masterGain.gain.value = 0.5;
+          masterGain.connect(audioCtxRef.current.destination);
+
+          oscIRef.current = audioCtxRef.current.createOscillator();
+          oscIRef.current.type = 'sine';
+          oscIRef.current.frequency.value = 300; // Low Tone for X
+          gainIRef.current = audioCtxRef.current.createGain();
+          gainIRef.current.gain.value = 0;
+          oscIRef.current.connect(gainIRef.current).connect(masterGain);
+          oscIRef.current.start();
+
+          oscQRef.current = audioCtxRef.current.createOscillator();
+          oscQRef.current.type = 'sine';
+          oscQRef.current.frequency.value = 600; // High Tone for Y
+          gainQRef.current = audioCtxRef.current.createGain();
+          gainQRef.current.gain.value = 0;
+          oscQRef.current.connect(gainQRef.current).connect(masterGain);
+          oscQRef.current.start();
+        }
+        if (audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume();
+        }
+      };
+
+      const mapBitsToCoordinate = (bits) => {
+        if (bits === '00') return -3;
+        if (bits === '01') return -1;
+        if (bits === '11') return 1;
+        if (bits === '10') return 3;
+        return 0;
+      };
+
+      const mapCoordinateToVolume = (coord) => {
+        return (coord + 4) / 7; 
+      };
+
+      const convertTextToSymbols = (text) => {
+        const symbols = [];
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i];
+          const binary = char.charCodeAt(0).toString(2).padStart(8, '0');
+          const chunk1 = binary.substring(0, 4);
+          const chunk2 = binary.substring(4, 8);
+          
+          symbols.push({ char, bits: chunk1, i: mapBitsToCoordinate(chunk1.substring(0, 2)), q: mapBitsToCoordinate(chunk1.substring(2, 4)) });
+          symbols.push({ char, bits: chunk2, i: mapBitsToCoordinate(chunk2.substring(0, 2)), q: mapBitsToCoordinate(chunk2.substring(2, 4)) });
+        }
+        return symbols;
+      };
+
+      const generateRandomSymbols = (count, label) => {
+        const symbols = [];
+        const bitCombos = ['00', '01', '10', '11'];
+        for (let i = 0; i < count; i++) {
+          const b1 = bitCombos[Math.floor(Math.random() * 4)];
+          const b2 = bitCombos[Math.floor(Math.random() * 4)];
+          symbols.push({ char: label, bits: b1 + b2, i: mapBitsToCoordinate(b1), q: mapBitsToCoordinate(b2) });
+        }
+        return symbols;
+      };
+
+      const stopTransmission = () => {
+        isTransmittingRef.current = false;
+        txIdRef.current += 1;
+        setIsPlaying(false);
+        setActiveSymbol(null);
+        setStatus('Transmission Stopped');
+        if (gainIRef.current && audioCtxRef.current) {
+          gainIRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.05);
+          gainQRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.05);
+        }
+      };
+
+      const startTransmission = async (mode) => {
+        initAudio();
+        const txId = ++txIdRef.current;
+        setIsPlaying(true);
+        isTransmittingRef.current = true;
+        setTxMode(mode);
+        
+        let symbols = [];
+        let speedMs = 1500;
+
+        if (mode === 'Text') {
+          symbols = convertTextToSymbols(inputText || ' ');
+          setStatus(`Encoding Text to 16-QAM... (${symbols.length} symbols)`);
+          speedMs = 1500; // Dramatically slower to see the letters and waves easily
+        } else if (mode === 'Image') {
+          symbols = generateRandomSymbols(30, 'Img');
+          setStatus('Streaming Image Packet Data...');
+          speedMs = 150;
+        } else if (mode === 'Video') {
+          symbols = generateRandomSymbols(100, 'Vid');
+          setStatus('Streaming High-Density Video Frames...');
+          speedMs = 30;
+        }
+
+        const ctx = audioCtxRef.current;
+
+        for (let i = 0; i < symbols.length; i++) {
+          if (!isTransmittingRef.current || txIdRef.current !== txId) break;
+          
+          const sym = symbols[i];
+          setActiveSymbol(sym);
+
+          const volI = mapCoordinateToVolume(sym.i);
+          const volQ = mapCoordinateToVolume(sym.q);
+          
+          gainIRef.current.gain.setTargetAtTime(volI, ctx.currentTime, 0.01);
+          gainQRef.current.gain.setTargetAtTime(volQ, ctx.currentTime, 0.01);
+
+          await new Promise(r => setTimeout(r, speedMs));
+        }
+
+        if (isTransmittingRef.current && txIdRef.current === txId) {
+          stopTransmission();
+          setStatus('Transmission Complete');
+        }
+      };
+
+      // --- Animation Loop for Grid and Waves ---
+      useEffect(() => {
+        const gridCanvas = gridCanvasRef.current;
+        const waveCanvas = waveCanvasRef.current;
+        if (!gridCanvas || !waveCanvas) return;
+        
+        const gridCtx = gridCanvas.getContext('2d');
+        const waveCtx = waveCanvas.getContext('2d');
+
+        const render = () => {
+          animationTimeRef.current += 0.05; // Continuous wave phase across symbol transitions
+          const animationTime = animationTimeRef.current;
+          
+          // 1. DRAW GRID
+          const gWidth = gridCanvas.width;
+          const gHeight = gridCanvas.height;
+          const gCenterX = gWidth / 2;
+          const gCenterY = gHeight / 2;
+          const gridScale = 30;
+
+          gridCtx.fillStyle = '#0f172a';
+          gridCtx.fillRect(0, 0, gWidth, gHeight);
+
+          gridCtx.strokeStyle = '#334155';
+          gridCtx.lineWidth = 1;
+          for (let i = -3; i <= 3; i += 2) {
+            gridCtx.beginPath(); gridCtx.moveTo(gCenterX + i * gridScale, 0); gridCtx.lineTo(gCenterX + i * gridScale, gHeight); gridCtx.stroke();
+            gridCtx.beginPath(); gridCtx.moveTo(0, gCenterY - i * gridScale); gridCtx.lineTo(gWidth, gCenterY - i * gridScale); gridCtx.stroke();
+          }
+
+          gridCtx.lineWidth = 2;
+          gridCtx.strokeStyle = '#3b82f6'; // Blue X-axis
+          gridCtx.beginPath(); gridCtx.moveTo(0, gCenterY); gridCtx.lineTo(gWidth, gCenterY); gridCtx.stroke();
+          gridCtx.strokeStyle = '#ef4444'; // Red Y-axis
+          gridCtx.beginPath(); gridCtx.moveTo(gCenterX, 0); gridCtx.lineTo(gCenterX, gHeight); gridCtx.stroke();
+
+          gridCtx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+          for (let i = -3; i <= 3; i += 2) {
+            for (let q = -3; q <= 3; q += 2) {
+              gridCtx.beginPath(); gridCtx.arc(gCenterX + i * gridScale, gCenterY - q * gridScale, 3, 0, 2 * Math.PI); gridCtx.fill();
+            }
+          }
+
+          let currentI = 0;
+          let currentQ = 0;
+
+          if (activeSymbol) {
+            currentI = activeSymbol.i;
+            currentQ = activeSymbol.q;
+            
+            const targetX = gCenterX + currentI * gridScale;
+            const targetY = gCenterY - currentQ * gridScale;
+
+            // Angle and Distance lines
+            gridCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            gridCtx.beginPath(); gridCtx.moveTo(gCenterX, gCenterY); gridCtx.lineTo(targetX, targetY); gridCtx.stroke();
+
+            gridCtx.fillStyle = '#3b82f6';
+            gridCtx.beginPath(); gridCtx.arc(targetX, gCenterY, 5, 0, 2 * Math.PI); gridCtx.fill();
+
+            gridCtx.fillStyle = '#ef4444';
+            gridCtx.beginPath(); gridCtx.arc(gCenterX, targetY, 5, 0, 2 * Math.PI); gridCtx.fill();
+
+            gridCtx.fillStyle = '#a855f7';
+            gridCtx.beginPath(); gridCtx.arc(targetX, targetY, 8, 0, 2 * Math.PI);
+            gridCtx.shadowBlur = 10; gridCtx.shadowColor = '#a855f7'; gridCtx.fill(); gridCtx.shadowBlur = 0;
+          }
+
+          // 2. DRAW WAVEFORMS (Real Physics)
+          const wWidth = waveCanvas.width;
+          const wHeight = waveCanvas.height;
+          const wCenterY = wHeight / 2;
+          
+          waveCtx.fillStyle = '#0f172a';
+          waveCtx.fillRect(0, 0, wWidth, wHeight);
+          
+          waveCtx.strokeStyle = '#334155';
+          waveCtx.lineWidth = 1;
+          waveCtx.beginPath(); waveCtx.moveTo(0, wCenterY); waveCtx.lineTo(wWidth, wCenterY); waveCtx.stroke();
+
+          // Only draw waves if transmitting
+          if (activeSymbol) {
+            const drawWave = (amplitude, phaseOffset, color, width = 2) => {
+              waveCtx.beginPath();
+              waveCtx.strokeStyle = color;
+              waveCtx.lineWidth = width;
+              
+              for (let x = 0; x < wWidth; x++) {
+                const t = (x * 0.05) - animationTime; 
+                const y = wCenterY - (amplitude * 12) * Math.sin(t + phaseOffset);
+                
+                if (x === 0) waveCtx.moveTo(x, y);
+                else waveCtx.lineTo(x, y);
+              }
+              waveCtx.stroke();
+            };
+
+            // I-Wave (Blue, 0 degree offset)
+            drawWave(currentI, 0, 'rgba(59, 130, 246, 0.6)');
+            
+            // Q-Wave (Red, 90 degree / PI/2 offset)
+            drawWave(currentQ, Math.PI / 2, 'rgba(239, 68, 68, 0.6)');
+            
+            // Combined Wave (Purple)
+            waveCtx.beginPath();
+            waveCtx.strokeStyle = '#a855f7'; 
+            waveCtx.lineWidth = 3;
+            for (let x = 0; x < wWidth; x++) {
+              const t = (x * 0.05) - animationTime;
+              const yI = (currentI * 12) * Math.sin(t);
+              const yQ = (currentQ * 12) * Math.sin(t + Math.PI / 2);
+              const yCombined = wCenterY - (yI + yQ);
+              
+              if (x === 0) waveCtx.moveTo(x, yCombined);
+              else waveCtx.lineTo(x, yCombined);
+            }
+            waveCtx.stroke();
+          }
+
+          animationRef.current = requestAnimationFrame(render);
+        };
+
+        render();
+
+        return () => cancelAnimationFrame(animationRef.current);
+      }, [activeSymbol]);
+
+      // Cleanup
+      useEffect(() => {
+        return () => {
+          isTransmittingRef.current = false;
+          if (audioCtxRef.current) audioCtxRef.current.close();
+        };
+      }, []);
+
+      const displayChar = activeSymbol
+        ? (activeSymbol.char === ' ' ? '␣' : activeSymbol.char)
+        : '-';
+      const charSizeClass = displayChar.length > 1 ? 'text-4xl' : 'text-6xl';
+
+      return (
+        <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans">
+          {/* Back to Home Bar */}
+          <div className="max-w-6xl w-full mb-3 flex items-center justify-between gap-2">
+            <a
+              href="index.html#bcc-classes"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 text-xs font-bold shadow-sm transition"
+            >
+              ← Back to Home
+            </a>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-slate-500">
+              BCC CBIS 15 • Ch. 8 • True QAM Waveform Mapper
+            </span>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full overflow-hidden border border-slate-200 flex flex-col md:flex-row">
+            
+            {/* Left Side: Controls & Input */}
+            <div className="p-6 md:w-1/3 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col bg-white flex-shrink-0">
+              <div className="flex items-center space-x-3 mb-6">
+                <Radio className="text-purple-600 w-8 h-8 flex-shrink-0" />
+                <h1 className="text-xl font-bold text-slate-800 leading-tight">QAM Transmission Simulator</h1>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-slate-700 mb-2">Message to Transmit:</label>
+                <textarea 
+                  className="w-full border border-slate-300 rounded-lg p-3 text-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  rows="2"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value.toUpperCase())}
+                  disabled={isPlaying}
+                  placeholder="Type a word..."
+                ></textarea>
+              </div>
+
+              <div className="space-y-3 flex-grow">
+                <label className="block text-sm font-bold text-slate-700">Transmission Modes:</label>
+                
+                <button 
+                  onClick={() => startTransmission('Text')}
+                  disabled={isPlaying || !inputText}
+                  className="w-full flex items-center justify-center p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <FileText className="w-5 h-5 mr-2 text-blue-400" /> Send Text (Super Slow)
+                </button>
+
+                <button 
+                  onClick={() => startTransmission('Image')}
+                  disabled={isPlaying}
+                  className="w-full flex items-center justify-center p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <ImageIcon className="w-5 h-5 mr-2 text-green-400" /> Send Image (Med)
+                </button>
+
+                <button 
+                  onClick={() => startTransmission('Video')}
+                  disabled={isPlaying}
+                  className="w-full flex items-center justify-center p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <Video className="w-5 h-5 mr-2 text-red-400" /> Send Video (Fast)
+                </button>
+
+                {isPlaying && (
+                  <button 
+                    onClick={stopTransmission}
+                    className="w-full flex items-center justify-center p-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-bold transition-colors mt-4 border border-red-300 shadow-sm"
+                  >
+                    <Square className="w-5 h-5 mr-2" /> Stop Transmitting
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Right Side: Visualizers */}
+            <div className="bg-slate-900 md:w-2/3 p-6 flex flex-col relative text-white">
+              
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="font-mono text-sm tracking-widest text-slate-400 uppercase">Live 16-QAM Map</h2>
+                  <div className={`mt-1 inline-flex px-3 py-1 rounded-full text-xs font-bold border ${isPlaying ? 'bg-purple-900/50 border-purple-500 text-purple-200' : 'bg-slate-800 border-slate-600 text-slate-400'}`}>
+                    {status}
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid and Waveform Container */}
+              <div className="flex-grow flex flex-col xl:flex-row items-center justify-center gap-4">
+                
+                {/* Constellation Grid Canvas */}
+                <div className="flex-1 flex flex-col items-center justify-center bg-slate-800 p-4 rounded-xl border border-slate-700 w-full xl:w-auto">
+                  <span className="text-xs text-slate-400 mb-2 font-mono uppercase tracking-widest">Constellation</span>
+                  <canvas ref={gridCanvasRef} width="240" height="240" className="bg-slate-900 rounded-lg shadow-inner"></canvas>
+                  <div className="flex justify-between w-full mt-4 text-xs px-2">
+                    <span className="text-blue-400 font-mono font-bold">X-Amp: {activeSymbol ? activeSymbol.i : 0}</span>
+                    <span className="text-red-400 font-mono font-bold">Y-Amp: {activeSymbol ? activeSymbol.q : 0}</span>
+                  </div>
+                </div>
+
+                {/* Middle Character Display */}
+                <div className="flex flex-col items-center justify-center bg-slate-800/80 p-4 rounded-xl border border-slate-700 min-w-[120px] xl:self-stretch shadow-lg">
+                  <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest mb-1 text-center">Current Data</span>
+                  
+                  <div className={`${charSizeClass} font-black text-white drop-shadow-[0_0_15px_rgba(168,85,247,0.7)] my-2`}>
+                    {displayChar}
+                  </div>
+                  
+                  <div className="mt-2 text-sm text-purple-300 font-mono border border-purple-500/40 px-3 py-1 rounded bg-purple-500/20 tracking-widest">
+                    {activeSymbol ? activeSymbol.bits : '----'}
+                  </div>
+                </div>
+
+                {/* True Physics Waveform Canvas */}
+                <div className="flex-1 flex flex-col items-center justify-center bg-slate-800 p-4 rounded-xl border border-slate-700 w-full xl:w-auto">
+                  <div className="w-full flex justify-between items-center mb-2">
+                    <span className="text-xs text-slate-400 font-mono uppercase tracking-widest">RF Oscilloscope</span>
+                    <Activity className="w-4 h-4 text-slate-500" />
+                  </div>
+                  
+                  <canvas ref={waveCanvasRef} width="280" height="240" className="bg-slate-900 rounded-lg w-full shadow-inner"></canvas>
+                  
+                  <div className="flex justify-center w-full mt-4 text-[10px] sm:text-xs space-x-3">
+                    <span className="text-blue-400 flex items-center"><span className="w-2 h-2 rounded-full bg-blue-500 mr-1 opacity-70"></span> I-Wave</span>
+                    <span className="text-red-400 flex items-center"><span className="w-2 h-2 rounded-full bg-red-500 mr-1 opacity-70"></span> Q-Wave</span>
+                    <span className="text-purple-400 font-bold flex items-center"><span className="w-2 h-2 rounded-full bg-purple-500 mr-1 shadow-[0_0_8px_#a855f7]"></span> Resulting</span>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+          
+          {/* Educational Note */}
+          <div className="mt-5 max-w-3xl w-full text-center">
+            <div className="inline-block bg-white/95 backdrop-blur px-5 py-3 rounded-2xl sm:rounded-full shadow-lg border border-slate-200 text-xs text-slate-700">
+              <Info className="w-4 h-4 inline-block mr-1 -mt-0.5 text-blue-500" />
+              <strong>Watch the Purple Wave:</strong> The X-axis changes the amplitude of the blue wave. The Y-axis changes the amplitude of the red wave (shifted by 90°). When those two waves combine in the air, they create the single <strong>Purple Wave</strong> which carries the character data!
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

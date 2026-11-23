@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 14 Week 1: CIA Triad Trade-off Balancer | Barstow Community College</title>
+    <meta name="description" content="Interactive CBIS 14 Week 1 CIA Triad Trade-off Balancer for Barstow Community College: balance Confidentiality, Integrity, and Availability across 6 real-world cybersecurity scenarios.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322d3ee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3 21 19H3Z' fill='%2322d3ee' fill-opacity='0.18'/%3E%3Ccircle cx='12' cy='14' r='2' fill='%23ffffff' stroke='none'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(-5px) translateX(-50%)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) translateX(-50%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Base styles to handle standalone & iframe embedding gracefully */
+        body { margin: 0; padding: 0; overflow-x: hidden; }
+        .touch-none { touch-action: none; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-900 text-slate-100 font-sans p-3 md:p-6 flex flex-col items-center">
+
+    <!-- Back to Home Strip -->
+    <div class="w-full max-w-4xl mb-4 flex items-center justify-between gap-2">
+        <a href="index.html#bcc-classes" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs font-bold shadow-sm transition">
+            &larr; Back to Home
+        </a>
+        <span class="text-[11px] font-mono font-bold uppercase tracking-widest text-slate-400">
+            BCC CBIS 14 &bull; Week 1 &bull; CIA Triad
+        </span>
+    </div>
+
+    <header class="mb-4 text-center max-w-2xl">
+        <h1 class="text-xl md:text-2xl font-bold text-cyan-400">CIA Triad Balancer</h1>
+        <p class="text-slate-400 text-xs md:text-sm">CBIS 14 - Week 1 | Visualization 1-1</p>
+    </header>
+
+    <div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        
+        <!-- Visualization Column -->
+        <div class="flex flex-col items-center bg-slate-800/50 p-2 rounded-xl border border-slate-700 shadow-xl select-none overflow-hidden relative">
+            
+            <!-- Tooltip -->
+            <div id="tooltip" class="hidden absolute top-16 left-1/2 -translate-x-1/2 bg-black/90 text-white text-xs px-3 py-2 rounded border border-cyan-500/50 z-20 animate-fade-in pointer-events-none text-center whitespace-nowrap">
+                Tooltip Text
+            </div>
+
+            <svg 
+                id="sim-svg"
+                viewBox="0 0 460 460"
+                class="w-full h-auto touch-none cursor-pointer max-w-[400px]"
+            >
+                <!-- Triangle Background -->
+                <path 
+                    d="M230,80 L380,339.8076211353316 L80,339.8076211353316 Z" 
+                    fill="none" 
+                    stroke="#334155" 
+                    stroke-width="4"
+                    stroke-linejoin="round"
+                />
+                
+                <defs>
+                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color: rgba(6,182,212,0.1); stop-opacity: 1" />
+                        <stop offset="100%" style="stop-color: rgba(59,130,246,0.1); stop-opacity: 1" />
+                    </linearGradient>
+                </defs>
+                
+                <path 
+                    d="M230,80 L380,339.8076211353316 L80,339.8076211353316 Z" 
+                    fill="url(#grad)" 
+                />
+
+                <!-- Connecting Lines -->
+                <line id="line-c" x1="230" y1="166.6" x2="230" y2="80" stroke="rgba(239, 68, 68, 0.3)" stroke-width="1" />
+                <line id="line-i" x1="230" y1="166.6" x2="380" y2="339.8" stroke="rgba(34, 197, 94, 0.3)" stroke-width="1" />
+                <line id="line-a" x1="230" y1="166.6" x2="80" y2="339.8" stroke="rgba(59, 130, 246, 0.3)" stroke-width="1" />
+
+                <!-- Vertices -->
+                <!-- Confidentiality -->
+                <g class="cursor-help" transform="translate(230, 50)" onmouseenter="showTooltip('c')" onmouseleave="hideTooltip()">
+                    <circle r="24" fill="#1e293b" stroke="#ef4444" stroke-width="2" />
+                    <!-- Shield Icon -->
+                    <svg x="-12" y="-12" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2-1 4-2 7-2 2.5 0 4.5 1 6 2a1 1 0 0 1 1 1v7z"/>
+                    </svg>
+                    <text y="-30" text-anchor="middle" fill="#ef4444" font-weight="bold" font-size="16">Confidentiality</text>
+                </g>
+
+                <!-- Integrity -->
+                <g class="cursor-help" transform="translate(405, 354.8)" onmouseenter="showTooltip('i')" onmouseleave="hideTooltip()">
+                    <circle r="24" fill="#1e293b" stroke="#22c55e" stroke-width="2" />
+                    <!-- Check Circle Icon -->
+                    <svg x="-12" y="-12" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/>
+                    </svg>
+                    <text y="40" text-anchor="middle" fill="#22c55e" font-weight="bold" font-size="16">Integrity</text>
+                </g>
+
+                <!-- Availability -->
+                <g class="cursor-help" transform="translate(55, 354.8)" onmouseenter="showTooltip('a')" onmouseleave="hideTooltip()">
+                    <circle r="24" fill="#1e293b" stroke="#3b82f6" stroke-width="2" />
+                    <!-- Activity Icon -->
+                    <svg x="-12" y="-12" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
+                    </svg>
+                    <text y="40" text-anchor="middle" fill="#3b82f6" font-weight="bold" font-size="16">Availability</text>
+                </g>
+
+                <!-- The Puck -->
+                <g id="puck" transform="translate(230, 206.6)" class="cursor-grab active:cursor-grabbing">
+                    <circle r="14" fill="#fff" stroke="#94a3b8" stroke-width="3" />
+                    <circle r="5" fill="#0f172a" />
+                </g>
+            </svg>
+            
+            <div class="mt-2 text-xs text-slate-500 flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                Click or drag anywhere in the triangle &bull; Hover icons for info
+            </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="flex flex-col gap-3 w-full">
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <label class="text-cyan-400 text-xs font-bold uppercase tracking-wider mb-2 block" for="scenario-select">1. Select Scenario</label>
+                <select 
+                    id="scenario-select"
+                    onchange="handleScenarioChange()"
+                    class="w-full bg-slate-900 border border-slate-600 text-white p-2 text-sm rounded focus:border-cyan-500 outline-none"
+                >
+                    <!-- Options populated by JS -->
+                </select>
+                <p id="scenario-desc" class="mt-2 text-xs text-slate-400 italic bg-slate-900/50 p-2 rounded border border-slate-700/50"></p>
+            </div>
+
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <span class="text-cyan-400 text-xs font-bold uppercase tracking-wider mb-3 block">2. Balance</span>
+                <div class="space-y-3">
+                    
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-red-400 font-medium">Confidentiality</span>
+                            <span id="score-c" class="text-white font-mono">33%</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-900 rounded-full overflow-hidden">
+                            <div id="bar-c" class="h-full bg-red-500 transition-all" style="width: 33%"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-green-400 font-medium">Integrity</span>
+                            <span id="score-i" class="text-white font-mono">33%</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-900 rounded-full overflow-hidden">
+                            <div id="bar-i" class="h-full bg-green-500 transition-all" style="width: 33%"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-blue-400 font-medium">Availability</span>
+                            <span id="score-a" class="text-white font-mono">33%</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-900 rounded-full overflow-hidden">
+                            <div id="bar-a" class="h-full bg-blue-500 transition-all" style="width: 33%"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <button 
+                onclick="evaluateScenario()"
+                class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 text-sm"
+            >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Check Risk
+            </button>
+
+            <!-- Feedback Area -->
+            <div id="feedback-area" class="hidden p-3 rounded-xl border-l-4">
+                <div class="flex gap-2">
+                    <!-- Dynamic Icon -->
+                    <div id="feedback-icon" class="mt-0.5"></div>
+                    <div>
+                        <h2 id="feedback-title" class="font-bold text-xs uppercase"></h2>
+                        <p id="feedback-msg" class="text-xs mt-1 leading-snug"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- Configuration & State ---
+        const size = 300; 
+        const padding = 80; 
+        const width = size + padding * 2;
+        const height = size + padding * 2;
+
+        const vertices = {
+            c: { x: width / 2, y: padding },
+            i: { x: width / 2 + size / 2, y: padding + size * Math.sin(Math.PI / 3) },
+            a: { x: width / 2 - size / 2, y: padding + size * Math.sin(Math.PI / 3) },
+        };
+
+        let currentScores = { c: 33, i: 33, a: 34 };
+        let isDragging = false;
+
+        // --- DOM Elements ---
+        const svg = document.getElementById('sim-svg');
+        const puck = document.getElementById('puck');
+        const lineC = document.getElementById('line-c');
+        const lineI = document.getElementById('line-i');
+        const lineA = document.getElementById('line-a');
+        
+        const tooltip = document.getElementById('tooltip');
+        const scenarioSelect = document.getElementById('scenario-select');
+        const scenarioDesc = document.getElementById('scenario-desc');
+        
+        const feedbackArea = document.getElementById('feedback-area');
+        const feedbackIcon = document.getElementById('feedback-icon');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackMsg = document.getElementById('feedback-msg');
+
+        // --- Scenarios Data ---
+        const scenarios = {
+            'A': {
+                title: 'Scenario A: Nuclear Launch Codes',
+                desc: 'Requires absolute secrecy and assurance that data is correct.',
+                check: (s) => {
+                    if (s.a > 30) return { pass: false, msg: "SECURITY BREACH: System too accessible (High Availability). Codes compromised!" };
+                    if (s.c < 30 || s.i < 30) return { pass: false, msg: "FAILURE: Encryption/Integrity too weak for nuclear assets." };
+                    return { pass: true, msg: "SUCCESS: Codes are secure and verified." };
+                }
+            },
+            'B': {
+                title: 'Scenario B: Public Library Catalog',
+                desc: 'Information needs to be accessible to everyone at all times.',
+                check: (s) => {
+                    if (s.a < 60) return { pass: false, msg: "USER COMPLAINT: Patrons cannot access the book catalog." };
+                    return { pass: true, msg: "SUCCESS: Public can freely search for books." };
+                }
+            },
+            'C': {
+                title: 'Scenario C: ER Patient Database',
+                desc: 'Doctors need immediate access to accurate health records.',
+                check: (s) => {
+                    if (s.c > 40) return { pass: false, msg: "CRITICAL FAILURE: Password complexity blocked doctor access during surgery." };
+                    if (s.i < 30) return { pass: false, msg: "MEDICAL ERROR: Patient record corrupted. Wrong meds given." };
+                    if (s.a < 40) return { pass: false, msg: "SYSTEM DOWN: Records unavailable during emergency." };
+                    return { pass: true, msg: "SUCCESS: Data accurate and available to surgeons." };
+                }
+            },
+            'D': {
+                title: 'Scenario D: Electronic Voting System',
+                desc: 'Votes must not be tampered with and must remain secret.',
+                check: (s) => {
+                    if (s.i < 60) return { pass: false, msg: "FRAUD DETECTED: Low integrity. Votes may have been altered!" };
+                    if (s.c < 30) return { pass: false, msg: "PRIVACY LEAK: Voter choices exposed." };
+                    return { pass: true, msg: "SUCCESS: Election secure and private." };
+                }
+            },
+            'E': {
+                title: 'Scenario E: Black Friday Sale',
+                desc: 'High traffic volume. Downtime equals lost revenue.',
+                check: (s) => {
+                    if (s.a < 70) return { pass: false, msg: "CRASH: Server failed under load. Revenue lost!" };
+                    if (s.i < 10) return { pass: false, msg: "GLITCH: Items sold for $0.00." };
+                    return { pass: true, msg: "SUCCESS: Site handled the traffic spike." };
+                }
+            },
+            'F': {
+                title: 'Scenario F: Whistleblower Drop Box',
+                desc: 'Anonymity is the only priority.',
+                check: (s) => {
+                    if (s.c < 80) return { pass: false, msg: "EXPOSED: Weak encryption revealed the source." };
+                    return { pass: true, msg: "SUCCESS: Leak received safely." };
+                }
+            }
+        };
+
+        // --- Initialization ---
+        function init() {
+            // Populate select box
+            for (const [key, val] of Object.entries(scenarios)) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = val.title;
+                scenarioSelect.appendChild(option);
+            }
+            handleScenarioChange(); // Set initial desc
+
+            // Set initial puck position to center
+            const cx = (vertices.c.x + vertices.i.x + vertices.a.x) / 3;
+            const cy = (vertices.c.y + vertices.i.y + vertices.a.y) / 3;
+            updateVisuals(cx, cy);
+            updateScores(cx, cy);
+        }
+
+        // --- Math & Position Logic ---
+        function calculateBarycentric(p) {
+            const v1 = vertices.c;
+            const v2 = vertices.i;
+            const v3 = vertices.a;
+
+            const detT = (v2.y - v3.y) * (v1.x - v3.x) + (v3.x - v2.x) * (v1.y - v3.y);
+            const w1 = ((v2.y - v3.y) * (p.x - v3.x) + (v3.x - v2.x) * (p.y - v3.y)) / detT;
+            const w2 = ((v3.y - v1.y) * (p.x - v3.x) + (v1.x - v3.x) * (p.y - v3.y)) / detT;
+            const w3 = 1 - w1 - w2;
+
+            return { c: w1, i: w2, a: w3 };
+        }
+
+        function closestPointOnSegment(p, a, b) {
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const len2 = dx * dx + dy * dy;
+            let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2;
+            t = Math.max(0, Math.min(1, t));
+            return { x: a.x + t * dx, y: a.y + t * dy };
+        }
+
+        function clampToTriangle(p) {
+            const w = calculateBarycentric(p);
+            if (w.c >= 0 && w.i >= 0 && w.a >= 0) {
+                return p;
+            }
+            const candidates = [
+                closestPointOnSegment(p, vertices.c, vertices.i),
+                closestPointOnSegment(p, vertices.i, vertices.a),
+                closestPointOnSegment(p, vertices.a, vertices.c),
+            ];
+            let best = candidates[0];
+            let bestDist = Infinity;
+            for (const c of candidates) {
+                const d = Math.hypot(p.x - c.x, p.y - c.y);
+                if (d < bestDist) {
+                    bestDist = d;
+                    best = c;
+                }
+            }
+            return best;
+        }
+
+        function updateScores(x, y) {
+            const weights = calculateBarycentric({ x, y });
+            let cVal = Math.max(0, Math.min(100, Math.round(weights.c * 100)));
+            let iVal = Math.max(0, Math.min(100, Math.round(weights.i * 100)));
+            if (cVal + iVal > 100) {
+                if (cVal >= iVal) cVal = 100 - iVal;
+                else iVal = 100 - cVal;
+            }
+            const aVal = 100 - cVal - iVal;
+
+            currentScores = { c: cVal, i: iVal, a: aVal };
+
+            // Update DOM text
+            document.getElementById('score-c').textContent = `${cVal}%`;
+            document.getElementById('score-i').textContent = `${iVal}%`;
+            document.getElementById('score-a').textContent = `${aVal}%`;
+
+            // Update DOM bars
+            document.getElementById('bar-c').style.width = `${cVal}%`;
+            document.getElementById('bar-i').style.width = `${iVal}%`;
+            document.getElementById('bar-a').style.width = `${aVal}%`;
+        }
+
+        function updateVisuals(x, y) {
+            puck.setAttribute('transform', `translate(${x}, ${y})`);
+            lineC.setAttribute('x1', x); lineC.setAttribute('y1', y);
+            lineI.setAttribute('x1', x); lineI.setAttribute('y1', y);
+            lineA.setAttribute('x1', x); lineA.setAttribute('y1', y);
+        }
+
+        // --- Drag Handling ---
+        function handleDragStart(e) {
+            e.preventDefault();
+            isDragging = true;
+            handleDrag(e);
+        }
+
+        function handleDragEnd() {
+            isDragging = false;
+        }
+
+        function handleDrag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            const pt = svg.createSVGPoint();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            pt.x = clientX;
+            pt.y = clientY;
+
+            const ctm = svg.getScreenCTM();
+            if (!ctm) return;
+            const svgP = pt.matrixTransform(ctm.inverse());
+            const clamped = clampToTriangle(svgP);
+            updateVisuals(clamped.x, clamped.y);
+            updateScores(clamped.x, clamped.y);
+        }
+
+        // Attach event listeners for click-or-drag anywhere on the triangle SVG
+        svg.addEventListener('mousedown', handleDragStart);
+        svg.addEventListener('touchstart', handleDragStart, { passive: false });
+        
+        window.addEventListener('mousemove', handleDrag);
+        window.addEventListener('touchmove', handleDrag, { passive: false });
+        
+        window.addEventListener('mouseup', handleDragEnd);
+        window.addEventListener('touchend', handleDragEnd);
+
+        // --- UI Interactions ---
+        window.showTooltip = function(type) {
+            let text = "";
+            switch(type) {
+                case 'c': text = "Confidentiality: Secrets (Encryption)"; break;
+                case 'i': text = "Integrity: Accuracy (Hashes)"; break;
+                case 'a': text = "Availability: Uptime (Backups)"; break;
+            }
+            tooltip.textContent = text;
+            tooltip.classList.remove('hidden');
+        };
+
+        window.hideTooltip = function() {
+            tooltip.classList.add('hidden');
+        };
+
+        window.handleScenarioChange = function() {
+            const selected = scenarioSelect.value;
+            scenarioDesc.textContent = scenarios[selected].desc;
+            feedbackArea.classList.add('hidden'); // Clear feedback on change
+        };
+
+        window.evaluateScenario = function() {
+            const selected = scenarioSelect.value;
+            const result = scenarios[selected].check(currentScores);
+            
+            feedbackArea.classList.remove('hidden', 'bg-green-900/20', 'border-green-500', 'text-green-100', 'bg-red-900/20', 'border-red-500', 'text-red-100');
+            
+            const successIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>`;
+            const errorIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
+
+            if (result.pass) {
+                feedbackArea.classList.add('bg-green-900/20', 'border-green-500', 'text-green-100');
+                feedbackIcon.innerHTML = successIcon;
+                feedbackTitle.textContent = "Secure";
+            } else {
+                feedbackArea.classList.add('bg-red-900/20', 'border-red-500', 'text-red-100');
+                feedbackIcon.innerHTML = errorIcon;
+                feedbackTitle.textContent = "Critical Alert";
+            }
+
+            feedbackMsg.textContent = result.msg;
+        };
+
+        // Start app
+        init();
+    </script>
+</body>
+</html>

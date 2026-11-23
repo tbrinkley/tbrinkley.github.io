@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 13 Agile Pivot Simulator</title>
+    <meta name="description" content="Interactive CBIS 13 Management Information Systems simulation for Barstow Community College: plan Agile sprints, balance the Quality Triangle, analyze MVP drop-off metrics, and execute a Lean Pivot or Persevere decision.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z'/%3E%3Cpath d='m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65'/%3E%3Cpath d='m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65'/%3E%3C/svg%3E">
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for imagery/icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,400&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    
+    <!-- html2canvas for PNG Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        agile: {
+                            blue: '#2563EB',
+                            dark: '#1E293B',
+                            light: '#F8FAFC',
+                            accent: '#10B981',
+                            warn: '#F59E0B',
+                            danger: '#EF4444'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom Styles for interactions and print */
+        body { background-color: #F1F5F9; }
+        
+        .tab-btn.active { border-bottom: 4px solid #2563EB; color: #2563EB; font-weight: 600; }
+        .tab-btn.locked { opacity: 0.5; cursor: not-allowed; }
+        
+        .feature-card { transition: all 0.2s ease-in-out; cursor: pointer; }
+        .feature-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        
+        .meter-fill { transition: width 0.3s ease-in-out, background-color 0.3s ease-in-out; }
+        
+        /* Golden Seal CSS */
+        .gold-seal {
+            background: radial-gradient(ellipse farthest-corner at right bottom, #FEDB37 0%, #FDB931 8%, #9f7928 30%, #8A6E2F 40%, transparent 80%),
+                        radial-gradient(ellipse farthest-corner at left top, #FFFFFF 0%, #FFFFAC 8%, #D1B464 25%, #5d4a1f 62.5%, #5d4a1f 100%);
+            border: 2px dashed #FFF;
+            box-shadow: 0 0 0 4px #D1B464, 0 4px 10px rgba(0,0,0,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Strategy Cards */
+        .strategy-card { border: 2px solid transparent; transition: all 0.3s; }
+        .strategy-card:hover { border-color: #2563EB; background-color: #EFF6FF; }
+        .strategy-card.selected { border-color: #10B981; background-color: #ECFDF5; }
+
+        /* Prototype Image transition */
+        .prototype-img { transition: opacity 0.5s ease; opacity: 0; }
+        .prototype-img.show { opacity: 1; }
+
+        /* Scanline Font & Security Overlay for Anti-Plagiarism (Compatible with Screen, Print, and html2canvas) */
+        .scanline-wrapper {
+            position: relative;
+            display: inline-block;
+            padding: 2px 16px;
+            background: repeating-linear-gradient(
+                -45deg,
+                rgba(37, 99, 235, 0.04) 0px,
+                rgba(37, 99, 235, 0.04) 2px,
+                transparent 2px,
+                transparent 6px
+            );
+            border-radius: 4px;
+        }
+        .scanline-text {
+            position: relative;
+            color: #1E3A8A;
+            display: inline-block;
+            letter-spacing: 0.03em;
+            z-index: 10;
+            user-select: none;
+        }
+        .scanline-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            pointer-events: none;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+        }
+        .scanline-bar {
+            width: 100%;
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.92);
+            border-bottom: 1px solid rgba(37, 99, 235, 0.28);
+            flex-shrink: 0;
+        }
+
+        /* Print Styles - Isolate Certificate */
+        @media print {
+            body * { visibility: hidden; }
+            .no-print, header, aside { display: none !important; }
+            #app-container { box-shadow: none; border: none; background: transparent; padding: 0; margin: 0; overflow: visible;}
+            
+            #phase-7, #phase-7 * { visibility: visible; }
+            #phase-7 {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background: white;
+                padding: 0;
+            }
+            #cert-ui-controls { display: none; }
+            .certificate-box { border: none !important; box-shadow: none !important; padding: 0 !important; transform: scale(1) !important;}
+            
+            /* Ensure scanline bars and background print accurately */
+            .scanline-wrapper, .scanline-text, .scanline-overlay, .scanline-bar {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col font-sans overflow-hidden">
+
+<header class="bg-white shadow-sm z-10 no-print flex-shrink-0">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 text-agile-blue flex-shrink-0">
+            <a href="index.html#bcc-classes" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 text-xs font-bold transition shadow-sm">
+                &larr; Home
+            </a>
+            <div class="flex items-center gap-2">
+                <i class="fas fa-layer-group text-2xl"></i>
+                <h1 class="font-bold text-xl tracking-tight">Pivot Simulator <span class="text-sm font-normal text-gray-500 hidden lg:inline">| CBIS 13 Lab 7</span></h1>
+            </div>
+        </div>
+        
+        <nav class="flex gap-2 sm:gap-6 h-full overflow-x-auto overflow-y-hidden hide-scrollbar">
+            <button id="tab-btn-1" class="tab-btn active h-full px-2 flex items-center text-sm transition-colors whitespace-nowrap" onclick="app.switchTab(1)">
+                <i class="fas fa-flag-checkered mr-2"></i> <span class="hidden sm:inline">Scenario</span><span class="sm:hidden">1</span>
+            </button>
+            <button id="tab-btn-2" class="tab-btn locked h-full px-2 flex items-center text-sm transition-colors whitespace-nowrap" onclick="app.switchTab(2)">
+                <i class="fas fa-tasks mr-2"></i> <span class="hidden sm:inline">Sprint 1</span><span class="sm:hidden">2</span>
+            </button>
+            <button id="tab-btn-3" class="tab-btn locked h-full px-2 flex items-center text-sm transition-colors whitespace-nowrap" onclick="app.switchTab(3)">
+                <i class="fas fa-chart-line mr-2"></i> <span class="hidden sm:inline">Analytics</span><span class="sm:hidden">3</span>
+            </button>
+            <button id="tab-btn-4" class="tab-btn locked h-full px-2 flex items-center text-sm transition-colors whitespace-nowrap" onclick="app.switchTab(4)">
+                <i class="fas fa-code-branch mr-2"></i> <span class="hidden sm:inline">Strategy</span><span class="sm:hidden">4</span>
+            </button>
+            <button id="tab-btn-5" class="tab-btn locked h-full px-2 flex items-center text-sm transition-colors whitespace-nowrap" onclick="app.switchTab(5)">
+                <i class="fas fa-rocket mr-2"></i> <span class="hidden sm:inline">Sprint 2</span><span class="sm:hidden">5</span>
+            </button>
+            <button id="tab-btn-6" class="tab-btn locked h-full px-2 flex items-center text-sm transition-colors whitespace-nowrap" onclick="app.switchTab(6)">
+                <i class="fas fa-chart-pie mr-2"></i> <span class="hidden sm:inline">Final Review</span><span class="sm:hidden">6</span>
+            </button>
+            <button id="tab-btn-7" class="tab-btn locked h-full px-2 flex items-center text-sm transition-colors whitespace-nowrap" onclick="app.switchTab(7)">
+                <i class="fas fa-award mr-2"></i> <span class="hidden sm:inline">Lab Report</span><span class="sm:hidden">7</span>
+            </button>
+        </nav>
+    </div>
+</header>
+
+<main id="app-container" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 overflow-hidden">
+    
+    <!-- Left/Main Content Area -->
+    <div class="flex-1 bg-white rounded-xl shadow-md border border-gray-200 flex flex-col overflow-hidden relative">
+        
+        <!-- PHASE 1: Scenario -->
+        <div id="phase-1" class="phase-panel p-8 overflow-y-auto h-full absolute w-full inset-0">
+            <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold uppercase tracking-wider mb-4">Briefing</span>
+            <h2 class="text-3xl font-bold mb-4">Welcome, Product Manager</h2>
+            <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Medical App Team" class="w-full h-48 object-cover rounded-lg mb-6 shadow-inner object-center opacity-90">
+            <p class="text-lg mb-4">You have been hired by <strong>High Desert Health Connect</strong>, a rural clinic network. Your mission is to build a new patient application.</p>
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                <h3 class="font-bold text-blue-800 mb-2"><i class="fas fa-book-open mr-2"></i>Textbook Concepts:</h3>
+                <ul class="list-disc pl-5 text-blue-900 space-y-1">
+                    <li><strong>Agile Methodologies &amp; Sprints:</strong> Iterative development in short time-boxes.</li>
+                    <li><strong>The Quality Triangle:</strong> Balancing Time, Cost, and System Quality.</li>
+                    <li><strong>Minimum Viable Product (MVP):</strong> The smallest feature set needed to learn from users.</li>
+                    <li><strong>Lean Pivot:</strong> Changing direction based on validated learning.</li>
+                </ul>
+            </div>
+            <p class="mb-8">Your first task is to plan Sprint 1. Build an MVP to test the market, but remember—if you overstuff the sprint, quality will suffer!</p>
+            <button onclick="app.unlockPhase(2)" class="w-full sm:w-auto px-6 py-3 bg-agile-blue text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-lg transform hover:-translate-y-0.5">
+                Start Sprint 1 Planning <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+
+        <!-- PHASE 2: Sprint 1 Planning -->
+        <div id="phase-2" class="phase-panel p-6 overflow-y-auto h-full absolute w-full inset-0 hidden bg-gray-50 flex flex-col">
+            <div class="mb-4 flex justify-between items-end">
+                <div>
+                    <h2 class="text-2xl font-bold">Sprint 1 Planning (MVP)</h2>
+                    <p class="text-gray-600 text-sm">Assign User Stories to the Sprint. Click cards to move them.</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-bold text-gray-500 uppercase">Sprint Capacity</span>
+                    <div class="text-2xl font-black text-gray-800"><span id="ui-current-points-1">0</span> <span class="text-sm text-gray-500 font-normal">/ 15 pts optimal</span></div>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
+                <!-- Product Backlog 1 -->
+                <div class="flex-1 bg-white border border-gray-200 rounded-lg p-4 flex flex-col">
+                    <h3 class="font-bold text-gray-700 border-b pb-2 mb-3 flex items-center justify-between">
+                        <span>Product Backlog</span>
+                        <span class="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full" id="backlog-count-1">6</span>
+                    </h3>
+                    <div id="backlog-container-1" class="flex-1 overflow-y-auto space-y-3 pb-2">
+                        <!-- Cards injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Sprint Board 1 -->
+                <div class="flex-1 bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col relative">
+                    <h3 class="font-bold text-blue-800 border-b border-blue-200 pb-2 mb-3 flex items-center justify-between">
+                        <span>Sprint 1 Goal</span>
+                        <i class="fas fa-running text-blue-500"></i>
+                    </h3>
+                    <div id="sprint-container-1" class="flex-1 overflow-y-auto space-y-3 pb-2 min-h-[200px]">
+                        <!-- Cards injected by JS -->
+                        <div id="empty-sprint-msg-1" class="h-full flex items-center justify-center text-blue-400 italic text-sm text-center px-4">
+                            Click a feature in the Backlog to add it to the Sprint.
+                        </div>
+                    </div>
+                    <div class="pt-4 mt-auto border-t border-blue-200">
+                        <button id="btn-launch-mvp" onclick="app.launchSprint(1)" class="w-full py-3 bg-gray-400 text-white rounded-lg font-bold cursor-not-allowed transition" disabled>
+                            Launch MVP
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 3: Analytics -->
+        <div id="phase-3" class="phase-panel p-8 overflow-y-auto h-full absolute w-full inset-0 hidden">
+            <span class="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold uppercase tracking-wider mb-4">Post-Launch Review</span>
+            <h2 class="text-3xl font-bold mb-2">MVP Analytics &amp; Feedback</h2>
+            
+            <!-- Launch Failure Block -->
+            <div id="sprint1-failure" class="hidden mb-6 mt-4">
+                <div class="bg-orange-50 border-l-4 border-orange-500 p-6 rounded-r-lg shadow-sm">
+                    <h3 class="font-bold text-orange-800 text-xl mb-2"><i class="fas fa-exclamation-triangle mr-2"></i> Launch Failed: Missing Core Architecture!</h3>
+                    <p class="text-orange-900 mb-4">You cannot launch an app that is just "AI Chat" and "Provider Bios". You must include at least <strong>two Required Features</strong> (like Authentication and Booking) for the app to be a functioning Minimum Viable Product.</p>
+                    <button onclick="app.switchTab(2)" class="px-6 py-2 bg-orange-500 text-white rounded font-bold hover:bg-orange-600 transition shadow">
+                        <i class="fas fa-undo mr-2"></i> Return to Sprint 1 &amp; Fix Backlog
+                    </button>
+                </div>
+            </div>
+
+            <!-- Launch Success Block -->
+            <div id="sprint1-success" class="hidden">
+                <p class="text-gray-600 mb-6">Sprint 1 is live! Let's see how real patients are interacting with the application.</p>
+                
+                <!-- Dynamic feature feedback injected by JS -->
+                <div id="sprint1-dynamic-feedback" class="mb-8 space-y-3"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-gray-700">Appt Booking Drop-off</h3>
+                            <i class="fas fa-user-injured text-red-500 text-xl"></i>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
+                            <div class="bg-red-500 h-4 rounded-full" style="width: 85%"></div>
+                        </div>
+                        <p class="text-3xl font-black text-gray-800 mb-1">85%</p>
+                        <p class="text-sm text-gray-500">Abandon rate on "Select Clinic Location" screen.</p>
+                    </div>
+
+                    <div class="bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-gray-700">Search Queries</h3>
+                            <i class="fas fa-search text-blue-500 text-xl"></i>
+                        </div>
+                        <div class="flex items-end gap-2 h-16 border-b border-l border-gray-200 p-1 mb-2">
+                            <div class="bg-gray-300 w-1/2 rounded-t-sm relative group cursor-help" style="height: 30%;">
+                                <div class="absolute -top-6 w-full text-center text-xs opacity-0 group-hover:opacity-100">In-person</div>
+                            </div>
+                            <div class="bg-blue-500 w-1/2 rounded-t-sm relative group cursor-help" style="height: 90%;">
+                                 <div class="absolute -top-6 w-full text-center text-xs text-blue-600 font-bold opacity-0 group-hover:opacity-100">Telehealth</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 font-bold mb-1">
+                            <span>"Directions"</span>
+                            <span class="text-blue-600">"Video Call" (300% Spike)</span>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Users in the High Desert don't want to drive 40 miles.</p>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8 text-yellow-800 relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 opacity-10 text-6xl text-yellow-500"><i class="fas fa-quote-right"></i></div>
+                    <p class="relative z-10"><i class="fas fa-lightbulb text-yellow-500 mr-2 text-xl"></i> <strong>User Feedback Insight:</strong> "I love the app, but my car is broken and the clinic is an hour away. Can I just talk to a doctor on my phone?"</p>
+                </div>
+
+                <button id="btn-strategy-meeting" onclick="app.unlockPhase(4)" class="w-full px-6 py-3 bg-agile-blue text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-lg">
+                    Call Strategy Meeting <i class="fas fa-users ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- PHASE 4: Decision (Pivot/Persevere) -->
+        <div id="phase-4" class="phase-panel p-8 overflow-y-auto h-full absolute w-full inset-0 hidden bg-gray-50">
+            <div class="text-center mb-8">
+                <span class="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold uppercase tracking-wider mb-2">Critical Decision</span>
+                <h2 class="text-3xl font-bold mb-2">The Build Measure Learn Loop</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">Based on the data, the original plan (In-Person Focus) isn't meeting the real needs of our rural users. As Product Manager, what is your strategic move for Sprint 2?</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 h-auto md:h-64">
+                
+                <!-- Option A: Persevere -->
+                <div id="card-persevere" class="strategy-card bg-white rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-center cursor-pointer relative overflow-hidden group" onmouseover="app.previewDecision('persevere')" onclick="app.selectDecision('persevere')">
+                    <div class="absolute top-0 w-full h-2 bg-gray-300"></div>
+                    <i class="fas fa-road text-4xl text-gray-400 mb-4 group-hover:text-gray-600 transition"></i>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Persevere</h3>
+                    <p class="text-sm text-gray-500">Stick to the original plan. Ignore the noise and build out the In-Person Mapping features.</p>
+                    <div class="mt-4 px-4 py-1 bg-gray-100 text-gray-600 text-xs rounded-full opacity-0 group-hover:opacity-100 transition">Click to select</div>
+                </div>
+
+                <!-- Option B: Pivot -->
+                <div id="card-pivot" class="strategy-card bg-white rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-center cursor-pointer relative overflow-hidden group" onmouseover="app.previewDecision('pivot')" onclick="app.selectDecision('pivot')">
+                    <div class="absolute top-0 w-full h-2 bg-blue-500"></div>
+                    <i class="fas fa-random text-4xl text-blue-500 mb-4 group-hover:text-blue-600 transition transform group-hover:scale-110"></i>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Execute a Pivot</h3>
+                    <p class="text-sm text-gray-500">Change course based on learning. Scrap maps and immediately start building Telehealth Video.</p>
+                    <div class="mt-4 px-4 py-1 bg-blue-100 text-blue-700 text-xs rounded-full opacity-0 group-hover:opacity-100 transition">Click to select</div>
+                </div>
+
+            </div>
+
+            <div id="decision-action-area" class="mt-8 text-center hidden">
+                <button onclick="app.confirmDecision()" class="px-8 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition shadow-lg text-lg animate-pulse">
+                    Confirm Strategy &amp; Start Sprint 2 <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- PHASE 5: Sprint 2 Planning -->
+        <div id="phase-5" class="phase-panel p-6 overflow-y-auto h-full absolute w-full inset-0 hidden bg-gray-50 flex flex-col">
+            <div class="mb-4 flex justify-between items-start">
+                <div>
+                    <h2 class="text-2xl font-bold text-indigo-900">Sprint 2 Planning</h2>
+                    <p id="sprint2-subtitle" class="text-gray-600 text-sm">Your new Backlog based on the Strategy Meeting.</p>
+                </div>
+                <div class="text-right flex items-center gap-4">
+                    <button onclick="app.togglePrototype()" class="px-3 py-1.5 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded font-bold text-sm transition flex items-center">
+                        <i class="fas fa-eye mr-2"></i> App Preview
+                    </button>
+                    <div>
+                        <span class="text-xs font-bold text-gray-500 uppercase">Sprint Capacity</span>
+                        <div class="text-2xl font-black text-gray-800"><span id="ui-current-points-2">0</span> <span class="text-sm text-gray-500 font-normal">/ 15 pts</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal for Prototype Preview -->
+            <div id="prototype-modal" class="hidden absolute inset-0 z-20 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-6">
+                <button onclick="app.togglePrototype()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-xl"><i class="fas fa-times"></i></button>
+                <h3 class="text-xl font-bold mb-4" id="prototype-title">App Interface Prototype</h3>
+                <div class="w-full max-w-md h-64 bg-gray-200 rounded-xl overflow-hidden shadow-2xl border-4 border-gray-800 relative">
+                    <!-- Images loaded dynamically in JS -->
+                    <img id="proto-img-pivot" src="https://images.unsplash.com/photo-1576091160550-2173ff9e5eb3?auto=format&fit=crop&w=600&q=80" alt="Telehealth Video UI" class="w-full h-full object-cover hidden">
+                    <img id="proto-img-persevere" src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=80" alt="Map Navigation UI" class="w-full h-full object-cover hidden">
+                    
+                    <div class="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
+                        <p class="text-white font-bold" id="proto-caption">Loading concept...</p>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500 mt-4">Simulated UI based on your Phase 4 decision.</p>
+            </div>
+
+            <div class="flex-1 flex flex-col md:flex-row gap-4 min-h-0 relative z-10">
+                <!-- Product Backlog 2 -->
+                <div class="flex-1 bg-white border border-gray-200 rounded-lg p-4 flex flex-col">
+                    <h3 class="font-bold text-gray-700 border-b pb-2 mb-3 flex items-center justify-between">
+                        <span>Updated Backlog</span>
+                        <span class="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full" id="backlog-count-2">0</span>
+                    </h3>
+                    <div id="backlog-container-2" class="flex-1 overflow-y-auto space-y-3 pb-2">
+                        <!-- Cards injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Sprint Board 2 -->
+                <div class="flex-1 bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex flex-col relative">
+                    <h3 class="font-bold text-indigo-800 border-b border-indigo-200 pb-2 mb-3 flex items-center justify-between">
+                        <span>Sprint 2 Goal</span>
+                        <i class="fas fa-space-shuttle text-indigo-500"></i>
+                    </h3>
+                    <div id="sprint-container-2" class="flex-1 overflow-y-auto space-y-3 pb-2 min-h-[200px]">
+                        <!-- Cards injected by JS -->
+                        <div id="empty-sprint-msg-2" class="h-full flex items-center justify-center text-indigo-400 italic text-sm text-center px-4">
+                            Assign your new features to Sprint 2.
+                        </div>
+                    </div>
+                    <div class="pt-4 mt-auto border-t border-indigo-200">
+                        <button id="btn-launch-v2" onclick="app.launchSprint(2)" class="w-full py-3 bg-gray-400 text-white rounded-lg font-bold cursor-not-allowed transition" disabled>
+                            Launch Release 2.0
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 6: Sprint 2 Analytics & Outcome -->
+        <div id="phase-6" class="phase-panel p-8 overflow-y-auto h-full absolute w-full inset-0 hidden bg-gray-50 flex flex-col">
+            <span class="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold uppercase tracking-wider mb-4">Post-Launch Analytics</span>
+            <h2 class="text-3xl font-bold mb-4">Release 2.0 Results</h2>
+            
+            <div id="outcome-incomplete" class="hidden mb-6">
+                <div class="bg-orange-50 border-l-4 border-orange-500 p-6 rounded-r-lg shadow-sm mb-6">
+                    <h3 class="font-bold text-orange-800 text-xl mb-2"><i class="fas fa-exclamation-triangle mr-2"></i> Launch Failed: Missing Core Features!</h3>
+                    <p class="text-orange-900 mb-4">Your Release 2.0 went live, but users are complaining that the app is completely unusable! You forgot to include critical <strong>Required Features</strong> in your sprint backlog. A product needs its foundational elements to work before adding "nice-to-have" features like cosmetic tweaks.</p>
+                    <p id="missing-features-list" class="text-orange-800 font-bold text-sm mb-4"></p>
+                    <button onclick="app.switchTab(5)" class="px-6 py-2 bg-orange-500 text-white rounded font-bold hover:bg-orange-600 transition shadow">
+                        <i class="fas fa-undo mr-2"></i> Return to Sprint 2 &amp; Fix Backlog
+                    </button>
+                </div>
+            </div>
+
+            <div id="outcome-pivot" class="hidden mb-6">
+                <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-lg shadow-sm mb-6">
+                    <h3 class="font-bold text-green-800 text-xl mb-2"><i class="fas fa-check-circle mr-2"></i> Pivot Successful!</h3>
+                    <p class="text-green-900 mb-4">By shifting to Telehealth, you solved the actual user problem. Engagement spiked by 400%, and remote appointments are filling up. You successfully validated your learning and built what the market actually needed.</p>
+                </div>
+            </div>
+
+            <div id="outcome-persevere" class="hidden mb-6">
+                <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg shadow-sm mb-6">
+                    <h3 class="font-bold text-red-800 text-xl mb-2"><i class="fas fa-times-circle mr-2"></i> Product Failure: High Churn</h3>
+                    <p class="text-red-900 mb-4">By ignoring the clear data that users couldn't reach the clinic physically, your new mapping features went unused. App abandonment reached 90%.</p>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 shadow-sm mb-8 relative">
+                <div class="absolute right-4 top-4 text-blue-200 text-6xl opacity-30"><i class="fas fa-lightbulb"></i></div>
+                <h3 class="font-bold text-blue-800 mb-3 relative z-10"><i class="fas fa-graduation-cap mr-2"></i> Instructor's Note: When should you Persevere?</h3>
+                <p class="text-blue-900 mb-3 text-sm leading-relaxed relative z-10">This simulation makes it seem like pivoting is always the correct choice, but in reality, <strong>Persevering</strong> is often the right move! You should Persevere when:</p>
+                <ul class="list-disc pl-5 text-blue-900 text-sm space-y-2 relative z-10">
+                    <li>Your core hypothesis is correct, but the feature just needs minor tweaks or bug fixes.</li>
+                    <li>Negative feedback is coming from users who are <em>outside</em> your target demographic.</li>
+                    <li>You haven't collected enough statistically significant data to justify a massive strategic change.</li>
+                </ul>
+                <p class="text-blue-900 mt-3 text-sm relative z-10">In this specific lab scenario, however, the fundamental assumption (that users could physically commute) was proven false, making a pivot necessary.</p>
+            </div>
+
+            <div id="student-name-gate-box" class="mt-auto bg-white border-2 border-blue-500 rounded-xl p-6 shadow-md hidden">
+                <h3 class="font-bold text-gray-800 text-lg mb-2"><i class="fas fa-user-check text-blue-600 mr-2"></i>Enter Your Name to Generate Your Certificate</h3>
+                <p class="text-gray-600 text-sm mb-4">Please enter your full First and Last Name (as it appears in Canvas) to sign and generate your official completion certificate.</p>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-1 relative">
+                        <i class="fas fa-user-graduate absolute left-3 top-3.5 text-gray-400"></i>
+                        <input type="text" id="pre-cert-name-input" class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition font-bold text-gray-800" placeholder="Enter your First and Last Name..." oninput="app.syncStudentName(this.value)" onkeydown="if(event.key==='Enter') app.proceedToCertificate()">
+                    </div>
+                    <button id="btn-generate-report" onclick="app.proceedToCertificate()" class="px-6 py-2.5 bg-agile-blue text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-lg whitespace-nowrap">
+                        Generate Final Lab Report <i class="fas fa-certificate ml-2"></i>
+                    </button>
+                </div>
+                <p id="name-error-msg" class="text-red-600 text-xs font-bold mt-2 hidden"><i class="fas fa-exclamation-circle mr-1"></i>Please enter your full name above before generating your certificate.</p>
+            </div>
+        </div>
+
+        <!-- PHASE 7: Lab Report / Certificate Preview -->
+        <div id="phase-7" class="phase-panel overflow-y-auto h-full absolute w-full inset-0 hidden bg-gray-100 p-4 sm:p-8 flex flex-col">
+            
+            <div id="cert-ui-controls" class="bg-white p-4 rounded-xl shadow border border-gray-200 mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between no-print">
+                <div class="flex-1 w-full">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Student Name on Certificate (Editable)</label>
+                    <div class="flex relative">
+                        <i class="fas fa-user-graduate absolute left-3 top-3 text-gray-400"></i>
+                        <input type="text" id="student-name-input" class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition font-bold text-gray-800" placeholder="Type your full name here..." oninput="app.syncStudentName(this.value)">
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <button onclick="app.downloadCertificatePNG()" class="w-full sm:w-auto px-4 py-2 h-10 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition shadow flex items-center justify-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-image"></i> Save PNG
+                    </button>
+                    <button onclick="window.print()" class="w-full sm:w-auto px-4 py-2 h-10 bg-agile-blue text-white rounded-lg font-bold hover:bg-blue-700 transition shadow flex items-center justify-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+
+            <!-- Visual Certificate Container -->
+            <div id="certificate-export-box" class="certificate-box mx-auto w-full max-w-4xl border-8 border-double border-gray-800 p-8 sm:p-12 relative bg-white shadow-2xl flex-shrink-0">
+                <!-- Corner decorations -->
+                <div class="absolute top-2 left-2 w-16 h-16 border-t-4 border-l-4 border-gray-800"></div>
+                <div class="absolute top-2 right-2 w-16 h-16 border-t-4 border-r-4 border-gray-800"></div>
+                <div class="absolute bottom-2 left-2 w-16 h-16 border-b-4 border-l-4 border-gray-800"></div>
+                <div class="absolute bottom-2 right-2 w-16 h-16 border-b-4 border-r-4 border-gray-800"></div>
+
+                <div class="text-center relative z-10">
+                    <h1 class="font-serif text-4xl sm:text-5xl font-bold text-gray-900 mb-2">Certificate of Completion</h1>
+                    <h2 class="font-sans text-lg sm:text-xl tracking-widest text-gray-600 uppercase mb-8">CBIS 13: Interactive Simulation Lab</h2>
+                    
+                    <p class="text-lg text-gray-700 mb-4 italic">This certifies that</p>
+                    <div class="border-b-2 border-gray-400 inline-block px-6 pb-2 mb-8 min-w-[320px]">
+                        <div class="scanline-wrapper">
+                            <span id="cert-student-name" class="font-serif text-3xl sm:text-4xl font-bold scanline-text">Student Name</span>
+                            <div id="cert-scanline-overlay" class="scanline-overlay" aria-hidden="true">
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                                <div class="scanline-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="text-sm sm:text-base text-gray-700 max-w-2xl mx-auto leading-relaxed mb-6">
+                        has successfully completed the <strong>Agile Sprint &amp; MVP "Pivot Simulator"</strong>. 
+                        You demonstrated practical understanding of Information Systems Development by managing 
+                        the <span class="font-semibold text-gray-900">Quality Triangle</span> during Sprint Planning, analyzing post-launch 
+                        <span class="font-semibold text-gray-900">MVP</span> metrics, and executing a strategic 
+                        <span id="cert-decision" class="font-semibold text-blue-600 uppercase">PIVOT</span> based on validated user learning.
+                    </p>
+
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8 text-sm text-gray-700 text-left max-w-sm mx-auto flex flex-col gap-2 shadow-inner">
+                        <div class="flex justify-between border-b border-gray-200 pb-2">
+                            <span class="font-semibold text-gray-500"><i class="far fa-clock"></i> Session Start:</span>
+                            <span id="cert-time-start" class="font-medium">--</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-200 pb-2">
+                            <span class="font-semibold text-gray-500"><i class="fas fa-flag-checkered"></i> Session End:</span>
+                            <span id="cert-time-end" class="font-medium">--</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-semibold text-gray-500"><i class="fas fa-stopwatch"></i> Duration:</span>
+                            <span id="cert-time-duration" class="font-bold text-blue-600">--</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-end mt-12 sm:mt-16 px-4 sm:px-10">
+                        <div class="text-left w-1/3 border-t border-gray-400 pt-2 relative">
+                            <!-- Simulated Signature -->
+                            <div class="absolute bottom-10 left-0 text-3xl text-blue-900 opacity-80 whitespace-nowrap" style="font-family: 'Dancing Script', cursive; transform: rotate(-5deg);">Timothy Brinkley</div>
+                            <p class="font-bold text-gray-800 text-sm sm:text-base mt-2">Timothy Brinkley</p>
+                            <p class="text-xs sm:text-sm text-gray-500">Instructor</p>
+                        </div>
+                        
+                        <div class="w-1/3 flex justify-center relative -top-4 sm:-top-6">
+                            <div class="gold-seal w-24 h-24 sm:w-32 sm:h-32 text-lg sm:text-xl tracking-wider">
+                                BCC
+                            </div>
+                        </div>
+
+                        <div class="text-right w-1/3 border-t border-gray-400 pt-2">
+                            <p id="cert-date" class="font-bold text-gray-800 text-sm sm:text-base">Date</p>
+                            <p class="text-xs sm:text-sm text-gray-500">CBIS 13</p>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Block -->
+                    <div class="mt-10 bg-gray-50 p-4 border rounded text-xs text-gray-600 flex flex-col sm:flex-row justify-around items-center gap-2 text-left sm:text-center">
+                        <span><i class="fas fa-tachometer-alt mr-1"></i> <strong>S1 Velocity:</strong> <span id="cert-velocity">0</span> pts</span>
+                        <span class="hidden sm:inline">|</span>
+                        <span><i class="fas fa-brain mr-1"></i> <strong>Concepts:</strong> Lean UX, Agile, SDLC</span>
+                        <span class="hidden sm:inline">|</span>
+                        <span id="cert-outcome-note" class="font-semibold"><i class="fas fa-info-circle mr-1"></i> Outcome noted.</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="h-10"></div> <!-- padding bottom -->
+        </div>
+
+    </div>
+
+    <!-- Right Sidebar / Real-Time Feedback -->
+    <aside class="w-full lg:w-80 bg-white rounded-xl shadow-md border border-gray-200 flex flex-col overflow-hidden h-[400px] lg:h-auto z-10 flex-shrink-0">
+        <div class="bg-slate-800 text-white p-4">
+            <h3 class="font-bold flex items-center"><i class="fas fa-satellite-dish mr-2 animate-pulse text-green-400"></i> Live Feedback Panel</h3>
+        </div>
+        
+        <div class="p-4 flex-1 overflow-y-auto" id="feedback-content">
+            
+            <!-- Default / Dynamic Message Area -->
+            <div id="dynamic-message" class="bg-blue-50 border border-blue-100 text-blue-800 p-3 rounded-lg text-sm mb-6 shadow-sm transition-all duration-300">
+                System initialized. Awaiting your commands, PM.
+            </div>
+
+            <!-- The Quality Triangle (Visible in Sprint Phases) -->
+            <div id="quality-triangle-ui" class="opacity-50 transition-opacity duration-500">
+                <h4 class="font-bold text-gray-700 text-sm border-b pb-1 mb-3 uppercase tracking-wide">The Quality Triangle</h4>
+                
+                <!-- Time Meter -->
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs mb-1 font-semibold text-gray-600">
+                        <span><i class="far fa-clock"></i> Dev Time</span>
+                        <span id="meter-time-text">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="meter-time" class="bg-blue-500 h-2.5 rounded-full meter-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Cost Meter -->
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs mb-1 font-semibold text-gray-600">
+                        <span><i class="fas fa-coins"></i> Sprint Cost</span>
+                        <span id="meter-cost-text">Low</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="meter-cost" class="bg-emerald-500 h-2.5 rounded-full meter-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Quality / Bug Meter -->
+                <div class="mb-4 relative">
+                    <div class="flex justify-between text-xs mb-1 font-semibold text-gray-600">
+                        <span><i class="fas fa-bug"></i> Bug Risk (System Quality)</span>
+                        <span id="meter-quality-text">Safe</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden flex">
+                        <div id="meter-quality" class="bg-green-500 h-2.5 meter-fill" style="width: 10%"></div>
+                    </div>
+                    <!-- Danger zone marker -->
+                    <div class="absolute bottom-0 left-[75%] h-3.5 w-0.5 bg-red-600 z-10" title="Max Capacity"></div>
+                </div>
+            </div>
+
+            <!-- Decision Preview (Visible in Phase 4) -->
+            <div id="decision-preview-ui" class="hidden mt-4">
+                <h4 class="font-bold text-gray-700 text-sm border-b pb-1 mb-3 uppercase tracking-wide">Outcome Projection</h4>
+                <div id="projection-content" class="text-sm text-gray-600 italic">
+                    Hover over a strategy to run the predictive model...
+                </div>
+            </div>
+
+        </div>
+    </aside>
+</main>
+
+<script>
+    const app = {
+        state: {
+            currentPhase: 1,
+            highestUnlocked: 1,
+            maxSafePoints: 15,
+            
+            studentName: '',
+            startTime: null,
+            endTime: null,
+            
+            // Sprint 1 Trackers
+            sprint1Board: [],
+            pointsSprint1: 0,
+            
+            // Sprint 2 Trackers
+            sprint2Board: [],
+            pointsSprint2: 0,
+            featuresSprint2: [],
+
+            decision: null,
+            
+            // Original Backlog
+            featuresSprint1: [
+                { id: 'f1', title: 'Login / Auth', points: 3, req: true, icon: 'fa-lock', desc: 'Secure patient login.' },
+                { id: 'f2', title: 'View Providers', points: 5, req: true, icon: 'fa-user-md', desc: 'Directory of available doctors.' },
+                { id: 'f3', title: 'Book In-Person', points: 8, req: true, icon: 'fa-calendar-check', desc: 'Core map & booking logic.' },
+                { id: 'f4', title: 'Dark Mode UI', points: 2, req: false, icon: 'fa-moon', desc: 'Aesthetic theme toggle.' },
+                { id: 'f5', title: 'AI Health Chat', points: 10, req: false, icon: 'fa-robot', desc: 'Complex AI symptom checker.' },
+                { id: 'f6', title: 'Provider Bio', points: 4, req: false, icon: 'fa-id-card', desc: 'Read doctor credentials.' }
+            ],
+
+            // Dynamic Sprint 2 Backlogs
+            backlogPivot: [
+                { id: 'p1', title: 'WebRTC Video Core', points: 8, req: true, icon: 'fa-video', desc: 'Live browser-based video calls.' },
+                { id: 'p2', title: 'Bandwidth Optimizer', points: 5, req: true, icon: 'fa-wifi', desc: 'Keeps calls stable on 3G rural networks.' },
+                { id: 'p3', title: 'Photo Uploads', points: 4, req: false, icon: 'fa-camera', desc: 'Securely send rash/injury pictures.' },
+                { id: 'p4', title: 'e-Prescriptions', points: 7, req: true, icon: 'fa-pills', desc: 'Send scripts straight to local pharmacies.' },
+                { id: 'p5', title: 'Waiting Room Music', points: 2, req: false, icon: 'fa-music', desc: 'Hold music for the virtual queue.' }
+            ],
+
+            backlogPersevere: [
+                { id: 'r1', title: 'Turn-by-Turn Audio', points: 8, req: true, icon: 'fa-volume-up', desc: 'Audio directions inside the app.' },
+                { id: 'r2', title: 'Offline Maps Data', points: 6, req: true, icon: 'fa-map-marked-alt', desc: 'Download maps for offline driving.' },
+                { id: 'r3', title: 'Transit Integration', points: 5, req: false, icon: 'fa-bus', desc: 'Local bus route schedule sync.' },
+                { id: 'r4', title: 'Clinic Check-in Kiosk', points: 7, req: true, icon: 'fa-tablet-alt', desc: 'Scan QR code when arriving at building.' },
+                { id: 'r5', title: 'Parking Locator', points: 3, req: false, icon: 'fa-parking', desc: 'Find open spots in clinic lot.' }
+            ]
+        },
+
+        init() {
+            this.state.startTime = new Date();
+            this.renderBacklog(1);
+            this.updateFeedback("System initialized. Awaiting your commands, PM. Proceed to Step 1.");
+            
+            // Set initial cert date
+            const now = new Date();
+            document.getElementById('cert-date').innerText = now.toLocaleDateString();
+        },
+
+        switchTab(phaseNum) {
+            if (phaseNum > this.state.highestUnlocked) {
+                this.updateFeedback(`<span class="text-red-600"><i class="fas fa-exclamation-triangle"></i> Access Denied. Complete current phase first.</span>`);
+                const tab = document.getElementById(`tab-btn-${phaseNum}`);
+                tab.classList.add('animate-bounce');
+                setTimeout(() => tab.classList.remove('animate-bounce'), 1000);
+                return;
+            }
+            
+            // Hide all phases
+            document.querySelectorAll('.phase-panel').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active', 'border-b-4', 'border-blue-600', 'text-blue-600', 'font-semibold'));
+            
+            // Show target
+            document.getElementById(`phase-${phaseNum}`).classList.remove('hidden');
+            const activeTab = document.getElementById(`tab-btn-${phaseNum}`);
+            activeTab.classList.add('active');
+            
+            this.state.currentPhase = phaseNum;
+            this.handlePhaseChange(phaseNum);
+        },
+
+        unlockPhase(phaseNum) {
+            this.state.highestUnlocked = Math.max(this.state.highestUnlocked, phaseNum);
+            const tab = document.getElementById(`tab-btn-${phaseNum}`);
+            tab.classList.remove('locked', 'opacity-50', 'cursor-not-allowed');
+            this.switchTab(phaseNum);
+        },
+
+        handlePhaseChange(phase) {
+            const qtUI = document.getElementById('quality-triangle-ui');
+            const dpUI = document.getElementById('decision-preview-ui');
+            
+            // Manage UI states for feedback panel
+            qtUI.style.opacity = (phase === 2 || phase === 5) ? '1' : '0.3';
+            if (phase === 4) {
+                qtUI.classList.add('hidden');
+                dpUI.classList.remove('hidden');
+            } else {
+                qtUI.classList.remove('hidden');
+                dpUI.classList.add('hidden');
+            }
+            
+            // Contextual Feedback
+            if (phase === 2) {
+                this.updateFeedback("<strong>Sprint 1:</strong> Drag features to move from Backlog to Sprint. Watch the Quality Triangle meters!");
+                this.calculateSprintStats(1);
+            } else if (phase === 3) {
+                const reqFeaturesS1 = this.state.featuresSprint1.filter(f => f.req);
+                const selectedReqs = reqFeaturesS1.filter(f => this.state.sprint1Board.includes(f.id));
+                
+                const failBlock = document.getElementById('sprint1-failure');
+                const successBlock = document.getElementById('sprint1-success');
+                const feedbackBlock = document.getElementById('sprint1-dynamic-feedback');
+                
+                if (selectedReqs.length < 2) {
+                    failBlock.classList.remove('hidden');
+                    successBlock.classList.add('hidden');
+                    this.updateFeedback(`<span class="text-orange-600 font-bold"><i class="fas fa-exclamation-triangle"></i> Launch Failed! You missed core features needed for a functioning MVP.</span>`);
+                } else {
+                    failBlock.classList.add('hidden');
+                    successBlock.classList.remove('hidden');
+                    
+                    let dynamicHTML = '';
+                    
+                    if (this.state.pointsSprint1 > this.state.maxSafePoints) {
+                        dynamicHTML += `<div class="bg-red-50 border-l-4 border-red-500 p-4 shadow-sm text-red-900"><i class="fas fa-bug mr-2 text-red-500"></i> <strong>Quality Penalty:</strong> Because you exceeded ${this.state.maxSafePoints} points, the team was rushed. The initial release had 3 critical bugs that delayed launch!</div>`;
+                    }
+                    if (this.state.sprint1Board.includes('f4')) {
+                        dynamicHTML += `<div class="bg-gray-800 border-l-4 border-gray-600 p-4 shadow-sm text-gray-200"><i class="fas fa-moon mr-2 text-yellow-400"></i> <strong>Dark Mode:</strong> Users highly praised the aesthetics in app store reviews! A great small win.</div>`;
+                    }
+                    if (this.state.sprint1Board.includes('f5')) {
+                        dynamicHTML += `<div class="bg-blue-50 border-l-4 border-blue-400 p-4 shadow-sm text-blue-900"><i class="fas fa-robot mr-2 text-blue-500"></i> <strong>AI Chat Analysis:</strong> Users think the AI is neat, but it took a massive 10 points to build and only 5% of users actually engaged with it. Was it worth the delay?</div>`;
+                    }
+                    if (this.state.sprint1Board.includes('f6')) {
+                        dynamicHTML += `<div class="bg-indigo-50 border-l-4 border-indigo-400 p-4 shadow-sm text-indigo-900"><i class="fas fa-id-card mr-2 text-indigo-500"></i> <strong>Provider Bios:</strong> Patients read these, but still drop off when they realize they can't easily reach the clinic.</div>`;
+                    }
+                    
+                    feedbackBlock.innerHTML = dynamicHTML;
+                    this.updateFeedback("<strong>Analytics:</strong> MVP launched. Analyzing user behavior data... High drop-off detected on map workflow.");
+                }
+            } else if (phase === 4) {
+                this.updateFeedback("<strong>Strategy:</strong> Review the options. How do you respond to the validated learning?");
+            } else if (phase === 5) {
+                this.updateFeedback(`<strong>Sprint 2:</strong> Implementing the ${this.state.decision.toUpperCase()} strategy. Build your new release. (Tip: Check the App Preview!)`);
+                this.calculateSprintStats(2);
+            } else if (phase === 6) {
+                this.updateFeedback("<strong>Final Analytics:</strong> Release 2.0 is live! Review the impact of your strategic decision.");
+                
+                const reqFeaturesS2 = this.state.featuresSprint2.filter(f => f.req);
+                const selectedReqsS2 = reqFeaturesS2.filter(f => this.state.sprint2Board.includes(f.id));
+                
+                document.getElementById('outcome-incomplete').classList.add('hidden');
+                document.getElementById('outcome-pivot').classList.add('hidden');
+                document.getElementById('outcome-persevere').classList.add('hidden');
+                document.getElementById('student-name-gate-box').classList.add('hidden');
+
+                if (selectedReqsS2.length < 2) {
+                    document.getElementById('outcome-incomplete').classList.remove('hidden');
+                    document.getElementById('missing-features-list').innerText = `You must include at least two Required Features for the release to function properly.`;
+                    this.updateFeedback(`<span class="text-orange-600 font-bold"><i class="fas fa-exclamation-triangle"></i> Launch Failed! You missed core features needed for a functioning product.</span>`);
+                } else {
+                    document.getElementById('student-name-gate-box').classList.remove('hidden');
+                    if (this.state.decision === 'pivot') {
+                        document.getElementById('outcome-pivot').classList.remove('hidden');
+                    } else {
+                        document.getElementById('outcome-persevere').classList.remove('hidden');
+                    }
+                    setTimeout(() => {
+                        const preInput = document.getElementById('pre-cert-name-input');
+                        if (preInput) preInput.focus();
+                    }, 100);
+                }
+            } else if (phase === 7) {
+                if (!this.state.endTime) this.state.endTime = new Date();
+                this.updateCertificateName();
+                this.updateFeedback("<strong>Success:</strong> Certificate generated! You can save it as a PNG or print it.");
+            }
+        },
+
+        renderBacklog(sprintNum) {
+            const isSprint1 = sprintNum === 1;
+            const featureSource = isSprint1 ? this.state.featuresSprint1 : this.state.featuresSprint2;
+            const currentBoard = isSprint1 ? this.state.sprint1Board : this.state.sprint2Board;
+            
+            const backlogEl = document.getElementById(`backlog-container-${sprintNum}`);
+            const sprintEl = document.getElementById(`sprint-container-${sprintNum}`);
+            
+            // Re-create empty message if destroyed
+            let emptyMsg = document.getElementById(`empty-sprint-msg-${sprintNum}`);
+            if (!emptyMsg) {
+                emptyMsg = document.createElement('div');
+                emptyMsg.id = `empty-sprint-msg-${sprintNum}`;
+                emptyMsg.className = 'h-full flex items-center justify-center text-blue-400 italic text-sm text-center px-4';
+                emptyMsg.innerText = 'Click a feature in the Backlog to add it to the Sprint.';
+            }
+            
+            backlogEl.innerHTML = '';
+            sprintEl.innerHTML = '';
+            let backlogCount = 0;
+
+            featureSource.forEach(feat => {
+                const inSprint = currentBoard.includes(feat.id);
+                
+                const card = document.createElement('div');
+                card.className = `feature-card p-3 rounded shadow-sm border-l-4 flex flex-col gap-1 ${inSprint ? 'bg-white border-blue-500' : 'bg-gray-50 border-gray-400'}`;
+                card.onclick = () => this.toggleFeature(feat.id, sprintNum);
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <span class="font-bold text-sm text-gray-800"><i class="fas ${feat.icon} mr-1 text-gray-500"></i> ${feat.title}</span>
+                        <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">${feat.points} pt</span>
+                    </div>
+                    <div class="text-xs text-gray-500">${feat.desc}</div>
+                    ${feat.req ? '<span class="text-[10px] uppercase font-bold text-orange-500 mt-1">Required Feature</span>' : ''}
+                `;
+
+                if (inSprint) {
+                    sprintEl.appendChild(card);
+                } else {
+                    backlogEl.appendChild(card);
+                    backlogCount++;
+                }
+            });
+
+            document.getElementById(`backlog-count-${sprintNum}`).innerText = backlogCount;
+            
+            if (currentBoard.length > 0) {
+                emptyMsg.style.display = 'none';
+            } else {
+                sprintEl.appendChild(emptyMsg);
+                emptyMsg.style.display = 'flex';
+            }
+
+            this.calculateSprintStats(sprintNum);
+        },
+
+        toggleFeature(id, sprintNum) {
+            const board = sprintNum === 1 ? this.state.sprint1Board : this.state.sprint2Board;
+            const index = board.indexOf(id);
+            if (index > -1) {
+                board.splice(index, 1); // Remove
+            } else {
+                board.push(id); // Add
+            }
+            this.renderBacklog(sprintNum);
+        },
+
+        calculateSprintStats(sprintNum) {
+            const isSprint1 = sprintNum === 1;
+            const featureSource = isSprint1 ? this.state.featuresSprint1 : this.state.featuresSprint2;
+            const currentBoard = isSprint1 ? this.state.sprint1Board : this.state.sprint2Board;
+            
+            let totalPoints = 0;
+            let hasCore = false;
+
+            featureSource.forEach(f => {
+                if (currentBoard.includes(f.id)) {
+                    totalPoints += f.points;
+                    if (f.req) hasCore = true;
+                }
+            });
+
+            if (isSprint1) this.state.pointsSprint1 = totalPoints;
+            else this.state.pointsSprint2 = totalPoints;
+
+            document.getElementById(`ui-current-points-${sprintNum}`).innerText = totalPoints;
+
+            // Global Meters Updates
+            const timePct = Math.min((totalPoints / this.state.maxSafePoints) * 100, 100);
+            document.getElementById('meter-time').style.width = `${timePct}%`;
+            document.getElementById('meter-time-text').innerText = `${totalPoints} / 15 days`;
+
+            const costPct = Math.min((totalPoints / this.state.maxSafePoints) * 100, 100);
+            document.getElementById('meter-cost').style.width = `${costPct}%`;
+            document.getElementById('meter-cost-text').innerText = totalPoints > 15 ? 'OVER BUDGET' : (totalPoints > 10 ? 'High' : 'Nominal');
+
+            // Quality & Bug logic
+            const qualityMeter = document.getElementById('meter-quality');
+            const qualityText = document.getElementById('meter-quality-text');
+            
+            let bugRiskPct = (totalPoints / 25) * 100; // Base risk
+            if (totalPoints > this.state.maxSafePoints) {
+                let overage = totalPoints - this.state.maxSafePoints;
+                bugRiskPct = 75 + (overage * 5);
+                qualityMeter.className = "bg-red-500 h-2.5 meter-fill";
+                qualityText.innerHTML = '<span class="text-red-600 font-bold"><i class="fas fa-exclamation-circle"></i> HIGH RISK</span>';
+                document.getElementById(`ui-current-points-${sprintNum}`).classList.add('text-red-600');
+                this.updateFeedback(`<span class="text-red-600"><strong>Warning:</strong> Capacity Exceeded (${totalPoints} > 15). The Quality Triangle is compromised. Bugs are highly likely!</span>`);
+            } else {
+                qualityMeter.className = `${bugRiskPct > 50 ? 'bg-yellow-500' : 'bg-green-500'} h-2.5 meter-fill`;
+                qualityText.innerText = bugRiskPct > 50 ? 'Moderate' : 'Safe';
+                document.getElementById(`ui-current-points-${sprintNum}`).classList.remove('text-red-600');
+                if (totalPoints > 0) {
+                     this.updateFeedback(`Added ${totalPoints} points to Sprint ${sprintNum}. Capacity is within bounds.`);
+                }
+            }
+            qualityMeter.style.width = `${Math.min(bugRiskPct, 100)}%`;
+
+            // Launch Button Logic
+            const btnLaunch = document.getElementById(isSprint1 ? 'btn-launch-mvp' : 'btn-launch-v2');
+            if (totalPoints > 0) {
+                btnLaunch.disabled = false;
+                btnLaunch.className = "w-full py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition shadow cursor-pointer animate-pulse";
+                if (!hasCore) {
+                    this.updateFeedback("You can launch, but missing required features means users might get stuck.");
+                }
+            } else {
+                btnLaunch.disabled = true;
+                btnLaunch.className = "w-full py-3 bg-gray-400 text-white rounded-lg font-bold cursor-not-allowed transition";
+            }
+        },
+
+        launchSprint(sprintNum) {
+            const pts = sprintNum === 1 ? this.state.pointsSprint1 : this.state.pointsSprint2;
+            if (pts > this.state.maxSafePoints) {
+                this.updateFeedback(`<span class="text-red-600 font-bold">Launch Note: Due to over-capacity, launch was delayed 3 days to fix critical production bugs!</span>`);
+            }
+            this.unlockPhase(sprintNum === 1 ? 3 : 6);
+        },
+
+        previewDecision(choice) {
+            const proj = document.getElementById('projection-content');
+            if (choice === 'persevere') {
+                proj.innerHTML = `<span class="text-red-600 font-bold">Persevere (Stay the course):</span><br>You double down on In-Person Maps. Analytics predict a 90% churn rate within 2 months. You spend budget on features nobody uses.`;
+            } else {
+                proj.innerHTML = `<span class="text-green-600 font-bold">Pivot (Change course):</span><br>You embrace Lean methodology. Shift resources to Telehealth. Engagement is projected to rise by 400% based on search intent.`;
+            }
+        },
+
+        selectDecision(choice) {
+            this.state.decision = choice;
+            
+            document.getElementById('card-persevere').classList.remove('selected');
+            document.getElementById('card-pivot').classList.remove('selected');
+            document.getElementById(`card-${choice}`).classList.add('selected');
+
+            document.getElementById('decision-action-area').classList.remove('hidden');
+            this.previewDecision(choice); 
+        },
+
+        confirmDecision() {
+            if (!this.state.decision) return;
+            
+            // Set up Sprint 2 based on decision
+            if (this.state.decision === 'pivot') {
+                this.state.featuresSprint2 = [...this.state.backlogPivot];
+                document.getElementById('sprint2-subtitle').innerText = "Telehealth Focus: Build the video consultation tools.";
+            } else {
+                this.state.featuresSprint2 = [...this.state.backlogPersevere];
+                document.getElementById('sprint2-subtitle').innerText = "In-Person Focus: Enhance the physical navigation maps.";
+            }
+            
+            this.renderBacklog(2);
+            this.unlockPhase(5);
+        },
+
+        togglePrototype() {
+            const modal = document.getElementById('prototype-modal');
+            const imgPivot = document.getElementById('proto-img-pivot');
+            const imgPers = document.getElementById('proto-img-persevere');
+            const caption = document.getElementById('proto-caption');
+            
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                if (this.state.decision === 'pivot') {
+                    imgPivot.style.display = 'block';
+                    imgPers.style.display = 'none';
+                    caption.innerText = "Prototype: Telehealth Video Call Interface";
+                } else {
+                    imgPivot.style.display = 'none';
+                    imgPers.style.display = 'block';
+                    caption.innerText = "Prototype: Advanced Clinic Navigation Map";
+                }
+            } else {
+                modal.classList.add('hidden');
+            }
+        },
+
+        updateFeedback(htmlContent) {
+            const box = document.getElementById('dynamic-message');
+            box.style.opacity = '0';
+            setTimeout(() => {
+                box.innerHTML = htmlContent;
+                box.style.opacity = '1';
+            }, 150);
+        },
+
+        syncStudentName(nameVal) {
+            this.state.studentName = nameVal;
+            const preInput = document.getElementById('pre-cert-name-input');
+            const certInput = document.getElementById('student-name-input');
+            const errMsg = document.getElementById('name-error-msg');
+
+            if (preInput && preInput.value !== nameVal) preInput.value = nameVal;
+            if (certInput && certInput.value !== nameVal) certInput.value = nameVal;
+            if (errMsg && nameVal.trim().length > 0) errMsg.classList.add('hidden');
+
+            this.updateCertificateName();
+        },
+
+        proceedToCertificate() {
+            const nameVal = (this.state.studentName || '').trim();
+            const errMsg = document.getElementById('name-error-msg');
+            if (!nameVal) {
+                if (errMsg) errMsg.classList.remove('hidden');
+                const preInput = document.getElementById('pre-cert-name-input');
+                if (preInput) preInput.focus();
+                this.updateFeedback(`<span class="text-red-600 font-bold"><i class="fas fa-exclamation-circle"></i> Please enter your full name to generate your completion certificate.</span>`);
+                return;
+            }
+            if (!this.state.endTime) this.state.endTime = new Date();
+            this.updateCertificateName();
+            this.unlockPhase(7);
+        },
+
+        updateCertificateName() {
+            const nameInput = (this.state.studentName || document.getElementById('student-name-input')?.value || '').trim();
+            const certName = document.getElementById('cert-student-name');
+            certName.innerText = nameInput || "Student Name";
+            
+            // Finalize other cert details dynamically
+            document.getElementById('cert-velocity').innerText = this.state.pointsSprint1;
+            
+            const decisionSpan = document.getElementById('cert-decision');
+            const outcomeNote = document.getElementById('cert-outcome-note');
+            
+            if (this.state.decision === 'pivot') {
+                decisionSpan.innerText = 'LEAN PIVOT';
+                decisionSpan.className = 'font-semibold text-green-600 uppercase';
+                outcomeNote.innerHTML = '<i class="fas fa-check-circle text-green-600 mr-1"></i> <span class="text-green-800">Successfully aligned product with market needs via Telehealth.</span>';
+            } else {
+                decisionSpan.innerText = 'PERSEVERE';
+                decisionSpan.className = 'font-semibold text-red-600 uppercase';
+                outcomeNote.innerHTML = '<i class="fas fa-times-circle text-red-600 mr-1"></i> <span class="text-red-800">Ignored market data resulting in low app adoption and high churn.</span>';
+            }
+
+            // Time Tracking formatting
+            if (this.state.startTime && this.state.endTime) {
+                const timeOpts = { hour: 'numeric', minute: '2-digit', second: '2-digit' };
+                document.getElementById('cert-time-start').innerText = this.state.startTime.toLocaleTimeString(undefined, timeOpts);
+                document.getElementById('cert-time-end').innerText = this.state.endTime.toLocaleTimeString(undefined, timeOpts);
+                
+                const diffMs = this.state.endTime - this.state.startTime;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffSecs = Math.floor((diffMs % 60000) / 1000);
+                
+                document.getElementById('cert-time-duration').innerText = `${diffMins} min ${diffSecs} sec`;
+            }
+        },
+
+        downloadCertificatePNG() {
+            const certNode = document.getElementById('certificate-export-box') || document.querySelector('.certificate-box');
+            
+            // Give user feedback while processing
+            this.updateFeedback("<i class='fas fa-spinner fa-spin mr-2'></i> Generating high-resolution PNG... Please wait.");
+            
+            html2canvas(certNode, {
+                scale: 2, // 2x scale for higher resolution print quality
+                backgroundColor: "#ffffff",
+                logging: false,
+                useCORS: true,
+                scrollX: 0,
+                scrollY: 0,
+                width: certNode.scrollWidth,
+                height: certNode.scrollHeight,
+                windowWidth: Math.max(document.documentElement.clientWidth, 1024),
+                windowHeight: certNode.scrollHeight + 200,
+                onclone: (clonedDoc) => {
+                    // Remove overflow clipping in the cloned DOM so the entire certificate is captured
+                    const clonedPhase = clonedDoc.getElementById('phase-7');
+                    if (clonedPhase) {
+                        clonedPhase.style.overflow = 'visible';
+                        clonedPhase.style.height = 'auto';
+                        clonedPhase.style.position = 'static';
+                    }
+                    const clonedMain = clonedDoc.getElementById('app-container');
+                    if (clonedMain) {
+                        clonedMain.style.overflow = 'visible';
+                        clonedMain.style.height = 'auto';
+                    }
+                    clonedDoc.body.style.overflow = 'visible';
+                    clonedDoc.body.style.height = 'auto';
+                }
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'CBIS13_Certificate.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                this.updateFeedback("<strong>Success:</strong> PNG downloaded! Check your computer's downloads folder.");
+                
+                // Revert feedback after a few seconds
+                setTimeout(() => {
+                    this.updateFeedback("<strong>Success:</strong> Simulation requirements met. Print or save your certificate.");
+                }, 5000);
+            }).catch(err => {
+                console.error("Error generating image:", err);
+                this.updateFeedback("<span class='text-red-600'><i class='fas fa-exclamation-triangle'></i> Error generating PNG. Please try using the Print button instead.</span>");
+            });
+        }
+    };
+
+    // Initialize on load
+    window.onload = () => {
+        app.init();
+    };
+</script>
+</body>
+</html>

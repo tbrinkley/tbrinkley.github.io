@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 13 Ch. 8: AR Vision Picking Simulation</title>
+    <meta name="description" content="Interactive CBIS 13 Chapter 8 Business Process Re-engineering (BPR) simulation for Barstow Community College: compare As-Is manual workflows vs. To-Be Augmented Reality Vision Picking across Warehouse, Hardware, and Healthcare.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='7' width='20' height='10' rx='3'/%3E%3Ccircle cx='8' cy='12' r='2'/%3E%3Ccircle cx='16' cy='12' r='2'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #e5e7eb;
+            border-radius: 12px;
+            box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .warehouse-bin {
+            background-color: #d1d5db;
+            border: 2px solid #9ca3af;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .warehouse-bin:hover {
+            transform: scale(1.05);
+            background-color: #cbd5e1;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .warehouse-bin.ar-highlight {
+            border-color: #10b981; /* Emerald green for AR highlight */
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+            background-color: #d1fae5;
+        }
+        
+        .warehouse-bin.ar-highlight::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border: 2px dashed #10b981;
+            border-radius: 10px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .warehouse-bin.selected-correct {
+             background-color: #10b981;
+             color: white;
+             border-color: #059669;
+        }
+
+        .warehouse-bin.selected-incorrect {
+             background-color: #ef4444;
+             color: white;
+             border-color: #b91c1c;
+             animation: shake 0.4s;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        /* AR Overlay Screen */
+        .ar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Let clicks pass through to bins */
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+            background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.1) 100%);
+            border-radius: 12px;
+        }
+        
+        .ar-hud-text {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #10b981;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            display: inline-block;
+            border: 1px solid #10b981;
+            text-shadow: 0 0 5px #10b981;
+        }
+
+        .hardware-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 4 / 3;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1e293b;
+            border-radius: 12px;
+            box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .hardware-component {
+            background-color: #334155;
+            border: 2px solid #475569;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .hardware-component:hover {
+            transform: scale(1.05);
+            background-color: #475569;
+            color: #f8fafc;
+        }
+
+        .hardware-component.ar-highlight {
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
+            background-color: #0284c7;
+            color: white;
+        }
+        
+        .hardware-component.ar-highlight::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border: 2px dashed #38bdf8;
+            border-radius: 6px;
+            animation: pulse-blue 1.5s infinite;
+        }
+
+        .hardware-component.selected-correct {
+             background-color: #10b981;
+             color: white;
+             border-color: #059669;
+        }
+
+        .hardware-component.selected-incorrect {
+             background-color: #ef4444;
+             color: white;
+             border-color: #b91c1c;
+             animation: shake 0.4s;
+        }
+
+        @keyframes pulse-blue {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .healthcare-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 3 / 4;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fca5a5;
+            border-radius: 40px;
+            box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .healthcare-vein {
+            background-color: #f87171;
+            border: 2px solid #ef4444;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: #7f1d1d;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .healthcare-vein:hover {
+            transform: scale(1.05);
+            background-color: #ef4444;
+            color: #fee2e2;
+        }
+
+        .healthcare-vein.ar-highlight {
+            border-color: #3b82f6;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+            background-color: #60a5fa;
+            color: white;
+        }
+
+        .healthcare-vein.ar-highlight::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border: 2px dashed #3b82f6;
+            border-radius: 25px;
+            animation: pulse-blue 1.5s infinite;
+        }
+
+        .healthcare-vein.selected-correct {
+             background-color: #10b981;
+             color: white;
+             border-color: #059669;
+        }
+
+        .healthcare-vein.selected-incorrect {
+             background-color: #b91c1c;
+             color: white;
+             border-color: #7f1d1d;
+             animation: shake 0.4s;
+        }
+
+        /* Scanline Font Effect */
+        .scanline-text {
+            background: repeating-linear-gradient(
+                0deg,
+                #1e3a8a,
+                #1e3a8a 3px,
+                #93c5fd 3px,
+                #93c5fd 6px
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            -webkit-text-stroke: 2px #ea580c; /* Orange outline */
+            filter: drop-shadow(0px 2px 2px rgba(234, 88, 12, 0.3));
+            display: inline-block;
+            color: #1e3a8a; /* Fallback for browsers that don't support bg-clip text */
+        }
+
+        /* Custom Modal styling to avoid standard alerts */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-indigo-700 text-white p-5 sm:p-6 shadow-md">
+        <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <a href="index.html#bcc-classes" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-900 hover:bg-indigo-950 border border-indigo-500 text-amber-300 text-xs font-bold transition shadow-sm">
+                    &larr; Home
+                </a>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+                        <i class="ph ph-goggles text-3xl sm:text-4xl"></i>
+                        Vision Picking Simulator
+                    </h1>
+                    <p class="text-indigo-200 text-sm mt-0.5">Experience Business Process Re-engineering (BPR)</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-sm font-semibold">CBIS 13: Management Information Systems</p>
+                <p class="text-xs sm:text-sm text-indigo-300">Chapter 8 Application</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="bg-indigo-800 text-white shadow-inner pt-3 border-t border-indigo-600">
+        <div class="max-w-5xl mx-auto flex justify-center gap-2 px-4 flex-wrap">
+            <button id="tab-warehouse" class="px-4 py-3 bg-gray-100 text-indigo-900 font-bold rounded-t-lg focus:outline-none transition-colors">
+                <i class="ph ph-package mr-2"></i>Warehouse
+            </button>
+            <button id="tab-hardware" class="px-4 py-3 bg-indigo-700 text-indigo-200 hover:bg-indigo-600 hover:text-white font-bold rounded-t-lg focus:outline-none transition-colors">
+                <i class="ph ph-cpu mr-2"></i>Hardware
+            </button>
+            <button id="tab-healthcare" class="px-4 py-3 bg-indigo-700 text-indigo-200 hover:bg-indigo-600 hover:text-white font-bold rounded-t-lg focus:outline-none transition-colors">
+                <i class="ph ph-heartbeat mr-2"></i>Healthcare
+            </button>
+            <button id="tab-certificate" class="px-4 py-3 bg-indigo-800 text-indigo-400 font-bold rounded-t-lg focus:outline-none transition-colors cursor-not-allowed border-b-2 border-indigo-900">
+                <i id="cert-icon-indicator" class="ph ph-lock-key mr-2"></i>Certificate
+            </button>
+        </div>
+    </div>
+
+    <main class="flex-grow p-6 max-w-5xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Sidebar Information -->
+        <div id="sidebar-panel" class="col-span-1 flex flex-col gap-6">
+            
+            <!-- Process State Control -->
+            <div class="bg-white rounded-xl shadow-md p-5 border-t-4 border-indigo-500">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <i class="ph ph-arrows-left-right text-indigo-600"></i>
+                    Process State
+                </h2>
+                <div class="flex flex-col gap-3">
+                    <button id="btn-as-is" class="w-full py-3 px-4 rounded-lg font-semibold transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                        "As-Is" (Manual Process)
+                    </button>
+                    <button id="btn-to-be" class="w-full py-3 px-4 rounded-lg font-semibold transition-colors bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-md">
+                        "To-Be" (AR Enhanced)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Current Order List -->
+            <div class="bg-white rounded-xl shadow-md p-5">
+                <h2 id="list-title" class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <i class="ph ph-list-checks text-blue-600"></i>
+                    Current Pick List
+                </h2>
+                <div id="pick-list-container" class="bg-gray-50 rounded p-3 min-h-[150px]">
+                    <ul id="pick-list" class="space-y-2">
+                        <!-- List items generated via JS -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="bg-white rounded-xl shadow-md p-5">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <i class="ph ph-chart-bar text-green-600"></i>
+                    Performance Metrics
+                </h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-3 rounded text-center">
+                        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Time (s)</p>
+                        <p id="metric-time" class="text-2xl font-bold text-gray-800">0.0</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded text-center">
+                        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Errors</p>
+                        <p id="metric-errors" class="text-2xl font-bold text-gray-800">0</p>
+                    </div>
+                </div>
+
+                <!-- Time Comparison Section -->
+                <div class="mt-4 bg-gray-50 p-3 rounded text-sm border border-gray-200">
+                    <p class="font-bold text-gray-700 border-b border-gray-200 pb-1 mb-2">Process Time Comparison</p>
+                    <div class="flex justify-between mb-1"><span class="text-gray-500">As-Is (Manual):</span> <span id="comp-asis" class="font-bold text-gray-700">--</span></div>
+                    <div class="flex justify-between mb-1"><span class="text-gray-500">To-Be (AR):</span> <span id="comp-tobe" class="font-bold text-indigo-600">--</span></div>
+                    <div class="flex justify-between mt-2 pt-1 border-t border-gray-200"><span class="text-gray-600 font-semibold">AR Savings:</span> <span id="comp-diff" class="font-bold text-gray-400">--</span></div>
+                </div>
+
+                <button id="btn-reset" class="w-full mt-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded font-medium transition-colors text-sm">
+                    Reset Metrics
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Board Area -->
+        <div id="right-panel" class="col-span-1 lg:col-span-2 relative">
+            <div class="bg-white rounded-xl shadow-md p-6 h-full flex flex-col items-center">
+                
+                <div id="game-view" class="w-full flex flex-col items-center">
+                    <div class="w-full flex justify-between items-center mb-4">
+                        <h3 id="board-title" class="text-lg font-semibold text-gray-700">Warehouse Zone Alpha</h3>
+                        <div id="status-indicator" class="px-3 py-1 rounded-full text-sm font-bold bg-indigo-100 text-indigo-800">
+                            AR Mode Active
+                        </div>
+                    </div>
+
+                    <!-- The interactive grid -->
+                    <div class="relative w-full">
+                        <div id="warehouse-grid" class="game-board">
+                            <!-- Bins generated via JS -->
+                        </div>
+                        
+                        <div id="hardware-grid" class="hardware-board hidden">
+                            <!-- Components generated via JS -->
+                        </div>
+
+                        <div id="healthcare-grid" class="healthcare-board hidden">
+                            <!-- Veins generated via JS -->
+                        </div>
+                        
+                        <!-- AR Overlay (Hidden in As-Is mode) -->
+                        <div id="ar-hud" class="ar-overlay flex justify-between">
+                            <div class="flex justify-between w-full">
+                                <div class="ar-hud-text text-sm">SYS: ONLINE<br>MODE: VISION PICK</div>
+                                <div class="ar-hud-text text-sm">BATT: 84%<br>WIFI: STABLE</div>
+                            </div>
+                            <div class="flex justify-center w-full">
+                                <div id="ar-instruction" class="ar-hud-text text-lg text-center animate-pulse">
+                                    LOCATE BIN: A3
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 text-center text-gray-500 text-sm max-w-md">
+                        <p id="mode-description">
+                            <strong>"To-Be" Mode:</strong> The AR system highlights the exact bin you need to pick from, reducing search time and eliminating errors.
+                        </p>
+                    </div>
+                    
+                    <button id="btn-start-order" class="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg font-bold shadow hover:bg-blue-700 transition-colors">
+                        Start New Order
+                    </button>
+                </div>
+
+                <!-- Certificate View -->
+                <div id="certificate-view" class="hidden w-full flex-col items-center justify-center py-10">
+                    <div id="cert-form" class="flex flex-col gap-4 w-full max-w-sm mb-8">
+                        <h3 class="text-xl font-bold text-center text-gray-800">Simulation Complete</h3>
+                        <p class="text-sm text-center text-gray-500 mb-2">Enter your name to generate your certificate of completion.</p>
+                        <input type="text" id="cert-name-input" placeholder="Your Full Name" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center text-lg">
+                        <button id="btn-generate-cert" class="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors shadow-lg">Generate Certificate</button>
+                    </div>
+                    <div id="cert-display" class="hidden w-full border-8 border-double border-indigo-900 p-8 bg-indigo-50 rounded-xl shadow-2xl relative overflow-hidden">
+                        <div class="text-center relative z-10">
+                            <i class="ph ph-certificate text-6xl text-indigo-700 mb-2"></i>
+                            <h2 class="text-3xl sm:text-4xl font-bold text-gray-800 uppercase tracking-widest mb-2">Certificate of Completion</h2>
+                            <p class="text-gray-600 mb-8 text-lg">This certifies that</p>
+                            <div class="my-8">
+                                <span id="cert-name-output" class="text-4xl sm:text-6xl font-black uppercase scanline-text">Student Name</span>
+                            </div>
+                            <p class="text-gray-600 mt-8 mb-2 text-lg">has successfully completed the</p>
+                            <p class="text-xl sm:text-2xl font-bold text-indigo-900">Augmented Reality Vision Simulator Scenarios</p>
+                            
+                            <!-- Industries Explored -->
+                            <div class="flex justify-center gap-8 my-8 text-indigo-800">
+                                <div class="flex flex-col items-center"><i class="ph ph-package text-4xl mb-1"></i><span class="text-xs font-bold uppercase tracking-wider">Logistics</span></div>
+                                <div class="flex flex-col items-center"><i class="ph ph-cpu text-4xl mb-1"></i><span class="text-xs font-bold uppercase tracking-wider">Hardware</span></div>
+                                <div class="flex flex-col items-center"><i class="ph ph-heartbeat text-4xl mb-1"></i><span class="text-xs font-bold uppercase tracking-wider">Healthcare</span></div>
+                            </div>
+
+                            <!-- Signature Area -->
+                            <div class="mt-8 flex justify-between items-end border-t border-indigo-200 pt-6 text-left">
+                                <div>
+                                    <p class="text-3xl text-indigo-800 mb-1" style="font-family: 'Brush Script MT', cursive; font-style: italic;">Timothy Brinkley</p>
+                                    <p class="text-sm font-bold text-gray-800 uppercase tracking-wider">Timothy Brinkley</p>
+                                    <p class="text-xs text-gray-600">Instructor, Business Information Systems (BIS 13)</p>
+                                    <p class="text-xs text-gray-600">Barstow Community College</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs text-gray-500 font-mono">ID: <span id="cert-id"></span></p>
+                                    <p class="text-xs text-gray-500 font-mono">Date: <span id="cert-date"></span></p>
+                                    <p class="text-xs text-gray-500 font-mono">Time: <span id="cert-time"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal for feedback (replaces alerts) -->
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex items-center gap-3 mb-4">
+                <i id="modal-icon" class="ph ph-check-circle text-4xl text-green-500"></i>
+                <h2 id="modal-title" class="text-2xl font-bold text-gray-800">Order Complete!</h2>
+            </div>
+            <p id="modal-message" class="text-gray-600 mb-6 line-height-relaxed">
+                You successfully picked all items.
+            </p>
+            
+            <div id="modal-stats" class="bg-gray-50 p-4 rounded-lg mb-6 grid grid-cols-2 gap-4">
+                <div>
+                    <span class="block text-sm text-gray-500">Time Taken:</span>
+                    <span id="modal-stat-time" class="font-bold text-lg">12.4s</span>
+                </div>
+                <div>
+                    <span class="block text-sm text-gray-500">Errors Made:</span>
+                    <span id="modal-stat-errors" class="font-bold text-lg text-red-500">0</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button id="btn-close-modal" class="px-5 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const scenarios = {
+                warehouse: {
+                    id: 'warehouse',
+                    title: 'Warehouse Zone Alpha',
+                    listTitle: '<i class="ph ph-list-checks text-blue-600"></i> Current Pick List',
+                    itemLabel: 'LOCATE BIN',
+                    itemsType: 'Item in Bin',
+                    startBtnText: 'Start New Order',
+                    activeStartBtnText: 'Order in Progress...',
+                    items: Array.from({length: 25}, (_, i) => `${String.fromCharCode(65 + Math.floor(i / 5))}${(i % 5) + 1}`), // A1 to E5
+                    gridId: 'warehouse-grid',
+                    elementClass: 'warehouse-bin',
+                    renderHtml: (id) => `<span class="text-gray-500 font-bold opacity-50">${id}</span>`,
+                    descriptionAsIs: `<strong>"As-Is" Mode:</strong> You must rely on the paper pick list and visually search the grid for the correct bin ID.`,
+                    descriptionToBe: `<strong>"To-Be" Mode:</strong> The AR system highlights the exact bin you need to pick from, reducing search time and eliminating errors.`,
+                    times: { asIs: null, toBe: null }
+                },
+                hardware: {
+                    id: 'hardware',
+                    title: 'PC Motherboard Assembly',
+                    listTitle: '<i class="ph ph-cpu text-blue-600"></i> Assembly Instructions',
+                    itemLabel: 'INSTALL AT',
+                    itemsType: 'Component',
+                    startBtnText: 'Start Assembly',
+                    activeStartBtnText: 'Assembly in Progress...',
+                    items: [
+                        'CPU_SOCKET', 'DDR4_A1', 'DDR4_A2', 'DDR4_B1',
+                        'DDR4_B2', 'ATX_PWR_24', 'CPU_FAN1', 'SYS_FAN1',
+                        'M2_1_SLOT', 'PCIE_X16_1', 'PCIE_X1_1', 'SATA3_0',
+                        'SATA3_1', 'F_PANEL', 'USB3_0', 'HD_AUDIO'
+                    ],
+                    gridId: 'hardware-grid',
+                    elementClass: 'hardware-component',
+                    renderHtml: (id) => `<span class="break-all px-1">${id.replace(/_/g, '<br>')}</span>`,
+                    descriptionAsIs: `<strong>"As-Is" Mode:</strong> You must rely on a paper manual and visually search the complex motherboard layout to find the correct tiny port/slot.`,
+                    descriptionToBe: `<strong>"To-Be" Mode:</strong> The AR headset overlays a highlight directly onto the physical motherboard slot, guiding your hands and preventing misconnections.`,
+                    times: { asIs: null, toBe: null }
+                },
+                healthcare: {
+                    id: 'healthcare',
+                    title: 'Patient IV Insertion Simulator',
+                    listTitle: '<i class="ph ph-heartbeat text-red-600"></i> Target Vein',
+                    itemLabel: 'LOCATE VEIN',
+                    itemsType: 'Vein',
+                    startBtnText: 'Start Procedure',
+                    activeStartBtnText: 'Procedure in Progress...',
+                    items: ['Cephalic', 'Basilic', 'Median Cubital', 'Radial', 'Ulnar', 'Brachial', 'Femoral', 'Saphenous', 'Jugular'],
+                    gridId: 'healthcare-grid',
+                    elementClass: 'healthcare-vein',
+                    renderHtml: (id) => `<span class="break-words px-2 text-center">${id}</span>`,
+                    descriptionAsIs: `<strong>"As-Is" Mode:</strong> You must visually inspect and palpate the patient's arm to locate the elusive vein for IV insertion, relying on touch and experience.`,
+                    descriptionToBe: `<strong>"To-Be" Mode:</strong> The AR headset projects the exact vein pathways onto the patient's skin using infrared sensors, ensuring a first-stick success.`,
+                    times: { asIs: null, toBe: null }
+                }
+            };
+            
+            let currentScenarioKey = 'warehouse';
+            let activeScenario = scenarios[currentScenarioKey];
+
+            // --- State Variables ---
+            const ITEMS_PER_ORDER = 4;
+            
+            let isARMode = true;
+            let currentOrder = [];
+            let currentPickIndex = 0;
+            let isOrderActive = false;
+            let completedScenarios = { warehouse: false, hardware: false, healthcare: false };
+            
+            // Metrics
+            let startTime = 0;
+            let timerInterval;
+            let currentTime = 0;
+            let errors = 0;
+
+            // --- DOM Elements ---
+            const pickListEl = document.getElementById('pick-list');
+            const arHudEl = document.getElementById('ar-hud');
+            const arInstructionEl = document.getElementById('ar-instruction');
+            const statusIndicatorEl = document.getElementById('status-indicator');
+            const modeDescriptionEl = document.getElementById('mode-description');
+            
+            const btnAsIs = document.getElementById('btn-as-is');
+            const btnToBe = document.getElementById('btn-to-be');
+            const btnStartOrder = document.getElementById('btn-start-order');
+            const btnReset = document.getElementById('btn-reset');
+            
+            const metricTimeEl = document.getElementById('metric-time');
+            const metricErrorsEl = document.getElementById('metric-errors');
+            
+            const compAsIsEl = document.getElementById('comp-asis');
+            const compToBeEl = document.getElementById('comp-tobe');
+            const compDiffEl = document.getElementById('comp-diff');
+
+            // Modal Elements
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalMessage = document.getElementById('modal-message');
+            const modalIcon = document.getElementById('modal-icon');
+            const modalStatTime = document.getElementById('modal-stat-time');
+            const modalStatErrors = document.getElementById('modal-stat-errors');
+            const btnCloseModal = document.getElementById('btn-close-modal');
+
+            const listTitleEl = document.getElementById('list-title');
+            const boardTitleEl = document.getElementById('board-title');
+            const warehouseGridEl = document.getElementById('warehouse-grid');
+            const hardwareGridEl = document.getElementById('hardware-grid');
+            const healthcareGridEl = document.getElementById('healthcare-grid');
+            const tabWarehouseBtn = document.getElementById('tab-warehouse');
+            const tabHardwareBtn = document.getElementById('tab-hardware');
+            const tabHealthcareBtn = document.getElementById('tab-healthcare');
+            const tabCertificateBtn = document.getElementById('tab-certificate');
+            
+            // Layout Elements
+            const sidebarPanel = document.getElementById('sidebar-panel');
+            const rightPanel = document.getElementById('right-panel');
+            const gameView = document.getElementById('game-view');
+            const certificateView = document.getElementById('certificate-view');
+            const certNameInput = document.getElementById('cert-name-input');
+            const btnGenerateCert = document.getElementById('btn-generate-cert');
+            const certDisplay = document.getElementById('cert-display');
+            const certNameOutput = document.getElementById('cert-name-output');
+            const certId = document.getElementById('cert-id');
+            const certDate = document.getElementById('cert-date');
+            const certTime = document.getElementById('cert-time');
+
+            // --- Initialization ---
+            
+            function createGrid(scenario) {
+                const gridEl = document.getElementById(scenario.gridId);
+                gridEl.innerHTML = '';
+                scenario.items.forEach(itemId => {
+                    const el = document.createElement('div');
+                    el.className = `${scenario.elementClass} shadow-sm`;
+                    el.dataset.id = itemId;
+                    el.innerHTML = scenario.renderHtml(itemId);
+                    el.addEventListener('click', () => handleItemClick(itemId, el));
+                    gridEl.appendChild(el);
+                });
+            }
+
+            // --- Game Logic ---
+
+            function generateOrder() {
+                const order = [];
+                const availableItems = [...activeScenario.items];
+                
+                for (let i = 0; i < ITEMS_PER_ORDER; i++) {
+                    const randomIndex = Math.floor(Math.random() * availableItems.length);
+                    order.push(availableItems[randomIndex]);
+                    availableItems.splice(randomIndex, 1);
+                }
+                return order;
+            }
+
+            function startNewOrder() {
+                currentOrder = generateOrder();
+                currentPickIndex = 0;
+                isOrderActive = true;
+                
+                document.querySelectorAll(`.${activeScenario.elementClass}`).forEach(el => {
+                    el.classList.remove('ar-highlight', 'selected-correct', 'selected-incorrect');
+                });
+                
+                startTime = Date.now();
+                currentTime = 0;
+                errors = 0;
+                updateMetricsDisplay();
+                
+                clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    currentTime = (Date.now() - startTime) / 1000;
+                    metricTimeEl.textContent = currentTime.toFixed(1);
+                }, 100);
+
+                renderPickList();
+                updateAROverlay();
+                btnStartOrder.textContent = activeScenario.activeStartBtnText;
+                btnStartOrder.disabled = true;
+                btnStartOrder.classList.replace('bg-blue-600', 'bg-gray-400');
+                btnStartOrder.classList.replace('hover:bg-blue-700', 'hover:bg-gray-400');
+            }
+
+            function renderPickList() {
+                pickListEl.innerHTML = '';
+                currentOrder.forEach((item, index) => {
+                    const li = document.createElement('li');
+                    
+                    let icon = '<i class="ph ph-circle text-gray-400"></i>';
+                    let textClass = 'text-gray-600';
+                    let bgClass = 'bg-white';
+                    
+                    if (index < currentPickIndex) {
+                        icon = '<i class="ph ph-check-circle-fill text-green-500"></i>';
+                        textClass = 'text-gray-400 line-through';
+                    } else if (index === currentPickIndex) {
+                        icon = '<i class="ph ph-arrow-circle-right text-blue-500 animate-pulse"></i>';
+                        textClass = 'text-blue-700 font-bold';
+                        bgClass = 'bg-blue-50 border border-blue-200';
+                    }
+
+                    li.className = `flex items-center gap-3 p-2 rounded ${bgClass}`;
+                    li.innerHTML = `${icon} <span class="${textClass}">${activeScenario.itemsType}: ${item}</span>`;
+                    pickListEl.appendChild(li);
+                });
+            }
+
+            function updateAROverlay() {
+                document.querySelectorAll(`.${activeScenario.elementClass}`).forEach(el => {
+                    el.classList.remove('ar-highlight');
+                });
+
+                if (isOrderActive && currentPickIndex < currentOrder.length) {
+                    const targetId = currentOrder[currentPickIndex];
+                    
+                    if (isARMode) {
+                        const targetEl = document.querySelector(`.${activeScenario.elementClass}[data-id="${targetId}"]`);
+                        if (targetEl) {
+                            targetEl.classList.add('ar-highlight');
+                        }
+                        arHudEl.style.display = 'flex';
+                        arInstructionEl.textContent = `${activeScenario.itemLabel}: ${targetId}`;
+                    } else {
+                        arHudEl.style.display = 'none';
+                    }
+                } else {
+                     arHudEl.style.display = 'none';
+                }
+            }
+
+            function handleItemClick(itemId, element) {
+                if (!isOrderActive) return;
+
+                const targetId = currentOrder[currentPickIndex];
+
+                element.classList.remove('selected-incorrect');
+
+                if (itemId === targetId) {
+                    element.classList.add('selected-correct');
+                    setTimeout(() => element.classList.remove('selected-correct'), 500);
+                    
+                    currentPickIndex++;
+                    
+                    if (currentPickIndex >= currentOrder.length) {
+                        finishOrder();
+                    } else {
+                        renderPickList();
+                        updateAROverlay();
+                    }
+                } else {
+                    errors++;
+                    updateMetricsDisplay();
+                    element.classList.add('selected-incorrect');
+                    
+                    void element.offsetWidth;
+                    
+                    setTimeout(() => element.classList.remove('selected-incorrect'), 400);
+                }
+            }
+
+            function finishOrder() {
+                isOrderActive = false;
+                clearInterval(timerInterval);
+                
+                completedScenarios[currentScenarioKey] = true;
+                
+                if (completedScenarios.warehouse && completedScenarios.hardware && completedScenarios.healthcare) {
+                    const certIcon = document.getElementById('cert-icon-indicator');
+                    if (certIcon && certIcon.classList.contains('ph-lock-key')) {
+                        certIcon.className = "ph ph-certificate mr-2 animate-bounce";
+                        tabCertificateBtn.className = "px-4 py-3 bg-indigo-700 text-indigo-200 hover:bg-indigo-600 hover:text-white font-bold rounded-t-lg focus:outline-none transition-colors shadow-[0_-4px_10px_rgba(16,185,129,0.4)]";
+                    }
+                }
+
+                if (isARMode) {
+                    activeScenario.times.toBe = currentTime;
+                } else {
+                    activeScenario.times.asIs = currentTime;
+                }
+                updateComparisonUI();
+                
+                renderPickList();
+                updateAROverlay();
+                
+                btnStartOrder.textContent = activeScenario.startBtnText;
+                btnStartOrder.disabled = false;
+                btnStartOrder.classList.replace('bg-gray-400', 'bg-blue-600');
+                btnStartOrder.classList.replace('hover:bg-gray-400', 'hover:bg-blue-700');
+
+                showModal();
+            }
+
+            // --- Metrics & UI Updates ---
+
+            function updateMetricsDisplay() {
+                metricErrorsEl.textContent = errors;
+            }
+
+            function updateComparisonUI() {
+                const times = activeScenario.times;
+                const asIsText = times.asIs !== null ? times.asIs.toFixed(1) + 's' : '--';
+                const toBeText = times.toBe !== null ? times.toBe.toFixed(1) + 's' : '--';
+                
+                compAsIsEl.textContent = asIsText;
+                compToBeEl.textContent = toBeText;
+                
+                if (times.asIs !== null && times.toBe !== null) {
+                    const diff = times.asIs - times.toBe;
+                    if (diff > 0) {
+                        compDiffEl.textContent = diff.toFixed(1) + 's faster!';
+                        compDiffEl.className = "font-bold text-green-600";
+                    } else {
+                        compDiffEl.textContent = Math.abs(diff).toFixed(1) + 's slower';
+                        compDiffEl.className = "font-bold text-red-600";
+                    }
+                } else {
+                    compDiffEl.textContent = '--';
+                    compDiffEl.className = "font-bold text-gray-400";
+                }
+            }
+
+            function resetMetrics() {
+                clearInterval(timerInterval);
+                startTime = 0;
+                currentTime = 0;
+                errors = 0;
+                metricTimeEl.textContent = "0.0";
+                metricErrorsEl.textContent = "0";
+                
+                isOrderActive = false;
+                currentOrder = [];
+                currentPickIndex = 0;
+                renderPickList();
+                updateAROverlay();
+                
+                btnStartOrder.textContent = activeScenario.startBtnText;
+                btnStartOrder.disabled = false;
+                btnStartOrder.classList.replace('bg-gray-400', 'bg-blue-600');
+                btnStartOrder.classList.replace('hover:bg-gray-400', 'hover:bg-blue-700');
+            }
+
+            function setMode(arActive) {
+                isARMode = arActive;
+                
+                if (isARMode) {
+                    btnToBe.classList.replace('bg-gray-200', 'bg-indigo-600');
+                    btnToBe.classList.replace('text-gray-700', 'text-white');
+                    btnToBe.classList.add('shadow-md');
+                    
+                    btnAsIs.classList.replace('bg-indigo-600', 'bg-gray-200');
+                    btnAsIs.classList.replace('text-white', 'text-gray-700');
+                    btnAsIs.classList.remove('shadow-md');
+                    
+                    statusIndicatorEl.textContent = "AR Mode Active";
+                    statusIndicatorEl.className = "px-3 py-1 rounded-full text-sm font-bold bg-indigo-100 text-indigo-800";
+                    modeDescriptionEl.innerHTML = activeScenario.descriptionToBe;
+                } else {
+                    btnAsIs.classList.replace('bg-gray-200', 'bg-indigo-600');
+                    btnAsIs.classList.replace('text-gray-700', 'text-white');
+                    btnAsIs.classList.add('shadow-md');
+                    
+                    btnToBe.classList.replace('bg-indigo-600', 'bg-gray-200');
+                    btnToBe.classList.replace('text-white', 'text-gray-700');
+                    btnToBe.classList.remove('shadow-md');
+                    
+                    statusIndicatorEl.textContent = "Manual Mode";
+                    statusIndicatorEl.className = "px-3 py-1 rounded-full text-sm font-bold bg-gray-200 text-gray-700";
+                    modeDescriptionEl.innerHTML = activeScenario.descriptionAsIs;
+                }
+                
+                updateAROverlay();
+            }
+            
+            function switchScenario(scenarioKey) {
+                if (currentScenarioKey === scenarioKey && scenarioKey !== 'certificate') {
+                    if(isOrderActive) {
+                        modalTitle.textContent = "Task in Progress";
+                        modalMessage.innerHTML = "Please finish or reset the current task before switching scenarios.";
+                        modalIcon.className = "ph ph-warning-circle text-4xl text-yellow-500";
+                        document.getElementById('modal-stats').style.display = 'none';
+                        modal.style.display = 'flex';
+                    }
+                    return; 
+                }
+
+                if (scenarioKey === 'certificate') {
+                    const allCompleted = completedScenarios.warehouse && completedScenarios.hardware && completedScenarios.healthcare;
+                    if (!allCompleted) {
+                        modalTitle.textContent = "Certificate Locked";
+                        modalMessage.innerHTML = "You must complete all three scenarios (Warehouse, Hardware, Healthcare) at least once before generating your certificate.";
+                        modalIcon.className = "ph ph-lock-key text-4xl text-orange-500";
+                        document.getElementById('modal-stats').style.display = 'none';
+                        modal.style.display = 'flex';
+                        return;
+                    }
+                    
+                    currentScenarioKey = scenarioKey;
+                    
+                    [tabWarehouseBtn, tabHardwareBtn, tabHealthcareBtn].forEach(btn => {
+                        btn.className = "px-4 py-3 bg-indigo-700 text-indigo-200 hover:bg-indigo-600 hover:text-white font-bold rounded-t-lg focus:outline-none transition-colors";
+                    });
+                    tabCertificateBtn.className = "px-4 py-3 bg-gray-100 text-indigo-900 font-bold rounded-t-lg focus:outline-none transition-colors";
+                    
+                    sidebarPanel.classList.add('hidden');
+                    rightPanel.classList.replace('lg:col-span-2', 'lg:col-span-3');
+                    gameView.classList.add('hidden');
+                    certificateView.classList.remove('hidden');
+                    certificateView.classList.add('flex');
+                    return;
+                }
+                
+                if (currentScenarioKey === 'certificate') {
+                    sidebarPanel.classList.remove('hidden');
+                    rightPanel.classList.replace('lg:col-span-3', 'lg:col-span-2');
+                    gameView.classList.remove('hidden');
+                    certificateView.classList.add('hidden');
+                    certificateView.classList.remove('flex');
+                }
+
+                if (isOrderActive) {
+                    modalTitle.textContent = "Task in Progress";
+                    modalMessage.innerHTML = "Please finish or reset the current task before switching scenarios.";
+                    modalIcon.className = "ph ph-warning-circle text-4xl text-yellow-500";
+                    document.getElementById('modal-stats').style.display = 'none';
+                    modal.style.display = 'flex';
+                    return; 
+                }
+                
+                currentScenarioKey = scenarioKey;
+                activeScenario = scenarios[currentScenarioKey];
+                
+                const allTabs = {
+                    'warehouse': tabWarehouseBtn,
+                    'hardware': tabHardwareBtn,
+                    'healthcare': tabHealthcareBtn
+                };
+
+                for (const [key, btn] of Object.entries(allTabs)) {
+                    if (key === scenarioKey) {
+                        btn.className = "px-4 py-3 bg-gray-100 text-indigo-900 font-bold rounded-t-lg focus:outline-none transition-colors";
+                    } else {
+                        btn.className = "px-4 py-3 bg-indigo-700 text-indigo-200 hover:bg-indigo-600 hover:text-white font-bold rounded-t-lg focus:outline-none transition-colors";
+                    }
+                }
+                
+                const allCompleted = completedScenarios.warehouse && completedScenarios.hardware && completedScenarios.healthcare;
+                if (allCompleted) {
+                    tabCertificateBtn.className = "px-4 py-3 bg-indigo-700 text-indigo-200 hover:bg-indigo-600 hover:text-white font-bold rounded-t-lg focus:outline-none transition-colors";
+                } else {
+                    tabCertificateBtn.className = "px-4 py-3 bg-indigo-800 text-indigo-400 font-bold rounded-t-lg focus:outline-none transition-colors cursor-not-allowed border-b-2 border-indigo-900";
+                }
+                
+                warehouseGridEl.classList.add('hidden');
+                hardwareGridEl.classList.add('hidden');
+                healthcareGridEl.classList.add('hidden');
+                document.getElementById(activeScenario.gridId).classList.remove('hidden');
+                
+                listTitleEl.innerHTML = activeScenario.listTitle;
+                boardTitleEl.textContent = activeScenario.title;
+                
+                const gridEl = document.getElementById(activeScenario.gridId);
+                if (gridEl.children.length === 0) {
+                    createGrid(activeScenario);
+                }
+                
+                resetMetrics();
+                updateComparisonUI();
+                setMode(isARMode);
+            }
+
+            // --- Certificate Functions ---
+            function generateCertificate() {
+                const name = certNameInput.value.trim();
+                if (!name) {
+                    certNameInput.classList.add('border-red-500', 'ring-red-500');
+                    certNameInput.placeholder = "Name is required!";
+                    return;
+                }
+                certNameInput.classList.remove('border-red-500', 'ring-red-500');
+                
+                certNameOutput.textContent = name;
+                
+                const now = new Date();
+                certDate.textContent = now.toLocaleDateString();
+                certTime.textContent = now.toLocaleTimeString();
+                certId.textContent = "AR-" + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+                
+                document.getElementById('cert-form').style.display = 'none';
+                certDisplay.classList.remove('hidden');
+            }
+
+            // --- Modal Functions ---
+            function showModal() {
+                document.getElementById('modal-stats').style.display = 'grid';
+                modalStatTime.textContent = currentTime.toFixed(1) + "s";
+                modalStatErrors.textContent = errors;
+                
+                let perfectText = "completed the task flawlessly";
+                let taskText = "make an error";
+                let manualText = "doing it manually";
+                let errorText = "this could have serious consequences";
+
+                if (currentScenarioKey === 'warehouse') {
+                    perfectText = "completed the order flawlessly";
+                    taskText = "pick the wrong bin";
+                    manualText = "scanning the grid manually";
+                    errorText = "these are expensive mistakes";
+                } else if (currentScenarioKey === 'hardware') {
+                    perfectText = "assembled the components flawlessly";
+                    taskText = "plug into the wrong slot";
+                    manualText = "deciphering the complex schematic";
+                    errorText = "this could damage the hardware";
+                } else if (currentScenarioKey === 'healthcare') {
+                    perfectText = "located the vein flawlessly on the first try";
+                    taskText = "miss the vein and cause pain";
+                    manualText = "palpating the arm manually";
+                    errorText = "this leads to patient discomfort and bruising";
+                }
+                
+                if (errors === 0) {
+                    modalIcon.className = "ph ph-check-circle text-4xl text-green-500";
+                    modalTitle.textContent = "Perfect Execution!";
+                    modalMessage.innerHTML = `You ${perfectText}.<br><br>Notice how the AR system (To-Be process) makes it nearly impossible to ${taskText}, and drastically speeds up search time compared to ${manualText} (As-Is process).`;
+                } else {
+                    modalIcon.className = "ph ph-warning-circle text-4xl text-yellow-500";
+                    modalTitle.textContent = "Task Complete";
+                    modalMessage.innerHTML = `You made <strong>${errors} errors</strong> during this task.<br><br>In a real setting, ${errorText}. Consider how the "To-Be" AR process eliminates the ambiguity that leads to these errors.`;
+                }
+                
+                modal.style.display = 'flex';
+            }
+
+            function hideModal() {
+                modal.style.display = 'none';
+            }
+
+            // --- Event Listeners ---
+            btnAsIs.addEventListener('click', () => {
+                setMode(false);
+                resetMetrics();
+            });
+            
+            btnToBe.addEventListener('click', () => {
+                setMode(true);
+                resetMetrics();
+            });
+            
+            btnStartOrder.addEventListener('click', startNewOrder);
+            btnReset.addEventListener('click', resetMetrics);
+            btnCloseModal.addEventListener('click', hideModal);
+            btnGenerateCert.addEventListener('click', generateCertificate);
+            
+            certNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    generateCertificate();
+                }
+            });
+
+            tabWarehouseBtn.addEventListener('click', () => switchScenario('warehouse'));
+            tabHardwareBtn.addEventListener('click', () => switchScenario('hardware'));
+            tabHealthcareBtn.addEventListener('click', () => switchScenario('healthcare'));
+            tabCertificateBtn.addEventListener('click', () => switchScenario('certificate'));
+
+            // Setup initial state
+            createGrid(scenarios.warehouse);
+            createGrid(scenarios.hardware); 
+            createGrid(scenarios.healthcare);
+            setMode(true);
+        });
+    </script>
+</body>
+</html>

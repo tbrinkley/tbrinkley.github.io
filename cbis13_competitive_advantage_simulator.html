@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 13 Week 1: Competitive Advantage Simulator</title>
+    <meta name="description" content="Interactive CBIS 13 Management Information Systems Week 1 lab for Barstow Community College: Product Differentiation, Switching Costs, Porter's Value Chain, Productivity Paradox, and Cost Leadership.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='m19 9-5 5-4-4-3 3'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,600&family=Courier+Prime&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* gray-100 */
+        }
+
+        /* Custom Scrollbar for dashboard feel */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Custom Toggle Switch styling */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #4f46e5; /* indigo-600 */
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #4f46e5;
+        }
+        .toggle-checkbox {
+            right: 1.5rem;
+            z-index: 1;
+            border-color: #e2e8f0;
+            transition: all 0.3s;
+        }
+        .toggle-label {
+            width: 3rem;
+            height: 1.5rem;
+            background-color: #cbd5e1;
+            border-radius: 9999px;
+            transition: all 0.3s;
+        }
+
+        /* Tooltip styling */
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 250px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.875rem;
+            font-weight: normal;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+        }
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Drag and Drop Styling */
+        .draggable {
+            cursor: grab;
+        }
+        .draggable:active {
+            cursor: grabbing;
+        }
+        .dropzone {
+            min-height: 120px;
+            border: 2px dashed #94a3b8;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .dropzone.drag-over {
+            background-color: #f0fdf4; /* green-50 */
+            border-color: #22c55e; /* green-500 */
+        }
+
+        /* Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 3px;
+        }
+
+        /* Certificate Specific Styles */
+        .certificate-bg {
+            background-color: #ffffff;
+            background-image: 
+                radial-gradient(circle at 100% 100%, #f8fafc 0, #f8fafc 10px, transparent 10px), 
+                linear-gradient(to right, #f1f5f9, #f8fafc);
+            border: 8px solid #1e293b;
+            outline: 2px solid #cbd5e1;
+            outline-offset: -12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .scanline-text {
+            font-family: 'Courier Prime', monospace;
+            font-weight: bold;
+            font-size: 2.5rem;
+            /* Scanline Effect exclusively inside text */
+            background: repeating-linear-gradient(
+                0deg,
+                #1e293b,
+                #1e293b 2px,
+                #475569 2px,
+                #475569 4px
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .golden-seal {
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, #fbbf24 0%, #d97706 100%);
+            border-radius: 50%;
+            border: 4px double #78350f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2), inset 0 2px 5px rgba(255,255,255,0.5);
+            position: relative;
+        }
+        .golden-seal::before {
+            content: '';
+            position: absolute;
+            top: -6px; left: -6px; right: -6px; bottom: -6px;
+            border-radius: 50%;
+            border: 1px dashed #b45309;
+            z-index: 0;
+        }
+        .golden-seal span {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #451a03;
+            z-index: 1;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Top Navigation Bar (Dashboard Style) -->
+    <header class="bg-slate-900 text-white shadow-md z-20 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16 gap-3">
+                <div class="flex items-center gap-3">
+                    <a href="index.html#bcc-classes" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs font-bold transition">
+                        &larr; Home
+                    </a>
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-chart-line text-indigo-400 text-2xl mr-3"></i>
+                        <h1 class="text-lg sm:text-xl font-bold tracking-tight">Competitive Advantage Simulator</h1>
+                    </div>
+                </div>
+                <div class="text-xs sm:text-sm text-slate-400 hidden sm:block">
+                    CBIS 13 &bull; Week 1 &bull; MIS Corporate Training
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Sidebar Navigation (Progressive Scaffolding) -->
+        <nav class="w-64 bg-white shadow-lg z-10 flex flex-col overflow-y-auto hidden md:flex">
+            <div class="p-4 border-b border-slate-200">
+                <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Simulation Modules</h2>
+            </div>
+            <ul id="tab-nav" class="flex-1 px-2 py-4 space-y-1">
+                <!-- Tabs generated dynamically by JS based on state -->
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto bg-slate-50 p-6 relative">
+            <div class="max-w-4xl mx-auto">
+                
+                <!-- TAB 0: Introduction -->
+                <div id="tab-0" class="tab-content bg-white shadow rounded-lg p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                            <i class="fa-solid fa-book-open text-indigo-600 text-xl"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-slate-800">Welcome to the Simulator</h2>
+                    </div>
+                    
+                    <div class="prose max-w-none text-slate-600 mb-8 space-y-4">
+                        <p>Welcome to your first week of corporate strategy training. In this module, we will explore the concept of <strong>Competitive Advantage</strong>.</p>
+                        <blockquote class="border-l-4 border-indigo-500 pl-4 italic bg-slate-50 py-2 pr-4 rounded-r">
+                            "A company is said to have a competitive advantage over its rivals when it is able to sustain profits that exceed average for the industry." <br>
+                            <span class="text-sm text-slate-500">- Based on Bourgeois OER textbook principles</span>
+                        </blockquote>
+                        <p>Information Systems (IS) play a crucial role in achieving this. Strategic use of technology can help a company become <strong>better, faster, or cheaper</strong> than its competitors.</p>
+                        <p>You will face a series of interactive corporate dilemmas. You must successfully solve each scenario using the concepts learned to unlock the next challenge. Good luck.</p>
+                    </div>
+
+                    <button onclick="unlockTab(1)" class="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-medium rounded-md shadow hover:bg-indigo-700 transition flex items-center justify-center">
+                        Start Simulation <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+
+                <!-- TAB 1: Product Differentiation -->
+                <div id="tab-1" class="tab-content hidden bg-white shadow rounded-lg p-8">
+                    <div class="border-b border-slate-200 pb-4 mb-6">
+                        <span class="text-sm font-semibold text-indigo-600 tracking-wide uppercase">Module 1</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mt-1">Product Differentiation</h2>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded p-4 mb-6">
+                        <h3 class="font-bold text-slate-700 mb-2"><i class="fa-solid fa-briefcase mr-2"></i>Scenario Briefing</h3>
+                        <p class="text-sm text-slate-600">You are the Product Manager for a new tech gadget. You have a <strong>$10 Million</strong> Research &amp; Development (R&amp;D) budget. To gain a competitive advantage through <em>Differentiation</em>, your product must stand out as unique and highly advanced, not just a standard commodity.</p>
+                    </div>
+
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-4 bg-slate-800 text-white p-3 rounded">
+                            <span class="font-semibold">Budget Allocation</span>
+                            <span>Remaining: $<span id="budget-remaining">10</span>M</span>
+                        </div>
+
+                        <div class="space-y-6">
+                            <!-- Slider 1 -->
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-sm font-medium text-slate-700">Standard Hardware Parts</label>
+                                    <span class="text-sm font-bold text-slate-600">$<span id="val-hw">0</span>M</span>
+                                </div>
+                                <input type="range" id="slider-hw" min="0" max="10" step="1" value="0" oninput="updateSliders('hw')" class="w-full">
+                            </div>
+                            <!-- Slider 2 -->
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-sm font-medium text-slate-700">Proprietary OS Development <span class="text-xs text-indigo-600 font-normal">(Innovation focus)</span></label>
+                                    <span class="text-sm font-bold text-slate-600">$<span id="val-os">0</span>M</span>
+                                </div>
+                                <input type="range" id="slider-os" min="0" max="10" step="1" value="0" oninput="updateSliders('os')" class="w-full">
+                            </div>
+                            <!-- Slider 3 -->
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-sm font-medium text-slate-700">Marketing &amp; Packaging</label>
+                                    <span class="text-sm font-bold text-slate-600">$<span id="val-mkt">0</span>M</span>
+                                </div>
+                                <input type="range" id="slider-mkt" min="0" max="10" step="1" value="0" oninput="updateSliders('mkt')" class="w-full">
+                            </div>
+                        </div>
+                        <p id="slider-error" class="text-rose-500 text-sm mt-3 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i> You must allocate exactly $10M.</p>
+                    </div>
+
+                    <button onclick="checkTab1()" class="w-full px-4 py-2 bg-slate-800 text-white font-medium rounded shadow hover:bg-slate-700 transition">
+                        Submit R&amp;D Strategy
+                    </button>
+                </div>
+
+                <!-- TAB 2: Locking in Buyers -->
+                <div id="tab-2" class="tab-content hidden bg-white shadow rounded-lg p-8">
+                    <div class="border-b border-slate-200 pb-4 mb-6">
+                        <span class="text-sm font-semibold text-indigo-600 tracking-wide uppercase">Module 2</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mt-1">Locking in Buyers (Switching Costs)</h2>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded p-4 mb-6">
+                        <h3 class="font-bold text-slate-700 mb-2"><i class="fa-solid fa-cloud mr-2"></i>Scenario Briefing</h3>
+                        <p class="text-sm text-slate-600">You are launching a B2B Cloud Logistics platform. You want to create <em>High Switching Costs</em> so that once a company integrates your software, it is too painful and expensive for them to leave for a competitor.</p>
+                        <p class="text-sm text-slate-600 mt-2 font-medium">Task: Toggle the features ON or OFF to maximize architectural lock-in.</p>
+                    </div>
+
+                    <div class="space-y-4 mb-8">
+                        <!-- Toggle 1 -->
+                        <div class="flex items-center justify-between p-4 border rounded hover:bg-slate-50">
+                            <div class="flex items-center">
+                                <span class="font-medium text-slate-700">1. Easy One-Click Data Export</span>
+                                <div class="ml-2 tooltip relative inline-block cursor-help">
+                                    <i class="fa-solid fa-circle-info text-slate-400 hover:text-indigo-500"></i>
+                                    <div class="tooltip-text">
+                                        <strong>Real World Note:</strong> Even companies with high switching costs (like Google) must offer data export tools to comply with GDPR/CCPA privacy laws. True modern lock-in comes from deep ecosystem integration (retraining staff, complex workflows), not just holding raw files hostage.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="t1" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="t1" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+                        
+                        <!-- Toggle 2 -->
+                        <div class="flex items-center justify-between p-4 border rounded hover:bg-slate-50">
+                            <span class="font-medium text-slate-700">2. Proprietary Integrated Analytics <span class="text-xs text-slate-500 block">Dashboards that only work within your system</span></span>
+                            <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="t2" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="t2" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+
+                        <!-- Toggle 3 -->
+                        <div class="flex items-center justify-between p-4 border rounded hover:bg-slate-50">
+                            <span class="font-medium text-slate-700">3. Open-Source Compatibility <span class="text-xs text-slate-500 block">Allows easy migration to free alternatives</span></span>
+                            <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="t3" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="t3" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+
+                        <!-- Toggle 4 -->
+                        <div class="flex items-center justify-between p-4 border rounded hover:bg-slate-50">
+                            <span class="font-medium text-slate-700">4. Complex Custom API Hooks <span class="text-xs text-slate-500 block">Requires clients to write custom code to connect to you</span></span>
+                            <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="t4" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="t4" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+
+                        <!-- Toggle 5 -->
+                        <div class="flex items-center justify-between p-4 border rounded hover:bg-slate-50">
+                            <span class="font-medium text-slate-700">5. Universal File Formats <span class="text-xs text-slate-500 block">Saves data in standard .CSV or .XML</span></span>
+                            <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="t5" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="t5" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="checkTab2()" class="w-full px-4 py-3 bg-slate-800 text-white font-medium rounded shadow hover:bg-slate-700 transition">
+                        Deploy Platform Architecture
+                    </button>
+                </div>
+
+                <!-- TAB 3: Porter's Value Chain -->
+                <div id="tab-3" class="tab-content hidden bg-white shadow rounded-lg p-8">
+                    <div class="border-b border-slate-200 pb-4 mb-4">
+                        <span class="text-sm font-semibold text-indigo-600 tracking-wide uppercase">Module 3</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mt-1">Porter's Value Chain</h2>
+                    </div>
+                    
+                    <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-6 text-sm text-slate-700">
+                        <strong>Background Lesson:</strong> Michael Porter's Value Chain divides a company's activities into two categories. <strong>Primary Activities</strong> directly touch the product, creation, or customer. <strong>Support Activities</strong> happen in the background to keep the business infrastructure running.
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded p-4 mb-6">
+                        <h3 class="font-bold text-slate-700 mb-1">Scenario Briefing</h3>
+                        <p class="text-sm text-slate-600">You are managing an I-15 distribution center. You hired 4 new employees. Drag and drop them into the correct organizational department based on the Value Chain.</p>
+                    </div>
+
+                    <!-- Draggable Employees -->
+                    <div class="mb-6 bg-slate-100 p-4 rounded border border-slate-200">
+                        <h4 class="text-xs font-bold uppercase text-slate-500 mb-3">Unassigned Employees (Drag from here)</h4>
+                        <div id="employee-pool" class="flex flex-wrap gap-3 min-h-[50px] dropzone bg-white p-2 rounded" ondrop="drop(event)" ondragover="allowDrop(event)">
+                            <div id="emp-forklift" class="draggable bg-blue-100 text-blue-800 px-4 py-2 rounded shadow-sm border border-blue-200 flex items-center font-medium" draggable="true" ondragstart="drag(event)">
+                                <i class="fa-solid fa-truck-ramp-box mr-2"></i> Forklift Operator
+                            </div>
+                            <div id="emp-hr" class="draggable bg-purple-100 text-purple-800 px-4 py-2 rounded shadow-sm border border-purple-200 flex items-center font-medium" draggable="true" ondragstart="drag(event)">
+                                <i class="fa-solid fa-users mr-2"></i> HR Recruiter
+                            </div>
+                            <div id="emp-cyber" class="draggable bg-red-100 text-red-800 px-4 py-2 rounded shadow-sm border border-red-200 flex items-center font-medium" draggable="true" ondragstart="drag(event)">
+                                <i class="fa-solid fa-shield-halved mr-2"></i> Cybersecurity Analyst
+                            </div>
+                            <div id="emp-driver" class="draggable bg-orange-100 text-orange-800 px-4 py-2 rounded shadow-sm border border-orange-200 flex items-center font-medium" draggable="true" ondragstart="drag(event)">
+                                <i class="fa-solid fa-truck mr-2"></i> Delivery Truck Driver
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Drop Zones -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h4 class="font-bold text-slate-700 mb-2 border-b-2 border-indigo-500 inline-block">Primary Activities</h4>
+                            <p class="text-xs text-slate-500 mb-2">Directly handles product/customer</p>
+                            <div id="zone-primary" class="dropzone bg-slate-50 rounded p-4 flex flex-col gap-2" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
+                                <!-- Items drop here -->
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-700 mb-2 border-b-2 border-slate-500 inline-block">Support Activities</h4>
+                            <p class="text-xs text-slate-500 mb-2">Background infrastructure</p>
+                            <div id="zone-support" class="dropzone bg-slate-50 rounded p-4 flex flex-col gap-2" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
+                                <!-- Items drop here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="checkTab3()" class="w-full px-4 py-3 bg-slate-800 text-white font-medium rounded shadow hover:bg-slate-700 transition">
+                        Finalize Organizational Chart
+                    </button>
+                </div>
+
+                <!-- TAB 4: The Productivity Paradox -->
+                <div id="tab-4" class="tab-content hidden bg-white shadow rounded-lg p-8">
+                    <div class="border-b border-slate-200 pb-4 mb-6">
+                        <span class="text-sm font-semibold text-indigo-600 tracking-wide uppercase">Module 4</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mt-1">The Productivity Paradox</h2>
+                    </div>
+
+                    <div class="bg-rose-50 border border-rose-200 rounded p-5 mb-6">
+                        <h3 class="font-bold text-rose-800 mb-2"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Critical Issue Report</h3>
+                        <p class="text-sm text-slate-700">You just authorized the purchase of a <strong>$5M AI routing system</strong> for the warehouse. However, recent metrics show that overall delivery times are actually getting <em>worse</em>. Investigation reveals that the warehouse staff are confused by the new software interface and are still physically loading trucks using the old manual methods to save time.</p>
+                        <p class="text-sm font-semibold mt-3">As the manager, what is your immediate action plan?</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <button onclick="checkTab4('A')" class="w-full text-left p-5 border border-slate-300 rounded hover:border-indigo-500 hover:bg-indigo-50 transition group focus:outline-none">
+                            <span class="block font-bold text-slate-800 group-hover:text-indigo-700 mb-1">Path A: Personnel Replacement</span>
+                            <span class="text-sm text-slate-600">Fire the slow drivers and warehouse staff who aren't adapting, and hire tech-savvy replacements.</span>
+                        </button>
+                        
+                        <button onclick="checkTab4('B')" class="w-full text-left p-5 border border-slate-300 rounded hover:border-indigo-500 hover:bg-indigo-50 transition group focus:outline-none">
+                            <span class="block font-bold text-slate-800 group-hover:text-indigo-700 mb-1">Path B: Technological Escalation</span>
+                            <span class="text-sm text-slate-600">The software must be flawed. Buy and install a more expensive, automated software suite to bypass the human element entirely.</span>
+                        </button>
+
+                        <button onclick="checkTab4('C')" class="w-full text-left p-5 border border-slate-300 rounded hover:border-indigo-500 hover:bg-indigo-50 transition group focus:outline-none">
+                            <span class="block font-bold text-slate-800 group-hover:text-indigo-700 mb-1">Path C: Systems Alignment</span>
+                            <span class="text-sm text-slate-600">Pause operations temporarily. Retrain the people, and physically redesign the warehouse loading process to align with how the new AI logic works.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 5: Cost Leadership -->
+                <div id="tab-5" class="tab-content hidden bg-white shadow rounded-lg p-8">
+                    <div class="border-b border-slate-200 pb-4 mb-6">
+                        <span class="text-sm font-semibold text-indigo-600 tracking-wide uppercase">Module 5</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mt-1">Cost Leadership Strategy</h2>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded p-4 mb-6">
+                        <h3 class="font-bold text-slate-700 mb-2"><i class="fa-solid fa-store mr-2"></i>Scenario Briefing</h3>
+                        <p class="text-sm text-slate-600">You are the CIO of a massive discount retail chain (like Walmart). Your competitive advantage is <strong>'Cost Leadership'</strong>—you absolutely must be the cheapest option in the market to survive. You need to purchase new Information Systems for three key departments.</p>
+                    </div>
+
+                    <div class="space-y-6 mb-8">
+                        <!-- Dept 1 -->
+                        <div class="bg-white p-4 border rounded shadow-sm">
+                            <label class="block font-bold text-slate-700 mb-2">Inventory Management System</label>
+                            <select id="sel-inv" class="w-full border-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                                <option value="" disabled selected>Select Vendor Option...</option>
+                                <option value="A">Option A: Highly customized, bespoke luxury software ($$$)</option>
+                                <option value="B">Option B: Standardized, off-the-shelf bulk software ($)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Dept 2 -->
+                        <div class="bg-white p-4 border rounded shadow-sm">
+                            <label class="block font-bold text-slate-700 mb-2">Human Resources (HR) Portal</label>
+                            <select id="sel-hr" class="w-full border-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                                <option value="" disabled selected>Select Vendor Option...</option>
+                                <option value="A">Option A: Highly customized, bespoke luxury software ($$$)</option>
+                                <option value="B">Option B: Standardized, off-the-shelf bulk software ($)</option>
+                            </select>
+                        </div>
+
+                        <!-- Dept 3 -->
+                        <div class="bg-white p-4 border rounded shadow-sm">
+                            <label class="block font-bold text-slate-700 mb-2">Point-of-Sale (POS) Registers</label>
+                            <select id="sel-pos" class="w-full border-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                                <option value="" disabled selected>Select Vendor Option...</option>
+                                <option value="A">Option A: Highly customized, bespoke luxury software ($$$)</option>
+                                <option value="B">Option B: Standardized, off-the-shelf bulk software ($)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button onclick="checkTab5()" class="w-full px-4 py-3 bg-slate-800 text-white font-medium rounded shadow hover:bg-slate-700 transition">
+                        Finalize IT Procurement
+                    </button>
+                </div>
+
+                <!-- TAB 6: Name Entry -->
+                <div id="tab-6" class="tab-content hidden bg-white shadow rounded-lg p-8 text-center">
+                    <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-check text-emerald-600 text-3xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">Simulation Complete</h2>
+                    <p class="text-slate-600 mb-8">You have successfully demonstrated knowledge of Competitive Advantage mechanics. Please enter your full name below to generate your completion certificate.</p>
+                    
+                    <div class="max-w-md mx-auto">
+                        <input type="text" id="student-name" placeholder="Enter Full Name (e.g. Jane Doe)" class="w-full px-4 py-3 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-4 text-center text-lg">
+                        <p id="name-error" class="text-rose-500 text-sm hidden mb-4">Please enter a valid name.</p>
+                        <button onclick="generateCertificate()" class="w-full px-4 py-3 bg-indigo-600 text-white font-bold rounded shadow hover:bg-indigo-700 transition">
+                            Generate Certificate
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 7: Certificate -->
+                <div id="tab-7" class="tab-content hidden">
+                    <div class="certificate-bg p-10 md:p-16 relative flex flex-col items-center text-center">
+                        
+                        <div class="absolute top-8 left-8">
+                            <div class="golden-seal"><span>BCC</span></div>
+                        </div>
+
+                        <div class="mt-4 mb-8">
+                            <h1 class="text-4xl md:text-5xl font-serif font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-300 pb-4 inline-block">Certificate of Completion</h1>
+                        </div>
+
+                        <p class="text-lg text-slate-600 mb-4 italic">This certifies that</p>
+                        
+                        <div class="mb-8 w-full max-w-2xl border-b border-slate-400 pb-2">
+                            <span id="cert-name" class="scanline-text block break-words">STUDENT NAME</span>
+                        </div>
+
+                        <p class="text-lg text-slate-700 max-w-xl mb-12">
+                            has successfully completed the <strong>Competitive Advantage Simulator</strong>, demonstrating practical application of Information Systems strategy, Porter's Value Chain, and strategic alignment principles.
+                        </p>
+
+                        <div class="flex flex-col md:flex-row justify-between w-full max-w-3xl mt-8">
+                            <div class="text-center mb-6 md:mb-0">
+                                <div class="border-b border-slate-400 pb-2 w-48 mx-auto mb-2">
+                                    <span class="font-serif italic text-xl text-slate-800">Timothy Brinkley</span>
+                                </div>
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Instructor</span>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="border-b border-slate-400 pb-2 w-64 mx-auto mb-2 h-[34px] flex items-end justify-center">
+                                    <span id="cert-date" class="font-mono text-sm text-slate-700"></span>
+                                </div>
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Date &amp; Time of Completion</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 bg-blue-50 border-l-4 border-blue-500 p-4 shadow rounded">
+                        <p class="text-blue-800 font-semibold"><i class="fa-solid fa-camera mr-2"></i>Action Required:</p>
+                        <p class="text-blue-700 mt-1">Please take a screenshot of this certificate and attach it into the correct Instructure Canvas assignment for credit.</p>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Backdrop -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-slate-900 bg-opacity-50 hidden z-50 flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <!-- Modal Content -->
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 transform transition-all scale-95 opacity-0" id="modal-panel">
+            <div id="modal-header" class="px-6 py-4 border-b rounded-t-lg flex items-center">
+                <i id="modal-icon" class="text-2xl mr-3"></i>
+                <h3 id="modal-title" class="text-lg font-bold"></h3>
+            </div>
+            <div class="px-6 py-4">
+                <p id="modal-message" class="text-slate-600"></p>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 rounded-b-lg flex justify-end">
+                <button onclick="closeModal()" id="modal-btn" class="px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 font-medium transition"></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let currentTab = 0;
+        const maxTabs = 7;
+        let unlockedTabs = [0]; // Tab 0 unlocked initially
+        
+        const tabTitles = [
+            "0. Introduction",
+            "1. Differentiation",
+            "2. Switching Costs",
+            "3. Value Chain",
+            "4. Productivity",
+            "5. Cost Leadership",
+            "6. Registration",
+            "7. Certificate"
+        ];
+
+        // Initialization
+        window.onload = () => {
+            renderNav();
+            showTab(0);
+
+            // Add Enter key listener for the name input
+            document.getElementById('student-name').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    generateCertificate();
+                }
+            });
+        };
+
+        function renderNav() {
+            const nav = document.getElementById('tab-nav');
+            nav.innerHTML = '';
+            tabTitles.forEach((title, index) => {
+                const li = document.createElement('li');
+                const isUnlocked = unlockedTabs.includes(index);
+                const isActive = index === currentTab;
+                
+                let classes = "px-4 py-2 text-sm rounded cursor-pointer transition flex items-center justify-between ";
+                if (isActive) {
+                    classes += "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600 font-bold";
+                } else if (isUnlocked) {
+                    classes += "text-slate-700 hover:bg-slate-100 border-l-4 border-transparent";
+                } else {
+                    classes += "text-slate-400 opacity-60 cursor-not-allowed border-l-4 border-transparent";
+                }
+
+                li.className = classes;
+                li.innerHTML = `
+                    <span>${title}</span>
+                    ${isUnlocked && !isActive ? '<i class="fa-solid fa-check text-emerald-500 text-xs"></i>' : ''}
+                    ${!isUnlocked ? '<i class="fa-solid fa-lock text-xs"></i>' : ''}
+                `;
+                
+                if (isUnlocked) {
+                    li.onclick = () => showTab(index);
+                }
+                nav.appendChild(li);
+            });
+        }
+
+        function showTab(index) {
+            if (!unlockedTabs.includes(index)) return;
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Show selected tab
+            document.getElementById(`tab-${index}`).classList.remove('hidden');
+            currentTab = index;
+            renderNav();
+        }
+
+        function unlockTab(index) {
+            if (!unlockedTabs.includes(index)) {
+                unlockedTabs.push(index);
+            }
+            showTab(index);
+        }
+
+        function showModal(type, title, message, btnText, onSuccessAction = null) {
+            const backdrop = document.getElementById('modal-backdrop');
+            const panel = document.getElementById('modal-panel');
+            const header = document.getElementById('modal-header');
+            const icon = document.getElementById('modal-icon');
+            
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerHTML = message;
+            
+            const btn = document.getElementById('modal-btn');
+            btn.innerText = btnText;
+            
+            // Reset styles
+            header.className = "px-6 py-4 border-b rounded-t-lg flex items-center ";
+            icon.className = "text-2xl mr-3 ";
+
+            if (type === 'error') {
+                header.classList.add('bg-rose-50', 'text-rose-800', 'border-rose-200');
+                icon.classList.add('fa-solid', 'fa-triangle-exclamation', 'text-rose-600');
+                btn.className = "px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 font-medium transition";
+                btn.onclick = closeModal;
+            } else if (type === 'success') {
+                header.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
+                icon.classList.add('fa-solid', 'fa-circle-check', 'text-emerald-600');
+                btn.className = "px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 font-medium transition";
+                btn.onclick = () => {
+                    closeModal();
+                    if(onSuccessAction) onSuccessAction();
+                };
+            }
+
+            backdrop.classList.remove('hidden');
+            // Small delay to trigger transition
+            setTimeout(() => {
+                panel.classList.remove('scale-95', 'opacity-0');
+                panel.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const backdrop = document.getElementById('modal-backdrop');
+            const panel = document.getElementById('modal-panel');
+            panel.classList.remove('scale-100', 'opacity-100');
+            panel.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                backdrop.classList.add('hidden');
+            }, 200); // match transition duration
+        }
+
+        function updateSliders(source) {
+            const hw = parseInt(document.getElementById('slider-hw').value);
+            const os = parseInt(document.getElementById('slider-os').value);
+            const mkt = parseInt(document.getElementById('slider-mkt').value);
+            
+            const total = hw + os + mkt;
+            const remaining = 10 - total;
+
+            document.getElementById('val-hw').innerText = hw;
+            document.getElementById('val-os').innerText = os;
+            document.getElementById('val-mkt').innerText = mkt;
+            
+            const remEl = document.getElementById('budget-remaining');
+            remEl.innerText = remaining;
+            
+            if (remaining < 0) {
+                remEl.parentElement.classList.add('text-rose-400');
+            } else {
+                remEl.parentElement.classList.remove('text-rose-400');
+            }
+            
+            document.getElementById('slider-error').classList.add('hidden');
+        }
+
+        function checkTab1() {
+            const hw = parseInt(document.getElementById('slider-hw').value);
+            const os = parseInt(document.getElementById('slider-os').value);
+            const mkt = parseInt(document.getElementById('slider-mkt').value);
+            const total = hw + os + mkt;
+
+            if (total !== 10) {
+                document.getElementById('slider-error').classList.remove('hidden');
+                return;
+            }
+
+            // Win Condition: OS must be >= 6 (60%)
+            if (os >= 6) {
+                showModal('success', 'Strategy Approved', 
+                    'By heavily investing in Proprietary OS Development, you are building a product that is uniquely differentiated from standard commodity hardware. This justifies a higher price point.', 
+                    'Proceed to Next Module', () => unlockTab(2));
+            } else {
+                showModal('error', 'Warning Memo: Strategy Failed', 
+                    'According to the Bourgeois text, <strong>Differentiation</strong> requires making your product stand out. If you balance your budget evenly or focus too much on off-the-shelf hardware, your product becomes a commodity, competing only on price.', 
+                    'Revise Strategy');
+            }
+        }
+
+        function checkTab2() {
+            const t1 = document.getElementById('t1').checked; // Easy Export
+            const t2 = document.getElementById('t2').checked; // Proprietary Analytics
+            const t3 = document.getElementById('t3').checked; // Open Source
+            const t4 = document.getElementById('t4').checked; // Custom API
+            const t5 = document.getElementById('t5').checked; // Universal Formats
+
+            // Win: 1:F, 2:T, 3:F, 4:T, 5:F
+            if (!t1 && t2 && !t3 && t4 && !t5) {
+                showModal('success', 'Architecture Approved', 
+                    'Excellent. By relying on proprietary systems and complex custom integrations, you have created high Switching Costs. Once a company builds their workflow around your APIs and Analytics, leaving for a competitor becomes financially and technically painful.', 
+                    'Proceed to Next Module', () => unlockTab(3));
+            } else {
+                showModal('error', 'Warning Memo: Strategy Failed', 
+                    'Your architecture makes it too easy for customers to leave. To create high Switching Costs, you must avoid open-source compatibility and universal formats. You want deep, proprietary integration (like custom APIs and locked analytics).', 
+                    'Revise Architecture');
+            }
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+        function dragEnter(ev) {
+            ev.preventDefault();
+            const zone = ev.target.closest('.dropzone');
+            if (zone) {
+                zone.classList.add('drag-over');
+            }
+        }
+        function dragLeave(ev) {
+            const zone = ev.target.closest('.dropzone');
+            if (zone && !zone.contains(ev.relatedTarget)) {
+                zone.classList.remove('drag-over');
+            }
+        }
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.currentTarget.id);
+        }
+        function drop(ev) {
+            ev.preventDefault();
+            const zone = ev.target.closest('.dropzone');
+            if (zone) {
+                zone.classList.remove('drag-over');
+                const data = ev.dataTransfer.getData("text");
+                const draggedEl = document.getElementById(data);
+                if (draggedEl) {
+                    zone.appendChild(draggedEl);
+                }
+            }
+        }
+
+        function checkTab3() {
+            const primary = document.getElementById('zone-primary');
+            const support = document.getElementById('zone-support');
+            const pool = document.getElementById('employee-pool');
+
+            if (pool.children.length > 0) {
+                showModal('error', 'Incomplete', 'Please assign all employees to a department.', 'Try Again');
+                return;
+            }
+
+            const pItems = Array.from(primary.children).map(el => el.id);
+            const sItems = Array.from(support.children).map(el => el.id);
+
+            const hasForkliftPrimary = pItems.includes('emp-forklift');
+            const hasDriverPrimary = pItems.includes('emp-driver');
+            const hasHRSupport = sItems.includes('emp-hr');
+            const hasCyberSupport = sItems.includes('emp-cyber');
+
+            const rationale = "<strong>Rationale:</strong> Forklift Operators and Truck Drivers are Primary Activities because they directly handle the physical product that makes the company money. HR Recruiters and Cybersecurity Analysts are Support Activities because they work in the background to keep the infrastructure running and protect the environment.";
+
+            if (hasForkliftPrimary && hasDriverPrimary && pItems.length === 2 &&
+                hasHRSupport && hasCyberSupport && sItems.length === 2) {
+                
+                showModal('success', 'Value Chain Correct', 
+                    rationale, 
+                    'Proceed to Next Module', () => unlockTab(4));
+            } else {
+                showModal('error', 'Warning Memo: Incorrect Categorization', 
+                    rationale + "<br><br><em>Your current assignments are incorrect based on Porter's model. Please try again.</em>", 
+                    'Reassign Employees');
+            }
+        }
+
+        function checkTab4(choice) {
+            if (choice === 'C') {
+                showModal('success', 'Leadership Approved', 
+                    'Correct. The Productivity Paradox teaches us that technology alone does not equal productivity. You must align the <strong>People</strong>, the <strong>Process</strong>, and the <strong>Technology</strong>. Installing software without redesigning physical processes and training staff leads to failure.', 
+                    'Proceed to Next Module', () => unlockTab(5));
+            } else {
+                let msg = choice === 'A' ? "Firing staff doesn't fix a broken process. New staff will face the same misalignment between the physical loading dock and the new AI system." : "Throwing more money at technology (the Productivity Paradox) without fixing the underlying human and process issues will only accelerate failure.";
+                showModal('error', 'Warning Memo: Poor Management Decision', msg, 'Rethink Strategy');
+            }
+        }
+
+        function checkTab5() {
+            const inv = document.getElementById('sel-inv').value;
+            const hr = document.getElementById('sel-hr').value;
+            const pos = document.getElementById('sel-pos').value;
+
+            if (!inv || !hr || !pos) {
+                showModal('error', 'Incomplete', 'Please select a vendor for all three departments.', 'Continue');
+                return;
+            }
+
+            if (inv === 'B' && hr === 'B' && pos === 'B') {
+                showModal('success', 'Procurement Approved', 
+                    'Excellent. By selecting standardized, off-the-shelf software, you minimize overhead costs. This is essential for a company whose competitive advantage is <strong>Cost Leadership</strong> (competing to be the cheapest). Bespoke software is for differentiation, not cost cutting.', 
+                    'Proceed to Registration', () => unlockTab(6));
+            } else {
+                showModal('error', 'Warning Memo: Budget Overrun', 
+                    'If your strategy is Cost Leadership, you cannot afford highly customized, luxury software. Bespoke systems drive up overhead costs, forcing you to raise retail prices, which destroys your competitive advantage. You must choose standardized options to keep costs low.', 
+                    'Revise Procurement');
+            }
+        }
+
+        function generateCertificate() {
+            const nameInput = document.getElementById('student-name');
+            const name = nameInput.value.trim();
+            const errorEl = document.getElementById('name-error');
+
+            if (name.length < 2) {
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            errorEl.classList.add('hidden');
+
+            // Set Name
+            document.getElementById('cert-name').innerText = name;
+
+            // Set Date exactly
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('cert-date').innerText = `${dateStr} at ${timeStr}`;
+
+            unlockTab(7);
+        }
+    </script>
+</body>
+</html>

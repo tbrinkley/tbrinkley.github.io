@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 13 Ch. 8: Blockchain &amp; Smart Contracts Lab</title>
+    <meta name="description" content="Interactive CBIS 13 Management Information Systems lab for Barstow Community College comparing Traditional vs. Blockchain Smart Contract workflows across Logistics, Healthcare, Manufacturing, and Bitcoin.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322d3ee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; }
+        
+        .glass-panel { 
+            background: rgba(15, 23, 42, 0.7); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px) scale(0.99); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .block-anim { animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes shimmer { 
+            100% { transform: translateX(100%); } 
+        }
+
+        /* Custom Slider Styling with Fluorescent base */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 28px;
+            width: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-top: -10px;
+            border: 3px solid #fff;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+        }
+        
+        /* Dynamic Slider Thumbs */
+        input[type=range].slider-cyan::-webkit-slider-thumb { background: #22d3ee; box-shadow: 0 0 20px #22d3ee, 0 0 10px #fff; }
+        input[type=range].slider-fuchsia::-webkit-slider-thumb { background: #e879f9; box-shadow: 0 0 20px #e879f9, 0 0 10px #fff; }
+        input[type=range].slider-lime::-webkit-slider-thumb { background: #a3e635; box-shadow: 0 0 20px #a3e635, 0 0 10px #fff; }
+        input[type=range].slider-amber::-webkit-slider-thumb { background: #fbbf24; box-shadow: 0 0 20px #fbbf24, 0 0 10px #fff; }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #0f172a;
+            border-radius: 4px;
+            border: 1px solid #1e293b;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* Text Scanline Effect exclusively for the name on the certificate */
+        .text-scanline {
+            background: repeating-linear-gradient(
+                0deg,
+                #0f172a 0px,
+                #0f172a 3px,
+                #94a3b8 3px,
+                #94a3b8 5px
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Special Elite', monospace;
+            background-size: 100% 100%;
+        }
+
+        .cert-border {
+            border: 4px solid #22d3ee;
+            outline: 8px solid #0891b2;
+            outline-offset: -12px;
+            padding: 3rem;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 0 40px rgba(34, 211, 238, 0.3), inset 0 0 30px rgba(34, 211, 238, 0.1);
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+        }
+        
+        /* Custom scrollbar for ledger */
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #020617; border-radius: 4px; box-shadow: inset 0 0 5px rgba(0,0,0,0.8); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; border: 1px solid #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <div id="info-modal" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-slate-950 border border-slate-700 rounded-2xl p-8 max-w-lg w-full shadow-[0_0_50px_rgba(0,0,0,0.9)] relative block-anim ring-1 ring-white/5">
+            <div class="absolute inset-0 bg-gradient-to-br from-cyan-900/10 to-fuchsia-900/10 rounded-2xl pointer-events-none"></div>
+            <button onclick="closeInfo()" class="absolute top-4 right-4 text-slate-500 hover:text-white text-2xl transition-colors z-10 drop-shadow-md hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]"><i class="fa-solid fa-xmark"></i></button>
+            <h3 id="info-modal-title" class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] mb-5 border-b border-slate-800/80 pb-4 relative z-10">Information</h3>
+            <div id="info-modal-body" class="text-slate-300 space-y-5 text-sm leading-relaxed custom-scrollbar max-h-96 overflow-y-auto relative z-10 pr-2">
+                <!-- Content injected here via JS -->
+            </div>
+        </div>
+    </div>
+
+    <header class="bg-slate-950/80 backdrop-blur-xl border-b border-slate-800 pt-5 sticky top-0 z-40 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-lime-400 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] tracking-tight">
+                    <i class="fa-solid fa-link text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.7)] mr-3"></i> Blockchain &amp; Smart Contracts Lab
+                </h1>
+                <a href="index.html#bcc-classes" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-400 text-amber-300 text-xs font-bold tracking-wide transition">
+                    &larr; Back to Home
+                </a>
+            </div>
+            <p class="text-slate-400 text-xs md:text-sm mb-5 flex flex-wrap gap-3 font-semibold tracking-wide uppercase">
+                <span class="bg-black/50 border border-slate-700/50 px-3 py-1.5 rounded-md shadow-[inset_0_0_8px_rgba(0,0,0,0.8)]"><i class="fa-solid fa-book-open text-cyan-400 mr-1 drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]"></i> OER Chapters: 2, 3, 6, 8, 13</span>
+                <span class="bg-black/50 border border-slate-700/50 px-3 py-1.5 rounded-md shadow-[inset_0_0_8px_rgba(0,0,0,0.8)]"><i class="fa-solid fa-user-tie text-fuchsia-400 mr-1 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]"></i> Instructor: Timothy Brinkley</span>
+                <span class="bg-black/50 border border-slate-700/50 px-3 py-1.5 rounded-md shadow-[inset_0_0_8px_rgba(0,0,0,0.8)]"><i class="fa-solid fa-building-columns text-lime-400 mr-1 drop-shadow-[0_0_5px_rgba(163,230,53,0.8)]"></i> CBIS 13 MIS</span>
+            </p>
+            
+            <!-- Navigation Tabs (Classes managed by JS) -->
+            <div class="flex space-x-1.5 overflow-x-auto pb-px whitespace-nowrap custom-scrollbar pt-2 px-1">
+                <button id="tab-btn-logistics-trad" onclick="switchTab('logistics-trad')" data-title="1a: Logistics (Trad)"></button>
+                <button id="tab-btn-logistics-smart" onclick="switchTab('logistics-smart')" data-title="1b: Logistics (Smart)"></button>
+                <button id="tab-btn-health-trad" onclick="switchTab('health-trad')" data-title="2a: Health (Trad)"></button>
+                <button id="tab-btn-health-smart" onclick="switchTab('health-smart')" data-title="2b: Health (Smart)"></button>
+                <button id="tab-btn-mfg-trad" onclick="switchTab('mfg-trad')" data-title="3a: Mfg (Trad)"></button>
+                <button id="tab-btn-mfg-smart" onclick="switchTab('mfg-smart')" data-title="3b: Mfg (Smart)"></button>
+                <button id="tab-btn-bitcoin-trad" onclick="switchTab('bitcoin-trad')" data-title="4a: Bitcoin (Trad)"></button>
+                <button id="tab-btn-bitcoin-smart" onclick="switchTab('bitcoin-smart')" data-title="4b: Bitcoin (Smart)"></button>
+                <button id="cert-tab-btn" class="shrink-0 px-3.5 py-3 rounded-t-lg font-semibold bg-slate-950/30 text-slate-700 cursor-not-allowed border-b border-slate-800 transition-all text-xs md:text-sm relative overflow-hidden group">
+                    <span class="relative z-10 tracking-wide"><i class="fa-solid fa-lock mr-2"></i> 5: Certification</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow p-4 md:p-8 max-w-[90rem] mx-auto w-full">
+        
+        <!-- Tab 1a: Logistics Traditional -->
+        <div id="logistics-trad-tab" class="tab-content active space-y-6">
+            <div class="glass-panel border-t-4 border-t-cyan-500 shadow-[0_0_30px_rgba(34,211,238,0.1)] p-8 rounded-xl max-w-4xl mx-auto">
+                <h2 class="text-3xl font-extrabold text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.6)] mb-3 flex items-center gap-3">
+                    Traditional Logistics Process
+                    <i class="fa-solid fa-circle-info cursor-pointer text-slate-400 hover:text-white drop-shadow-none text-xl transition-all hover:scale-110" onclick="showInfo('traditional')"></i>
+                </h2>
+                <p class="text-slate-400 mb-10 text-lg leading-relaxed">Follow the manual steps required to ship goods and execute a contract using traditional logistics. Notice the delays caused by paperwork and manual verification.</p>
+                
+                <div class="space-y-4 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-1 before:bg-gradient-to-b before:from-cyan-900/50 before:via-slate-800 before:to-transparent">
+                    <div id="logistics-trad-steps-container" class="relative z-10 space-y-8"></div>
+                </div>
+
+                <div class="mt-12 text-center relative z-20">
+                    <button id="logistics-trad-next-btn" onclick="advanceTrad('logistics')" class="bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold tracking-wide py-4 px-10 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.8)] border border-cyan-400 transition-all transform hover:-translate-y-1 relative overflow-hidden group">
+                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                        <span class="relative z-10 drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">Execute Next Manual Step</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 1b: Logistics Smart Contract -->
+        <div id="logistics-smart-tab" class="tab-content space-y-6">
+            <p class="text-slate-400 mb-6 max-w-5xl mx-auto text-center text-lg leading-relaxed">
+                Drag the slider to move the shipment. The Smart Contract will automatically detect the IoT status and pre-approved hashes, executing payments instantly and recording them immutably on the Distributed Ledger.
+            </p>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-[85rem] mx-auto">
+                <div class="glass-panel border-t-4 border-t-cyan-500 shadow-[0_0_30px_rgba(34,211,238,0.1)] p-6 rounded-xl flex flex-col">
+                    <h2 class="text-2xl font-extrabold text-white mb-6 flex items-center gap-3">
+                        <i class="fa-solid fa-microchip text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]"></i> Smart Contract IoT Tracker
+                        <i class="fa-solid fa-circle-info cursor-pointer text-slate-400 hover:text-cyan-300 text-xl transition-all ml-auto hover:scale-110" onclick="showInfo('smart-contract')"></i>
+                    </h2>
+                    
+                    <div class="bg-black/40 rounded-xl p-8 mb-6 border border-slate-800 shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] relative flex-grow flex flex-col justify-center">
+                        <div class="absolute top-1/2 left-8 right-8 h-1 bg-slate-900 border-y border-slate-800 -translate-y-1/2 z-0 shadow-[inset_0_1px_2px_rgba(0,0,0,1)]"></div>
+                        
+                        <div class="flex justify-between mb-10 relative z-10 font-bold text-xs text-slate-400 tracking-widest uppercase">
+                            <span class="text-center w-1/4">Origin<br><i class="fa-solid fa-building text-2xl mt-3 cursor-pointer hover:text-cyan-300 transition-colors drop-shadow-[0_0_5px_rgba(0,0,0,1)]" onclick="showInfo('iot')"></i></span>
+                            <span class="text-center w-1/4">Transit<br><i class="fa-solid fa-ship text-2xl mt-3 drop-shadow-[0_0_5px_rgba(0,0,0,1)]"></i></span>
+                            <span class="text-center w-1/4">Customs<br><i class="fa-solid fa-building-shield text-2xl mt-3 cursor-pointer hover:text-cyan-300 transition-colors drop-shadow-[0_0_5px_rgba(0,0,0,1)]" onclick="showInfo('hash')"></i></span>
+                            <span class="text-center w-1/4">Delivered<br><i class="fa-solid fa-box-open text-2xl mt-3 cursor-pointer hover:text-cyan-300 transition-colors drop-shadow-[0_0_5px_rgba(0,0,0,1)]" onclick="showInfo('delivery')"></i></span>
+                        </div>
+                        
+                        <div class="relative z-20 px-4 py-6 bg-slate-900/50 rounded-2xl border border-slate-700/50 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+                            <div class="absolute top-1/2 left-4 h-2 bg-cyan-400 rounded-full -translate-y-1/2 pointer-events-none transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.8)]" id="logistics-smart-progress-fill" style="width: 0%;"></div>
+                            <input type="range" min="0" max="100" value="0" class="w-full relative z-30 slider-cyan" id="logistics-smart-slider" oninput="updateSmartContract('logistics', this.value)">
+                            <div id="logistics-smart-truck" class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 text-4xl drop-shadow-[0_0_15px_rgba(34,211,238,1)] pointer-events-none transition-all duration-300 z-40" style="left: 0%;">📦</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-900/80 backdrop-blur-md p-6 rounded-xl border border-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.5)] text-center min-h-[140px] flex flex-col justify-center items-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-cyan-900/10 pointer-events-none"></div>
+                        <i id="logistics-smart-status-icon" class="fa-solid fa-box text-3xl text-cyan-400 mb-3 drop-shadow-[0_0_12px_rgba(34,211,238,0.8)]"></i>
+                        <div id="logistics-smart-status-text" class="text-white font-extrabold tracking-wide drop-shadow-[0_0_5px_rgba(255,255,255,0.3)] relative z-10 text-lg">Origin: Goods Packaged &amp; IoT Seal Attached.</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel border-t-4 border-t-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.1)] p-6 rounded-xl h-[600px] flex flex-col">
+                    <h2 class="text-2xl font-extrabold text-white mb-6 flex items-center gap-3">
+                        <i class="fa-solid fa-server text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]"></i> Live Distributed Ledger
+                        <i class="fa-solid fa-circle-info cursor-pointer text-slate-400 hover:text-emerald-300 text-xl transition-all ml-auto hover:scale-110" onclick="showInfo('ledger')"></i>
+                    </h2>
+                    <div id="logistics-ledger-scroll" class="custom-scrollbar flex-grow overflow-y-auto space-y-4 pr-3 pb-4 scroll-smooth">
+                        <!-- Initialized Block -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2a: Healthcare Traditional -->
+        <div id="health-trad-tab" class="tab-content space-y-6">
+            <div class="glass-panel border-t-4 border-t-fuchsia-500 shadow-[0_0_30px_rgba(217,70,239,0.1)] p-8 rounded-xl max-w-4xl mx-auto">
+                <h2 class="text-3xl font-extrabold text-fuchsia-400 drop-shadow-[0_0_10px_rgba(217,70,239,0.6)] mb-3 flex items-center gap-3">
+                    Traditional Healthcare Process
+                    <i class="fa-solid fa-circle-info cursor-pointer text-slate-400 hover:text-white drop-shadow-none text-xl transition-all hover:scale-110" onclick="showInfo('health-trad')"></i>
+                </h2>
+                <p class="text-slate-400 mb-10 text-lg leading-relaxed">Follow the manual steps for a patient receiving a prescription medication, including tedious insurance authorizations and isolated data silos.</p>
+                
+                <div class="space-y-4 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-1 before:bg-gradient-to-b before:from-fuchsia-900/50 before:via-slate-800 before:to-transparent">
+                    <div id="health-trad-steps-container" class="relative z-10 space-y-8"></div>
+                </div>
+
+                <div class="mt-12 text-center relative z-20">
+                    <button id="health-trad-next-btn" onclick="advanceTrad('health')" class="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-extrabold tracking-wide py-4 px-10 rounded-xl shadow-[0_0_20px_rgba(217,70,239,0.4)] hover:shadow-[0_0_30px_rgba(217,70,239,0.8)] border border-fuchsia-400 transition-all transform hover:-translate-y-1 relative overflow-hidden group">
+                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                        <span class="relative z-10 drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">Execute Next Manual Step</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2b: Healthcare Smart Contract -->
+        <div id="health-smart-tab" class="tab-content space-y-6">
+            <p class="text-slate-400 mb-6 max-w-5xl mx-auto text-center text-lg leading-relaxed">
+                Drag the slider to move the patient through the system. The Smart Contract instantly verifies insurance rules and updates the patient's Blockchain EMR securely without manual intervention.
+            </p>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-[85rem] mx-auto">
+                <div class="glass-panel border-t-4 border-t-fuchsia-500 shadow-[0_0_30px_rgba(217,70,239,0.1)] p-6 rounded-xl flex flex-col">
+                    <h2 class="text-2xl font-extrabold text-white mb-6 flex items-center gap-3">
+                        <i class="fa-solid fa-microchip text-fuchsia-400 drop-shadow-[0_0_10px_rgba(217,70,239,0.8)]"></i> Smart Contract Authorization
+                        <i class="fa-solid fa-circle-info cursor-pointer text-slate-400 hover:text-fuchsia-300 text-xl transition-all ml-auto hover:scale-110" onclick="showInfo('health-smart')"></i>
+                    </h2>
+                    
+                    <div class="bg-black/40 rounded-xl p-8 mb-6 border border-slate-800 shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] relative flex-grow flex flex-col justify-center">
+                        <div class="absolute top-1/2 left-8 right-8 h-1 bg-slate-900 border-y border-slate-800 -translate-y-1/2 z-0 shadow-[inset_0_1px_2px_rgba(0,0,0,1)]"></div>
+                        
+                        <div class="flex justify-between mb-10 relative z-10 font-bold text-xs text-slate-400 tracking-widest uppercase">
+                            <span class="text-center w-1/4">Visit<br><i class="fa-solid fa-user-doctor text-2xl mt-3 cursor-pointer hover:text-fuchsia-300 transition-colors drop-shadow-[0_0_5px_rgba(0,0,0,1)]" onclick="showInfo('health-emr')"></i></span>
+                            <span class="text-center w-1/4">Insurance<br><i class="fa-solid fa-shield-halved text-2xl mt-3 drop-shadow-[0_0_5px_rgba(0,0,0,1)]"></i></span>
+                            <span class="text-center w-1/4">Pharmacy<br><i class="fa-solid fa-prescription-bottle-medical text-2xl mt-3 drop-shadow-[0_0_5px_rgba(0,0,0,1)]"></i></span>
+                            <span class="text-center w-1/4">Dispensed<br><i class="fa-solid fa-pills text-2xl mt-3 drop-shadow-[0_0_5px_rgba(0,0,0,1)]"></i></span>
+                        </div>
+                        
+                        <div class="relative z-20 px-4 py-6 bg-slate-900/50 rounded-2xl border border-slate-700/50 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+                            <div class="absolute top-1/2 left-4 h-2 bg-fuchsia-400 rounded-full -translate-y-1/2 pointer-events-none transition-all duration-300 shadow-[0_0_15px_rgba(217,70,239,0.8)]" id="health-smart-progress-fill" style="width: 0%;"></div>
+                            <input type="range" min="0" max="100" value="0" class="w-full relative z-30 slider-fuchsia" id="health-smart-slider" oninput="updateSmartContract('health', this.value)">
+                            <div id="health-smart-truck" class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 text-4xl drop-shadow-[0_0_15px_rgba(217,70,239,1)] pointer-events-none transition-all duration-300 z-40" style="left: 0%;">🏥</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-900/80 backdrop-blur-md p-6 rounded-xl border border-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.5)] text-center min-h-[140px] flex flex-col justify-center items-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-fuchsia-900/10 pointer-events-none"></div>
+                        <i id="health-smart-status-icon" class="fa-solid fa-file-medical text-3xl text-fuchsia-400 mb-3 drop-shadow-[0_0_12px_rgba(217,70,239,0.8)]"></i>
+                        <div id="health-smart-status-text" class="text-white font-extrabold tracking-wide drop-shadow-[0_0_5px_rgba(255,255,255,0.3)] relative z-10 text-lg">Visit: Encrypted EMR Created.</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel border-t-4 border-t-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.1)] p-6 rounded-xl h-[600px] flex flex-col">
+                    <h2 class="text-2xl font-extrabold text-white mb-6 flex items-center gap-3">
+                        <i class="fa-solid fa-server text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]"></i> Healthcare Distributed Ledger
+                    </h2>
+                    <div id="health-ledger-scroll" class="custom-scrollbar flex-grow overflow-y-auto space-y-4 pr-3 pb-4 scroll-smooth">
+                        <!-- Initialized Block -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3a: Manufacturing Traditional -->
+        <div id="mfg-trad-tab" class="tab-content space-y-6">
+            <div class="glass-panel border-t-4 border-t-lime-500 shadow-[0_0_30px_rgba(132,204,22,0.1)] p-8 rounded-xl max-w-4xl mx-auto">
+                <h2 class="text-3xl font-extrabold text-lime-400 drop-shadow-[0_0_10px_rgba(132,204,22,0.6)] mb-3 flex items-center gap-3">
+                    Traditional Manufacturing Process
+                    <i class="fa-solid fa-circle-info cursor-pointer text-slate-400 hover:text-white drop-shadow-none text-xl transition-all hover:scale-110" onclick="showInfo('mfg-trad')"></i>
+                </h2>
+                <p class="text-slate-400 mb-10 text-lg leading-relaxed">Observe the traditional manufacturing supply chain, characterized by manual stock counts, paper purchase orders, and 30-day invoice cycles.</p>
+                
+                <div class="space-y-4 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-1 before:bg-gradient-to-b before:from-lime-900/50 before:via-slate-800 before:to-transparent">
+                    <div id="mfg-trad-steps-container" class="relative z-10 space-y-8"></div>
+                </div>
+
+                <div class="mt-12 text-center relative z-20">
+                    <button id="mfg-trad-next-btn" onclick="advanceTrad('mfg')" class="bg-lime-600 hover:bg-lime-500 text-slate-900 font-extrabold tracking-wide py-4 px-10 rounded-xl shadow-[0_0_20px_rgba(132,204,22,0.4)] hover:shadow-[0_0_30px_rgba(132,204,22,0.8)] border border-lime-400 transition-all transform hover:-translate-y-1 relative overflow-hidden group">
+                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                        <span class="relative z-10 drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]">Execute Next Manual Step</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3b: Manufacturing Smart Contract -->
+        <div id="mfg-smart-tab" class="tab-content space-y-6">
+            <p class="text-slate-400 mb-6 max-w-5xl mx-auto text-center text-lg leading-relaxed">
+                Drag the slider to progress the manufacturing order. IoT sensors generate automated POs, track components in transit, and match Digital Twins to release payment instantly.
+            </p>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-[85rem] mx-auto">
+                <div class="glass-panel border-t-4 border-t-lime-500 shadow-[0_0_30px_rgba(132,204,22,0.1)] p-6 rounded-xl flex flex-col">
+                    <h2 class="text-2xl font-extrabold text-white mb-6 flex items-center gap-3">
+                        <i class="fa-solid fa-microchip text-lime-400 drop-shadow-[0_0_10px_rgba(132,204,22,0.8)]"></i> Smart Manufacturing Engine
+                        <i class="fa-solid fa-circle-info cursor-pointer text-slate-400 hover:text-lime-300 text-xl transition-all ml-auto hover:scale-110" onclick="showInfo('mfg-iot')"></i>
+                    </h2>
+                    
+                    <div class="bg-black/40 rounded-xl p-8 mb-6 border border-slate-800 shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] relative flex-grow flex flex-col justify-center">
+                        <div class="absolute top-1/2 left-8 right-8 h-1 bg-slate-900 border-y border-slate-800 -translate-y-1/2 z-0 shadow-[inset_0_1px_2px_rgba(0,0,0,1)]"></div>
+                        
+                        <div class="flex justify-between mb-10 relative z-10 font-bold text-xs text-slate-400 tracking-widest uppercase">
+                            <span class="text-center w-1/4">Auto-PO<br><i class="fa-solid fa-boxes-stacked text-2xl mt-3 drop-shadow-[0_0_5px_rgba(0,0,0,1)]"></i></span>
+                            <span class="text-center w-1/4">Transit<br><i class="fa-solid fa-truck-moving text-2xl mt-3 cursor-pointer hover:text-lime-300 transition-colors drop-shadow-[0_0_5px_rgba(0,0,0,1)]" onclick="showInfo('mfg-iot')"></i></span>
+                            <span class="text-center w-1/4">QA Match<br><i class="fa-solid fa-microchip text-2xl mt-3 cursor-pointer hover:text-lime-300 transition-colors drop-shadow-[0_0_5px_rgba(0,0,0,1)]" onclick="showInfo('mfg-qa')"></i></span>
+                            <span class="text-center w-1/4">Payment<br><i class="fa-solid fa-money-check-dollar text-2xl mt-3 drop-shadow-[0_0_5px_rgba(0,0,0,1)]"></i></span>
+                        </div>
+                        
+                        <div class="relative z-20 px-4 py-6 bg-slate-900/50 rounded-2xl border border-slate-700/50 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+                            <div class="absolute top-1/2 left-4 h-2 bg-lime-400 rounded-full -translate-y-1/2 pointer-events-none transition-all duration-300 shadow-[0_0_15px_rgba(132,204,22,0.8)]" id="mfg-smart-progress-fill" style="width: 0%;"></div>
+                            <input type="range" min="0" max="100" value="0" class="w-full relative z-30 slider-lime" id="mfg-smart-slider" oninput="updateSmartContract('mfg', this.value)">
+                            <div id="mfg-smart-truck" class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 text-4xl drop-shadow-[0_0_15px_rgba(132,204,22,1)] pointer-events-none transition-all duration-300 z-40" style="left: 0%;">⚙️</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-900/80 backdrop-blur-md p-6 rounded-xl border border-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.5)] text-center min-h-[140px] flex flex-col justify-center items-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-lime-900/10 pointer-events-none"></div>
+                        <i id="mfg-smart-status-icon" class="fa-solid fa-robot text-3xl text-lime-400 mb-3 drop-shadow-[0_0_12px_rgba(132,204,22,0.8)]"></i>
+                        <div id="mfg-smart-status-text" class="text-white font-extrabold tracking-wide drop-shadow-[0_0_5px_rgba(255,255,255,0.3)] relative z-10 text-lg">IoT Auto-PO Generated.</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel border-t-4 border-t-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.1)] p-6 rounded-xl h-[600px] flex flex-col">
+                    <h2 class="text-2xl font-extrabold text-white mb-6 flex items-center gap-3">
+                        <i class="fa-solid fa-server text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]"></i> Mfg Distributed Ledger
+                    </h2>
+                    <div id="mfg-ledger-scroll" class="custom-scrollbar flex-grow overflow-y-auto space-y-4 pr-3 pb-4 scroll-smooth">
+                        <!-- Initialized Block -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4a: Bitcoin Traditional -->
+        <div id="bitcoin-trad-tab" class="tab-content space-y-6">
+            <div class="glass-panel border-t-4 border-t-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.1)] p-8 rounded-xl max-w-4xl mx-auto">
+                <h2 class="text-3xl font-extrabold text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.6)] mb-3 flex items-center gap-3">
+                    Traditional Global Remittance / Trade Platform
+                    <i class="fa-solid fa-circle-info cursor-pointer text-slate-400 hover:text-white drop-shadow-none text-xl transition-all hover:scale-110" onclick="showInfo('bitcoin-trad')"></i>
+                </h2>
+                <p class="text-slate-400 mb-10 text-lg leading-relaxed">Follow the manual, intermediary-heavy steps required to send money internationally using centralized banking systems like SWIFT.</p>
+                
+                <div class="space-y-4 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-1 before:bg-gradient-to-b before:from-amber-900/50 before:via-slate-800 before:to-transparent">
+                    <div id="bitcoin-trad-steps-container" class="relative z-10 space-y-8"></div>
+                </div>
+
+                <div class="mt-12 text-center relative z-20">
+                    <button id="bitcoin-trad-next-btn" onclick="advanceTrad('bitcoin')" class="bg-amber-600 hover:bg-amber-500 text-slate-900 font-extrabold tracking-wide py-4 px-10 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.8)] border border-amber-400 transition-all transform hover:-translate-y-1 relative overflow-hidden group">
+                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                        <span class="relative z-10 drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]">Execute Next Intermediary Step</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4b: Bitcoin Smart / Blockchain -->
+        <div id="bitcoin-smart-tab" class="tab-content space-y-6">
+            <p class="text-slate-400 mb-6 max-w-5xl mx-auto text-center text-lg leading-relaxed">
+                Drag the slider to follow the lifecycle of a Bitcoin transaction. As a user, you simply authorize the transfer. You do <strong>not</strong> need to mine Bitcoin. Independent Miners handle the complex verification in the background, settling the funds immutably without banks.
+            </p>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-[85rem] mx-auto">
+                <div class="glass-panel border-t-4 border-t-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.1)] p-6 rounded-xl flex flex-col">
+                    <h2 class="text-2xl font-extrabold text-white mb-6 flex items-center gap-3">
+                        <i class="fa-brands fa-bitcoin text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)]"></i> Bitcoin Cryptocurrency Transfer
+                        <i class="fa-solid fa-circle-info cursor-pointer text-slate-400 hover:text-amber-300 text-xl transition-all ml-auto hover:scale-110" onclick="showInfo('bitcoin-wallet')"></i>
+                    </h2>
+                    
+                    <div class="bg-black/40 rounded-xl p-8 mb-6 border border-slate-800 shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] relative flex-grow flex flex-col justify-center">
+                        <div class="absolute top-1/2 left-8 right-8 h-1 bg-slate-900 border-y border-slate-800 -translate-y-1/2 z-0 shadow-[inset_0_1px_2px_rgba(0,0,0,1)]"></div>
+                        
+                        <div class="flex justify-between mb-10 relative z-10 font-bold text-xs text-slate-400 tracking-widest uppercase">
+                            <span class="text-center w-1/4">Signed<br><i class="fa-solid fa-signature text-2xl mt-3 drop-shadow-[0_0_5px_rgba(0,0,0,1)]"></i></span>
+                            <span class="text-center w-1/4">Mempool<br><i class="fa-solid fa-network-wired text-2xl mt-3 cursor-pointer hover:text-amber-300 transition-colors drop-shadow-[0_0_5px_rgba(0,0,0,1)]" onclick="showInfo('bitcoin-ledger')"></i></span>
+                            <span class="text-center w-1/4">Mining<br><i class="fa-solid fa-microchip text-2xl mt-3 cursor-pointer hover:text-amber-300 transition-colors drop-shadow-[0_0_5px_rgba(0,0,0,1)]" onclick="showInfo('bitcoin-mining')"></i></span>
+                            <span class="text-center w-1/4">Settled<br><i class="fa-solid fa-check-double text-2xl mt-3 drop-shadow-[0_0_5px_rgba(0,0,0,1)]"></i></span>
+                        </div>
+                        
+                        <div class="relative z-20 px-4 py-6 bg-slate-900/50 rounded-2xl border border-slate-700/50 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+                            <div class="absolute top-1/2 left-4 h-2 bg-amber-500 rounded-full -translate-y-1/2 pointer-events-none transition-all duration-300 shadow-[0_0_15px_rgba(245,158,11,0.8)]" id="bitcoin-smart-progress-fill" style="width: 0%;"></div>
+                            <input type="range" min="0" max="100" value="0" class="w-full relative z-30 slider-amber" id="bitcoin-smart-slider" oninput="updateSmartContract('bitcoin', this.value)">
+                            <div id="bitcoin-smart-truck" class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 text-4xl drop-shadow-[0_0_15px_rgba(245,158,11,1)] pointer-events-none transition-all duration-300 z-40" style="left: 0%;">🪙</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-900/80 backdrop-blur-md p-6 rounded-xl border border-slate-700 shadow-[0_10px_30px_rgba(0,0,0,0.5)] text-center min-h-[140px] flex flex-col justify-center items-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-amber-900/10 pointer-events-none"></div>
+                        <i id="bitcoin-smart-status-icon" class="fa-brands fa-bitcoin text-3xl text-amber-500 mb-3 drop-shadow-[0_0_12px_rgba(245,158,11,0.8)]"></i>
+                        <div id="bitcoin-smart-status-text" class="text-white font-extrabold tracking-wide drop-shadow-[0_0_5px_rgba(255,255,255,0.3)] relative z-10 text-lg">Wallet Signs Cryptographic Transaction.</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel border-t-4 border-t-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.1)] p-6 rounded-xl h-[600px] flex flex-col">
+                    <h2 class="text-2xl font-extrabold text-white mb-6 flex items-center gap-3">
+                        <i class="fa-solid fa-server text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]"></i> Public Bitcoin Blockchain
+                    </h2>
+                    <div id="bitcoin-ledger-scroll" class="custom-scrollbar flex-grow overflow-y-auto space-y-4 pr-3 pb-4 scroll-smooth">
+                        <!-- Initialized Block -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Certification -->
+        <div id="cert-tab" class="tab-content space-y-6">
+            <div id="cert-input-area" class="glass-panel border-t-4 border-t-emerald-500 shadow-[0_0_50px_rgba(16,185,129,0.15)] p-12 rounded-xl max-w-2xl mx-auto text-center">
+                <h2 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)] mb-4 tracking-tight"><i class="fa-solid fa-unlock-keyhole text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)] mr-3"></i> Simulations Complete!</h2>
+                <p class="text-slate-300 mb-10 text-lg leading-relaxed">You have successfully demonstrated the efficiency gains of using Smart Contracts, Cryptocurrency, and Blockchain technology across multiple industry segments.</p>
+                
+                <div class="space-y-6 text-left">
+                    <label class="block text-sm font-bold tracking-wider text-slate-400 uppercase">Enter your full name for certification:</label>
+                    <input type="text" id="student-name" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-5 text-white text-lg focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/50 shadow-[inset_0_0_10px_rgba(0,0,0,0.5)] transition-all" placeholder="e.g. Jane Doe">
+                    <button onclick="generateCert()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-5 px-8 rounded-xl shadow-[0_0_20px_rgba(52,211,153,0.4)] hover:shadow-[0_0_30px_rgba(52,211,153,0.8)] border border-emerald-400 transition-all text-lg tracking-wide relative overflow-hidden group">
+                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                        <span class="relative z-10 drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">Generate Tamper-Proof Certificate</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Actual Certificate -->
+            <div id="cert-display-area" class="hidden max-w-4xl mx-auto shadow-[0_0_50px_rgba(34,211,238,0.3)] bg-white rounded-lg overflow-hidden">
+                <div class="cert-border text-center" style="font-family: 'Inter', sans-serif;">
+                    <div class="absolute top-6 left-6 text-cyan-200/50"><i class="fa-solid fa-fingerprint text-6xl"></i></div>
+                    <div class="absolute top-6 right-6 text-cyan-200/50"><i class="fa-solid fa-qrcode text-6xl"></i></div>
+                    
+                    <h3 class="text-3xl font-extrabold text-slate-800 tracking-widest uppercase mb-3 mt-10">Certificate of Completion</h3>
+                    <div class="w-40 h-1.5 bg-gradient-to-r from-cyan-400 to-emerald-400 mx-auto mb-10 rounded-full"></div>
+                    
+                    <p class="text-slate-500 text-lg mb-2 font-medium tracking-wide">This certifies that</p>
+                    
+                    <h1 id="display-student-name" class="text-6xl my-8 border-b-2 border-dashed border-slate-300 inline-block px-10 pb-4 text-scanline font-black">
+                        Student Name
+                    </h1>
+                    
+                    <p class="text-slate-600 mt-4 mb-3 max-w-3xl mx-auto text-lg leading-relaxed">has successfully demonstrated mastery of Business Processes, IoT, Cryptocurrency, and Blockchain Distributed Ledgers across the following segments:</p>
+                    <p class="font-black text-cyan-600 text-2xl mb-12 tracking-wide drop-shadow-sm">Logistics, Healthcare, Engineering &amp; Mfg, and Finance</p>
+                    
+                    <div class="flex justify-between items-end mt-16 pt-8 border-t-2 border-slate-100 px-8">
+                        <div class="text-left">
+                            <p class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Instructor</p>
+                            <p class="text-slate-800 text-xl font-bold" style="font-family: 'Special Elite', monospace;">Timothy Brinkley</p>
+                            <p class="text-cyan-600 text-sm font-bold mt-2">CBIS 13 Management Information Systems</p>
+                            <p class="text-slate-500 text-sm font-bold">Barstow Community College</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Timestamp</p>
+                            <p id="cert-timestamp" class="text-slate-600 font-mono text-base font-bold bg-slate-100 px-3 py-1 rounded">Date</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Modal Information Data definitions
+        const infoData = {
+            'traditional': { title: 'Business Processes & Logistics', content: '<p><strong>OER Reference:</strong> Chapter 8 defines a business process as a series of steps undertaken to achieve a goal. Traditional logistics relies heavily on manual human intervention, vulnerable to paper records being lost, mistyped, or delayed.</p><br><p><strong>Wikipedia Context:</strong> Logistics is the detailed organization and implementation of a complex operation. In traditional supply chains, every handoff requires verification of physical documents, causing massive friction.</p>' },
+            'smart-contract': { title: 'Smart Contracts', content: '<p><strong>OER Reference:</strong> Chapters 6 & 13 discuss how blockchain enables self-executing logic without middlemen.</p><br><p><strong>Wikipedia Context:</strong> A smart contract is a computer program or transaction protocol intended to automatically execute, control, or document legally relevant events according to the terms of a contract. It reduces the need for trusted intermediators, arbitration, and enforcement costs.</p>' },
+            'iot': { title: 'Internet of Things (IoT)', content: '<p><strong>OER Reference:</strong> Chapter 2 states IoT is a network of billions of devices with embedded electronics allowing them to connect to the Internet to collect and share data without human involvement.</p><br><p><strong>Simulation Context:</strong> GPS trackers and physical electronic seals on the shipping container automatically broadcast their status directly to the blockchain, triggering the smart contract steps.</p>' },
+            'ledger': { title: 'Distributed Ledgers & Blockchain', content: '<p><strong>OER Reference:</strong> Chapter 6 introduces Blockchain as a peer-to-peer network providing an open, distributed record of transactions.</p><br><p><strong>Wikipedia Context:</strong> A distributed ledger is a consensus of replicated, shared, and synchronized digital data spread across multiple sites. There is no central administrator. Transactions have public "witnesses" making them tamper-proof.</p>' },
+            'hash': { title: 'Cryptographic Hashing & Customs', content: '<p><strong>How it Works:</strong> A hash algorithm transforms data (like a 50-page digital manifest) into a fixed-size string of characters. If even one letter in the manifest is altered, the entire hash changes.</p><br><p><strong>The Match:</strong> At customs, the Smart Contract compares two hashes:<br>1. The hash of the digital manifest provided by the supplier.<br>2. The hash of the approved import license from the customs authority.<br>If Hash 1 perfectly equals Hash 2, the smart contract clears the shipment instantly, knowing the manifest is 100% authentic and unaltered.</p>' },
+            'delivery': { title: 'IoT Seal Broken', content: '<p><strong>How it Works:</strong> Shipping containers are secured with an electronic lock (an IoT seal). This seal monitors if the doors are opened.</p><br><p><strong>The Trigger:</strong> When the container reaches its precise GPS destination, the buyer breaks the physical seal to open the doors. The seal instantly transmits an "opened" signal to the smart contract. Since the smart contract sees the seal was broken at the correct location, it automatically executes the code to transfer the $50,000 to the supplier.</p>' },
+            'health-trad': { title: 'Traditional Healthcare Processes', content: '<p><strong>OER Reference:</strong> Chapter 8 discusses inefficiencies in legacy processes. Healthcare suffers from isolated data silos, leading to delayed treatments, redundant forms, and manual pre-authorization calls.</p>' },
+            'health-emr': { title: 'Blockchain EMR', content: '<p><strong>How it Works:</strong> Electronic Medical Records (EMR) are stored securely on a private blockchain. Patients grant temporary decryption keys to authorized doctors and pharmacies, ensuring absolute privacy while eliminating redundant paperwork.</p>' },
+            'health-smart': { title: 'Healthcare Smart Contracts', content: '<p><strong>The Trigger:</strong> A doctor writes a prescription onto the blockchain. The smart contract instantly verifies the patient\'s insurance rules. If covered, it pre-authorizes the pharmacy to dispense the medication, dropping approval times from days to seconds.</p>' },
+            'mfg-trad': { title: 'Traditional Manufacturing', content: '<p><strong>OER Reference:</strong> Chapter 8 highlights supply chain bottlenecks. Manual inventory checks, paper-based Quality Assurance (QA) certificates, and 30-day payment cycles slow down production.</p>' },
+            'mfg-iot': { title: 'IoT Inventory & Transit', content: '<p><strong>How it Works:</strong> Factory IoT sensors detect low inventory and automatically order parts. During transit, IoT sensors monitor the shipping container for excessive vibration or temperature drops, recording the data immutably.</p>' },
+            'mfg-qa': { title: 'Digital Twin & Automated QA', content: '<p><strong>The Match:</strong> A "Digital Twin" is a virtual replica of the physical part. When parts arrive, the smart contract compares the factory\'s scan hash against the manufacturer\'s digital twin hash. If they match, QA is instantly passed and the supplier is paid automatically.</p>' },
+            'bitcoin-trad': { title: 'Traditional Financial Platforms', content: '<p><strong>OER Reference:</strong> Chapter 6 covers Blockchain and Bitcoin. Traditional global trade relies on trusted intermediaries (banks, clearinghouses like SWIFT) to move money across borders.</p><br><p><strong>The Problem:</strong> Each "hop" through an intermediary bank requires identity verification, manual compliance checks, and expensive fees. Cross-border transfers can easily take 3 to 5 business days and lose significant value to Forex exchanges.</p>' },
+            'bitcoin-wallet': { title: 'Cryptocurrency Wallets & Keys', content: '<p><strong>How it Works:</strong> A Bitcoin wallet doesn\'t hold coins; it holds cryptographic keys. The user uses a Private Key to digitally "sign" a transaction, proving ownership, while the Public Key serves as their receiving address on the blockchain.</p>' },
+            'bitcoin-mining': { title: 'Mining & Proof of Work', content: '<p><strong>Do users need to mine?</strong> No! Regular users just use a wallet app to send and receive funds. They do not do any mining.</p><br><p><strong>How it Works:</strong> The heavy lifting is done by independent network participants called <strong>Miners</strong>. Once a user broadcasts a transaction, these specialized computers group it into a block and compete to solve a complex cryptographic puzzle (Proof of Work). The winning miner secures the network, adds the block to the ledger, and is rewarded with newly minted Bitcoin, while the recipient simply sees the funds appear in their wallet.</p>' },
+            'bitcoin-ledger': { title: 'Decentralized Peer-to-Peer Network', content: '<p><strong>The Consensus:</strong> The Bitcoin Blockchain is a public, distributed ledger replicated across thousands of computers globally. Every transaction is verifiable by anyone, completely removing the need for a trusted, centralized banking middleman to settle funds.</p>' }
+        };
+
+        const themes = {
+            'logistics': { color: 'cyan', hex: 'rgba(34,211,238', text: 'text-cyan-400', border: 'border-cyan-400', bg: 'bg-cyan-500', glow: 'shadow-[0_0_15px_rgba(34,211,238,0.6)]', badgeBg: 'bg-cyan-900/30', badgeBorder: 'border-cyan-700/50' },
+            'health': { color: 'fuchsia', hex: 'rgba(217,70,239', text: 'text-fuchsia-400', border: 'border-fuchsia-400', bg: 'bg-fuchsia-500', glow: 'shadow-[0_0_15px_rgba(217,70,239,0.6)]', badgeBg: 'bg-fuchsia-900/30', badgeBorder: 'border-fuchsia-700/50' },
+            'mfg': { color: 'lime', hex: 'rgba(163,230,53', text: 'text-lime-400', border: 'border-lime-400', bg: 'bg-lime-500', glow: 'shadow-[0_0_15px_rgba(163,230,53,0.6)]', badgeBg: 'bg-lime-900/30', badgeBorder: 'border-lime-700/50' },
+            'bitcoin': { color: 'amber', hex: 'rgba(245,158,11', text: 'text-amber-400', border: 'border-amber-400', bg: 'bg-amber-500', glow: 'shadow-[0_0_15px_rgba(245,158,11,0.6)]', badgeBg: 'bg-amber-900/30', badgeBorder: 'border-amber-700/50' }
+        };
+
+        function showInfo(topic) {
+            document.getElementById('info-modal-title').innerText = infoData[topic].title;
+            document.getElementById('info-modal-body').innerHTML = infoData[topic].content;
+            document.getElementById('info-modal').classList.remove('hidden');
+        }
+
+        function closeInfo() {
+            document.getElementById('info-modal').classList.add('hidden');
+        }
+
+        let state = {
+            logistics: { tradStep: 0, tradCompleted: false, smartCompleted: false, blockCount: 0, smartStages: { start: false, transit: false, customs: false, delivery: false } },
+            health: { tradStep: 0, tradCompleted: false, smartCompleted: false, blockCount: 0, smartStages: { start: false, transit: false, customs: false, delivery: false } },
+            mfg: { tradStep: 0, tradCompleted: false, smartCompleted: false, blockCount: 0, smartStages: { start: false, transit: false, customs: false, delivery: false } },
+            bitcoin: { tradStep: 0, tradCompleted: false, smartCompleted: false, blockCount: 0, smartStages: { start: false, transit: false, customs: false, delivery: false } }
+        };
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            
+            const domains = ['logistics', 'health', 'mfg', 'bitcoin'];
+            const types = ['trad', 'smart'];
+            
+            domains.forEach(d => {
+                types.forEach(ty => {
+                    let btn = document.getElementById(`tab-btn-${d}-${ty}`);
+                    if(btn) {
+                        btn.className = `shrink-0 px-3.5 py-3 rounded-t-lg font-semibold bg-slate-950/50 text-slate-400 hover:bg-slate-900/80 transition-all border-b border-slate-800 text-xs md:text-sm relative overflow-hidden group hover:shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)]`;
+                        let title = btn.getAttribute('data-title');
+                        let checkId = `check-${d}-${ty}`;
+                        let isChecked = (ty === 'trad') ? state[d].tradCompleted : state[d].smartCompleted;
+                        btn.innerHTML = `<span class="relative z-10 group-hover:drop-shadow-[0_0_8px_${themes[d].hex},0.6)] group-hover:${themes[d].text} transition-colors tracking-wide">${title}</span> <span id="${checkId}" class="${isChecked ? '' : 'hidden'} text-emerald-400 ml-2 drop-shadow-[0_0_8px_rgba(52,211,153,0.9)] relative z-10"><i class="fa-solid fa-check"></i></span>`;
+                    }
+                });
+            });
+
+            let certBtn = document.getElementById('cert-tab-btn');
+            if (certBtn.onclick) { 
+                certBtn.className = `shrink-0 px-3.5 py-3 rounded-t-lg font-semibold bg-slate-950/50 text-emerald-500/70 border-b border-slate-800 transition-all text-xs md:text-sm relative overflow-hidden group hover:bg-slate-900/80 hover:shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)]`;
+                certBtn.innerHTML = '<span class="relative z-10 tracking-wide"><i class="fa-solid fa-award mr-2"></i> 5: Certification (Unlocked)</span>';
+            }
+            
+            document.getElementById(tabId + '-tab').classList.add('active');
+            
+            if (tabId !== 'cert') {
+                let activeBtn = document.getElementById('tab-btn-' + tabId);
+                let domain = tabId.split('-')[0];
+                let type = tabId.split('-')[1];
+                let t = themes[domain];
+                let title = activeBtn.getAttribute('data-title');
+                let checkId = `check-${tabId}`;
+                let isChecked = (type === 'trad') ? state[domain].tradCompleted : state[domain].smartCompleted;
+                
+                activeBtn.className = `shrink-0 px-3.5 py-3 rounded-t-lg font-bold bg-slate-900 text-white border-t-2 border-l border-r ${t.border} ${t.glow} transition-all text-xs md:text-sm relative overflow-hidden group shadow-[inset_0_10px_20px_-10px_${t.hex},0.3)] z-10`;
+                activeBtn.innerHTML = `<span class="absolute inset-0 w-full h-full bg-gradient-to-t from-${t.color}-500/10 to-transparent opacity-100 pointer-events-none"></span><span class="relative z-10 drop-shadow-[0_0_10px_${t.hex},0.9)] text-${t.color}-100 tracking-wider">${title}</span> <span id="${checkId}" class="${isChecked ? '' : 'hidden'} text-emerald-400 ml-2 drop-shadow-[0_0_8px_rgba(52,211,153,1)] relative z-10"><i class="fa-solid fa-check"></i></span>`;
+            } else {
+                certBtn.className = `shrink-0 px-3.5 py-3 rounded-t-lg font-bold bg-slate-900 text-emerald-100 border-t-2 border-l border-r border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)] transition-all text-xs md:text-sm relative overflow-hidden group shadow-[inset_0_10px_20px_-10px_rgba(52,211,153,0.3)] z-10`;
+                certBtn.innerHTML = '<span class="absolute inset-0 w-full h-full bg-gradient-to-t from-emerald-500/10 to-transparent opacity-100 pointer-events-none"></span><span class="relative z-10 drop-shadow-[0_0_10px_rgba(52,211,153,0.9)] tracking-wider"><i class="fa-solid fa-award mr-2"></i> 5: Certification (Unlocked)</span>';
+            }
+        }
+
+        const tradStepsDataLogistics = [
+            { icon: 'fa-file-signature', title: 'Contract Drafted & Signed', desc: 'Lawyers draft physical contracts. Mailed back and forth for physical signatures.', time: 'Time taken: 7 Days' },
+            { icon: 'fa-building-columns', title: 'Bank Escrow Setup', desc: 'Buyer wires money to a bank holding account. Bank requires physical forms and manual verification.', time: 'Time taken: 5 Days' },
+            { icon: 'fa-truck-arrow-right', title: 'Goods Shipped & Bill of Lading', desc: 'Supplier physically ships goods. A paper Bill of Lading is generated and mailed to the buyer.', time: 'Time taken: 14 Days' },
+            { icon: 'fa-file-shield', title: 'Customs Verification', desc: 'Customs agents manually review the 50-page paper manifest against the cargo. Prone to human error.', time: 'Time taken: 4 Days' },
+            { icon: 'fa-box-open', title: 'Delivery & Inspection', desc: 'Goods arrive. Buyer physically inspects goods, signs delivery receipt, and faxes to the bank.', time: 'Time taken: 2 Days' },
+            { icon: 'fa-money-bill-transfer', title: 'Payment Released', desc: 'Bank manually reviews the faxed delivery receipt and initiates wire transfer to supplier.', time: 'Time taken: 3 Days' }
+        ];
+
+        const tradStepsDataHealth = [
+            { icon: 'fa-clipboard-user', title: 'Patient Consultation', desc: 'Doctor records paper notes and fills out physical referral forms.', time: 'Time taken: 1 Day' },
+            { icon: 'fa-file-prescription', title: 'Prescription Written', desc: 'Handwritten prescription given to patient to carry to the pharmacy.', time: 'Time taken: 1 Day' },
+            { icon: 'fa-phone-volume', title: 'Insurance Pre-Auth', desc: 'Pharmacy faxes insurance company. Manual review delays approval.', time: 'Time taken: 3 Days' },
+            { icon: 'fa-user-doctor', title: 'Doctor Verification', desc: 'Insurance calls doctor to verify medical necessity due to missing data.', time: 'Time taken: 2 Days' },
+            { icon: 'fa-pills', title: 'Medication Dispensed', desc: 'Approval finally received, patient returns to pick up medication.', time: 'Time taken: 1 Day' }
+        ];
+
+        const tradStepsDataMfg = [
+            { icon: 'fa-boxes-stacked', title: 'Inventory Depleted', desc: 'Manual stock check reveals shortage. Paper purchase order drafted.', time: 'Time taken: 2 Days' },
+            { icon: 'fa-envelope-open-text', title: 'Order Processing', desc: 'Supplier receives email PO, manually enters it into their local system.', time: 'Time taken: 2 Days' },
+            { icon: 'fa-truck', title: 'Shipping & Paper QA', desc: 'Parts shipped with physical Quality Assurance certificates prone to loss.', time: 'Time taken: 5 Days' },
+            { icon: 'fa-magnifying-glass', title: 'Manual Inspection', desc: 'Factory QA team manually inspects parts against paper specifications.', time: 'Time taken: 3 Days' },
+            { icon: 'fa-file-invoice-dollar', title: 'Invoice & Net-30 Payment', desc: 'Invoice mailed. Accounts payable processes payment 30 days later.', time: 'Time taken: 30 Days' }
+        ];
+
+        const tradStepsDataBitcoin = [
+            { icon: 'fa-building-columns', title: 'Payment Initiated', desc: 'Sender initiates international wire transfer at their local bank. Requires identity verification and paperwork.', time: 'Time taken: 1 Day' },
+            { icon: 'fa-network-wired', title: 'SWIFT Network Intermediaries', desc: 'Transaction routes through intermediary banks via the centralized SWIFT network, adding hop fees.', time: 'Time taken: 2 Days' },
+            { icon: 'fa-money-bill-transfer', title: 'Currency Exchange', desc: 'Forex conversion occurs at centralized clearinghouses, often with unfavorable exchange rates.', time: 'Time taken: 1 Day' },
+            { icon: 'fa-file-signature', title: 'Manual Compliance Check', desc: 'Compliance teams review the transfer for AML (Anti-Money Laundering) requirements.', time: 'Time taken: 1 Day' },
+            { icon: 'fa-vault', title: 'Funds Settled', desc: 'Receiving bank finalizes the settlement and credits the recipient\'s account minus heavy fees.', time: 'Time taken: 1 Day' }
+        ];
+
+        function renderTradSteps(domain) {
+            let data, containerId, stepCount;
+            if (domain === 'logistics') { data = tradStepsDataLogistics; containerId = 'logistics-trad-steps-container'; stepCount = state.logistics.tradStep; }
+            else if (domain === 'health') { data = tradStepsDataHealth; containerId = 'health-trad-steps-container'; stepCount = state.health.tradStep; }
+            else if (domain === 'mfg') { data = tradStepsDataMfg; containerId = 'mfg-trad-steps-container'; stepCount = state.mfg.tradStep; }
+            else if (domain === 'bitcoin') { data = tradStepsDataBitcoin; containerId = 'bitcoin-trad-steps-container'; stepCount = state.bitcoin.tradStep; }
+
+            const container = document.getElementById(containerId);
+            let t = themes[domain];
+
+            container.innerHTML = '';
+            data.forEach((step, index) => {
+                const isVisible = index < stepCount;
+                const isCurrent = index === stepCount - 1;
+                
+                if (isVisible) {
+                    let colorClass = isCurrent ? `${t.bg} ${t.glow} ${t.border} border-2` : `bg-slate-800 border-slate-700 text-slate-500 border-2`;
+                    let textClass = isCurrent ? `text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]` : `text-slate-400`;
+                    let iconColor = isCurrent ? 'text-white' : 'text-slate-500';
+                    let boxGlow = isCurrent ? `ring-1 ring-${t.color}-500/50 shadow-[0_0_25px_${t.hex},0.15)] border-${t.color}-500/50` : 'border-slate-800/80 shadow-lg';
+                    
+                    container.innerHTML += `
+                        <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group block-anim">
+                            <div class="flex items-center justify-center w-12 h-12 rounded-full ${colorClass} absolute left-0 md:left-1/2 -translate-x-1/2 z-20 transition-all duration-500">
+                                <i class="fa-solid ${step.icon} text-lg ${iconColor}"></i>
+                            </div>
+                            <div class="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] ml-auto md:ml-0 p-5 rounded-xl border bg-slate-900/80 backdrop-blur-md ${boxGlow} transition-all duration-500">
+                                <h3 class="font-bold ${textClass} mb-2 text-lg tracking-wide">${step.title}</h3>
+                                <p class="text-sm text-slate-400 mb-3 leading-relaxed">${step.desc}</p>
+                                <span class="text-xs font-mono ${t.text} ${isCurrent ? t.badgeBg : 'bg-slate-800'} border ${isCurrent ? t.badgeBorder : 'border-slate-700'} px-2 py-1 rounded-md shadow-[inset_0_0_5px_rgba(0,0,0,0.5)]"><i class="fa-regular fa-clock"></i> ${step.time}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        function advanceTrad(domain) {
+            let data, btnId, totalDays;
+            if (domain === 'logistics') { data = tradStepsDataLogistics; btnId = 'logistics-trad-next-btn'; totalDays = 35; }
+            else if (domain === 'health') { data = tradStepsDataHealth; btnId = 'health-trad-next-btn'; totalDays = 8; }
+            else if (domain === 'mfg') { data = tradStepsDataMfg; btnId = 'mfg-trad-next-btn'; totalDays = 42; }
+            else if (domain === 'bitcoin') { data = tradStepsDataBitcoin; btnId = 'bitcoin-trad-next-btn'; totalDays = 6; }
+
+            if (state[domain].tradStep < data.length) {
+                state[domain].tradStep++;
+                renderTradSteps(domain);
+                
+                if (state[domain].tradStep === data.length) {
+                    let btn = document.getElementById(btnId);
+                    btn.innerText = "Traditional Process Complete (Total: " + totalDays + " Days)";
+                    btn.className = 'bg-slate-800 text-slate-500 font-bold py-4 px-10 rounded-xl border border-slate-700 cursor-not-allowed mt-4 block w-full';
+                    btn.disabled = true;
+                    state[domain].tradCompleted = true;
+                    document.getElementById('check-' + domain + '-trad').classList.remove('hidden');
+                    checkCompletion();
+                    
+                    let activeBtn = document.getElementById('tab-btn-' + domain + '-trad');
+                    if(activeBtn && !activeBtn.innerHTML.includes('fa-check')) {
+                       activeBtn.innerHTML += `<span class="text-emerald-400 ml-2 drop-shadow-[0_0_8px_rgba(52,211,153,1)] relative z-10"><i class="fa-solid fa-check"></i></span>`;
+                    }
+                }
+            }
+        }
+
+        function addBlockToLedger(domain, action, details) {
+            let ledgerId = 'logistics-ledger-scroll';
+            if (domain === 'health') ledgerId = 'health-ledger-scroll';
+            if (domain === 'mfg') ledgerId = 'mfg-ledger-scroll';
+            if (domain === 'bitcoin') ledgerId = 'bitcoin-ledger-scroll';
+
+            const ledger = document.getElementById(ledgerId);
+            state[domain].blockCount++;
+            
+            const hash = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            const time = new Date().toLocaleTimeString();
+            let t = themes[domain];
+
+            const blockHTML = `
+                <div class="bg-slate-900 rounded-lg p-4 border-l-4 ${t.border} ${t.glow} text-sm block-anim relative overflow-hidden group mb-4 transition-all duration-300 hover:scale-[1.02] hover:brightness-110">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-${t.color}-900/40 to-transparent rounded-bl-full -z-10 transition-colors duration-300"></div>
+                    <div class="flex justify-between items-center mb-3 z-10 relative border-b border-slate-700/50 pb-2">
+                        <span class="font-bold text-white tracking-wider drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">Block #${state[domain].blockCount}</span>
+                        <span class="text-[10px] text-slate-300 font-mono bg-black/60 px-2 py-1 rounded-full border border-slate-700 shadow-[inset_0_0_5px_rgba(0,0,0,0.5)]"><i class="fa-regular fa-clock ${t.text}"></i> ${time}</span>
+                    </div>
+                    <div class="text-${t.color}-300 font-extrabold text-base mb-2 z-10 relative drop-shadow-[0_0_5px_${t.hex},0.8)]">${action}</div>
+                    <div class="text-slate-300 text-xs mb-4 z-10 relative leading-relaxed">${details}</div>
+                    <div class="bg-black/80 p-2.5 rounded-md text-[10px] font-mono ${t.text} break-all border border-${t.color}-900/50 z-10 relative shadow-[inset_0_0_10px_${t.hex},0.1)]">
+                        Hash: ${hash}
+                    </div>
+                </div>
+            `;
+            
+            ledger.innerHTML += blockHTML;
+            ledger.scrollTo({ top: ledger.scrollHeight, behavior: 'smooth' });
+        }
+
+        function updateSmartContract(domain, val) {
+            let prefix = domain + '-smart';
+
+            const statusIcon = document.getElementById(prefix + '-status-icon');
+            const statusText = document.getElementById(prefix + '-status-text');
+            const progressFill = document.getElementById(prefix + '-progress-fill');
+            const truck = document.getElementById(prefix + '-truck');
+            
+            let t = themes[domain];
+            progressFill.className = `absolute top-1/2 left-4 h-2 rounded-full -translate-y-1/2 pointer-events-none transition-all duration-300 ${t.bg} ${t.glow}`;
+            progressFill.style.width = val + '%';
+            truck.style.left = val + '%';
+            
+            let st = state[domain].smartStages;
+
+            if (domain === 'logistics') {
+                if (val == 0 && !st.start) {
+                    st.start = true;
+                    statusIcon.className = `fa-solid fa-box text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Origin: Goods Packaged & IoT Seal Attached.";
+                    addBlockToLedger(domain, "Smart Contract Initialized", "Escrow funded with $50,000. GPS coordinates logged. IoT seal status: SECURED.");
+                }
+                if (val >= 33 && val < 66 && !st.transit) {
+                    st.transit = true;
+                    statusIcon.className = `fa-solid fa-truck-fast text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Transit: GPS Location Broadcasting.";
+                    addBlockToLedger(domain, "IoT Tracker Update", "GPS location ping received. Container en route. Temperature and humidity nominal. Seal status: SECURED.");
+                }
+                if (val >= 66 && val < 100 && !st.customs) {
+                    st.customs = true;
+                    statusIcon.className = `fa-solid fa-file-shield text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Customs: Digital Manifest Hash Verified.";
+                    addBlockToLedger(domain, "Smart Contract: Customs Clearance", "Validation successful: Electronic Manifest Hash (Supplier) perfectly matches Approved Import Hash (Authority). Automated clearance granted. No manual inspection required.");
+                }
+                if (val == 100 && !st.delivery) {
+                    st.delivery = true;
+                    statusIcon.className = `fa-solid fa-check-double text-4xl text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Delivered: IoT Seal Broken. Payment Released!";
+                    addBlockToLedger(domain, "Contract Executed: Final Delivery", "Destination reached. IoT electronic seal on the shipping container physically broken at authorized GPS coordinates. Smart contract automatically released $50,000 escrow to supplier. Total Time: 14 Days.");
+                    if (!state[domain].smartCompleted) { 
+                        state[domain].smartCompleted = true; 
+                        document.getElementById('check-' + domain + '-smart').classList.remove('hidden');
+                        checkCompletion(); 
+                        let activeBtn = document.getElementById('tab-btn-' + domain + '-smart');
+                        if(activeBtn && !activeBtn.innerHTML.includes('fa-check')) {
+                            activeBtn.innerHTML += `<span class="text-emerald-400 ml-2 drop-shadow-[0_0_8px_rgba(52,211,153,1)] relative z-10"><i class="fa-solid fa-check"></i></span>`;
+                        }
+                    }
+                }
+            } else if (domain === 'health') {
+                if (val == 0 && !st.start) {
+                    st.start = true;
+                    statusIcon.className = `fa-solid fa-file-medical text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Visit: Encrypted EMR Created.";
+                    addBlockToLedger(domain, "EMR Block Created", "Patient consultation logged. Prescription encrypted using patient's private key and appended to health blockchain.");
+                }
+                if (val >= 33 && val < 66 && !st.transit) {
+                    st.transit = true;
+                    statusIcon.className = `fa-solid fa-shield-halved text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Insurance: Auto Pre-Auth.";
+                    addBlockToLedger(domain, "Smart Contract: Coverage Verification", "Smart contract executes policy rules against diagnosis codes. Pre-authorization instantly granted based on algorithm. Zero manual review.");
+                }
+                if (val >= 66 && val < 100 && !st.customs) {
+                    st.customs = true;
+                    statusIcon.className = `fa-solid fa-prescription-bottle-medical text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Pharmacy: Hash Verified.";
+                    addBlockToLedger(domain, "Cryptographic Match", "Pharmacy accesses blockchain. Prescription hash matches original doctor entry exactly. Dispensing approved.");
+                }
+                if (val == 100 && !st.delivery) {
+                    st.delivery = true;
+                    statusIcon.className = `fa-solid fa-check-double text-4xl text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Dispensed: Ledger Updated.";
+                    addBlockToLedger(domain, "Transaction Complete", "Medication dispensed to patient. Immutable record appended to ledger. Total Time: 1 Hour.");
+                    if (!state[domain].smartCompleted) { 
+                        state[domain].smartCompleted = true; 
+                        document.getElementById('check-' + domain + '-smart').classList.remove('hidden');
+                        checkCompletion(); 
+                        let activeBtn = document.getElementById('tab-btn-' + domain + '-smart');
+                        if(activeBtn && !activeBtn.innerHTML.includes('fa-check')) {
+                            activeBtn.innerHTML += `<span class="text-emerald-400 ml-2 drop-shadow-[0_0_8px_rgba(52,211,153,1)] relative z-10"><i class="fa-solid fa-check"></i></span>`;
+                        }
+                    }
+                }
+            } else if (domain === 'mfg') {
+                if (val == 0 && !st.start) {
+                    st.start = true;
+                    statusIcon.className = `fa-solid fa-robot text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "IoT Auto-PO Generated.";
+                    addBlockToLedger(domain, "Smart Contract Triggered", "Factory floor IoT sensors detect component shortage. Smart contract automatically drafts and cryptographically signs Purchase Order to supplier.");
+                }
+                if (val >= 33 && val < 66 && !st.transit) {
+                    st.transit = true;
+                    statusIcon.className = `fa-solid fa-truck-moving text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Transit: IoT Quality Tracking.";
+                    addBlockToLedger(domain, "IoT Environmental Log", "Supplier ships components. Embedded IoT sensors log vibration and humidity levels to blockchain every 10 minutes to guarantee integrity.");
+                }
+                if (val >= 66 && val < 100 && !st.customs) {
+                    st.customs = true;
+                    statusIcon.className = `fa-solid fa-microchip text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "QA: Digital Twin Matched.";
+                    addBlockToLedger(domain, "Automated QA Verification", "Components arrive. Factory scanners generate 3D hash. Hash perfectly matches the manufacturer's Digital Twin stored on blockchain. QA Passed.");
+                }
+                if (val == 100 && !st.delivery) {
+                    st.delivery = true;
+                    statusIcon.className = `fa-solid fa-money-check-dollar text-4xl text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Payment: Auto-Released.";
+                    addBlockToLedger(domain, "Contract Executed", "Smart contract confirms successful delivery and QA pass. Instant cryptocurrency payment transferred to supplier. Total Time: 3 Days.");
+                    if (!state[domain].smartCompleted) { 
+                        state[domain].smartCompleted = true; 
+                        document.getElementById('check-' + domain + '-smart').classList.remove('hidden');
+                        checkCompletion(); 
+                        let activeBtn = document.getElementById('tab-btn-' + domain + '-smart');
+                        if(activeBtn && !activeBtn.innerHTML.includes('fa-check')) {
+                            activeBtn.innerHTML += `<span class="text-emerald-400 ml-2 drop-shadow-[0_0_8px_rgba(52,211,153,1)] relative z-10"><i class="fa-solid fa-check"></i></span>`;
+                        }
+                    }
+                }
+            } else if (domain === 'bitcoin') {
+                if (val == 0 && !st.start) {
+                    st.start = true;
+                    statusIcon.className = `fa-solid fa-signature text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Wallet Signs Transaction.";
+                    addBlockToLedger(domain, "Transaction Created", "Sender creates a transaction using the recipient's public key address and signs it with their private key to authorize the transfer of funds.");
+                }
+                if (val >= 33 && val < 66 && !st.transit) {
+                    st.transit = true;
+                    statusIcon.className = `fa-solid fa-network-wired text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Broadcast to Mempool.";
+                    addBlockToLedger(domain, "P2P Network Propagation", "Transaction is broadcast to the Bitcoin peer-to-peer network. Nodes verify the digital signature and add it to the unconfirmed mempool.");
+                }
+                if (val >= 66 && val < 100 && !st.customs) {
+                    st.customs = true;
+                    statusIcon.className = `fa-solid fa-microchip text-4xl ${t.text} drop-shadow-[0_0_15px_${t.hex},0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Network Miners Calculating Proof of Work.";
+                    addBlockToLedger(domain, "Mining & Consensus", "Independent network participants (miners) pick up the transaction. Users do not mine; miners do the work in the background, computing cryptographic hashes to solve the Proof-of-Work puzzle to validate the transfer.");
+                }
+                if (val == 100 && !st.delivery) {
+                    st.delivery = true;
+                    statusIcon.className = `fa-solid fa-check-double text-4xl text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.8)] mb-3 transition-all duration-300 transform scale-110`;
+                    statusText.innerText = "Block Mined & Funds Settled!";
+                    addBlockToLedger(domain, "Ledger Appended Immutably", "An independent miner solves the puzzle! The block is appended to the public blockchain ledger. The recipient's wallet reflects the new balance automatically without them doing any mining. Total Time: ~10 Minutes.");
+                    if (!state[domain].smartCompleted) { 
+                        state[domain].smartCompleted = true; 
+                        document.getElementById('check-' + domain + '-smart').classList.remove('hidden');
+                        checkCompletion(); 
+                        let activeBtn = document.getElementById('tab-btn-' + domain + '-smart');
+                        if(activeBtn && !activeBtn.innerHTML.includes('fa-check')) {
+                            activeBtn.innerHTML += `<span class="text-emerald-400 ml-2 drop-shadow-[0_0_8px_rgba(52,211,153,1)] relative z-10"><i class="fa-solid fa-check"></i></span>`;
+                        }
+                    }
+                }
+            }
+        }
+
+        function checkCompletion() {
+            if (state.logistics.tradCompleted && state.logistics.smartCompleted && 
+                state.health.tradCompleted && state.health.smartCompleted && 
+                state.mfg.tradCompleted && state.mfg.smartCompleted &&
+                state.bitcoin.tradCompleted && state.bitcoin.smartCompleted) {
+                const certBtn = document.getElementById('cert-tab-btn');
+                certBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'text-slate-700', 'bg-slate-950/30');
+                certBtn.classList.add('bg-emerald-900/40', 'text-emerald-300', 'border-emerald-500', 'shadow-[0_0_15px_rgba(52,211,153,0.5)]', 'animate-[pulse_2s_infinite]');
+                certBtn.innerHTML = '<span class="relative z-10 drop-shadow-[0_0_5px_rgba(52,211,153,0.8)] tracking-wide"><i class="fa-solid fa-award mr-2"></i> 5: Certification (Unlocked)</span>';
+                certBtn.onclick = () => switchTab('cert');
+            }
+        }
+
+        function generateCert() {
+            const nameInput = document.getElementById('student-name').value;
+            if(nameInput.trim() === "") {
+                alert("Please enter your name to generate the certificate.");
+                return;
+            }
+            
+            document.getElementById('display-student-name').innerText = nameInput;
+            
+            const now = new Date();
+            const dateString = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+            document.getElementById('cert-timestamp').innerText = dateString;
+            
+            document.getElementById('cert-input-area').classList.add('hidden');
+            document.getElementById('cert-display-area').classList.remove('hidden');
+            document.getElementById('cert-display-area').classList.add('block-anim');
+            
+            document.getElementById('cert-tab-btn').classList.remove('animate-[pulse_2s_infinite]');
+        }
+
+        // Initialize simulation
+        function initializeLedgers() {
+            const ledgers = ['logistics', 'health', 'mfg', 'bitcoin'];
+            const names = ['Logistics', 'Health', 'Mfg', 'Bitcoin'];
+            
+            ledgers.forEach((domain, idx) => {
+                const ledger = document.getElementById(domain + '-ledger-scroll');
+                let t = themes[domain];
+                ledger.innerHTML = `
+                    <div class="bg-slate-900 rounded-lg p-4 border-l-4 ${t.border} ${t.glow} text-sm shadow-lg relative overflow-hidden group mb-4">
+                        <div class="flex justify-between items-center mb-3 border-b border-slate-700/50 pb-2">
+                            <span class="font-bold text-white tracking-wider">Block #0 (Genesis)</span>
+                        </div>
+                        <div class="text-${t.color}-300 font-extrabold text-base mb-2 drop-shadow-[0_0_5px_${t.hex},0.8)]">${names[idx]} Ledger Initialized</div>
+                        <div class="bg-black/80 p-2.5 rounded-md text-[10px] font-mono ${t.text} break-all border border-${t.color}-900/50 shadow-[inset_0_0_10px_${t.hex},0.1)]">
+                            Hash: 00000000000000000000000000000000
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        initializeLedgers();
+        advanceTrad('logistics');
+        advanceTrad('health');
+        advanceTrad('mfg');
+        advanceTrad('bitcoin');
+        switchTab('logistics-trad'); // Trigger the styling layout
+    </script>
+</body>
+</html>

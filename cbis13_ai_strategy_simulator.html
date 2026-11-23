@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 13 Week 1: AI Strategy Simulation</title>
+    <meta name="description" content="Interactive CBIS 13 Management Information Systems Week 1 executive simulator for Barstow Community College: IS 5-component framework, Productivity Paradox, Porter's Value Chain, and AI Competitive Moat.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='2'/%3E%3Crect x='9' y='9' width='6' height='6'/%3E%3Cpath d='M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@500;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 for a more "lab" feel */
+            color: #e2e8f0;
+        }
+
+        .cyber-title {
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .scanline-text {
+            font-family: 'Orbitron', sans-serif;
+            position: relative;
+            display: inline-block;
+            background-image: repeating-linear-gradient(
+                0deg,
+                #1e3a8a,
+                #1e3a8a 2px,
+                #3b82f6 2px,
+                #3b82f6 4px
+            );
+            background-size: 100% 4px;
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .certificate-container {
+            background: white;
+            border: 20px solid #1e3a8a;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            color: #1f2937;
+            background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+        
+        .certificate-inner {
+            border: 2px solid #3b82f6;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .seal {
+            position: absolute;
+            bottom: 26px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 96px;
+            height: 96px;
+            background: linear-gradient(135deg, #ffd700, #daa520);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 900;
+            color: #8b6508;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4), inset 0 2px 5px rgba(255,255,255,0.6);
+            border: 2px solid #b8860b;
+            text-align: center;
+            line-height: 1.2;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .seal::after {
+            content: '';
+            position: absolute;
+            width: 86px;
+            height: 86px;
+            border-radius: 50%;
+            border: 1px dashed #8b6508;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Interactive Elements styling */
+        .interactive-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .interactive-card.selected {
+            border-color: #38bdf8;
+            background-color: rgba(56, 189, 248, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #475569;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
+
+    <nav class="w-full max-w-5xl flex items-center justify-between mb-4" aria-label="Site navigation">
+        <a href="index.html#bcc-classes" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-sky-400 text-amber-300 text-xs font-bold transition">
+            &larr; Back to Home
+        </a>
+        <span class="text-xs font-mono uppercase tracking-widest text-slate-400">BCC CBIS 13 &bull; Week 1</span>
+    </nav>
+
+    <header class="text-center mb-8 w-full max-w-5xl">
+        <h1 class="text-4xl md:text-5xl font-black mb-2 cyber-title">MIS AI Strategy Lab</h1>
+        <h2 class="text-xl text-slate-400 font-semibold">Executive Decision Simulator</h2>
+    </header>
+
+    <div class="w-full max-w-5xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden mb-10">
+        <div class="flex border-b border-slate-700 bg-slate-900 overflow-x-auto hide-scrollbar" id="tab-nav">
+            <button class="tab-btn active px-4 py-4 text-sm md:text-base text-sky-400 font-semibold border-b-2 border-sky-400 hover:bg-slate-800 transition whitespace-nowrap focus:outline-none flex-shrink-0" onclick="openTab('tab0', this)" id="btn-tab0">
+                <i class="fas fa-info-circle mr-2"></i> 0. Introduction
+            </button>
+            <button class="tab-btn px-4 py-4 text-sm md:text-base text-slate-500 font-semibold hover:bg-slate-800 transition whitespace-nowrap focus:outline-none flex-shrink-0" onclick="openTab('tab1', this)" id="btn-tab1" disabled>
+                <i class="fas fa-server mr-2"></i> 1. The IS Framework
+            </button>
+            <button class="tab-btn px-4 py-4 text-sm md:text-base text-slate-500 font-semibold hover:bg-slate-800 transition whitespace-nowrap focus:outline-none flex-shrink-0" onclick="openTab('tab2', this)" id="btn-tab2" disabled>
+                <i class="fas fa-chart-line mr-2"></i> 2. Productivity Paradox
+            </button>
+            <button class="tab-btn px-4 py-4 text-sm md:text-base text-slate-500 font-semibold hover:bg-slate-800 transition whitespace-nowrap focus:outline-none flex-shrink-0" onclick="openTab('tab3', this)" id="btn-tab3" disabled>
+                <i class="fas fa-link mr-2"></i> 3. Value Chain
+            </button>
+            <button class="tab-btn px-4 py-4 text-sm md:text-base text-slate-500 font-semibold hover:bg-slate-800 transition whitespace-nowrap focus:outline-none flex-shrink-0" onclick="openTab('tab4', this)" id="btn-tab4" disabled>
+                <i class="fas fa-chess-knight mr-2"></i> 4. Competitive Moat
+            </button>
+            <button class="tab-btn px-4 py-4 text-sm md:text-base text-slate-500 font-semibold hover:bg-slate-800 transition whitespace-nowrap focus:outline-none flex-shrink-0 hidden" onclick="openTab('tab5', this)" id="btn-tab5" disabled>
+                <i class="fas fa-certificate mr-2"></i> 5. Finalize
+            </button>
+        </div>
+
+        <div class="p-6 md:p-8">
+            <div id="tab0" class="tab-content active">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-white">Introduction: Executive Briefing</h3>
+                    <span class="bg-sky-500/20 text-sky-400 border border-sky-500/50 px-3 py-1 rounded-full text-sm font-bold">Orientation</span>
+                </div>
+                
+                <div class="bg-slate-700/50 border-l-4 border-sky-500 p-6 rounded-r-lg mb-6 shadow-inner">
+                    <h4 class="text-lg font-bold text-sky-400 mb-2"><i class="fas fa-id-badge mr-2"></i>Your Role</h4>
+                    <p class="text-slate-300 leading-relaxed mb-4">Welcome to the MIS AI Strategy Lab. In this simulation, you are stepping into the role of a Chief Information Officer (CIO) advising several major organizations.</p>
+                    <p class="text-slate-300 leading-relaxed mb-4">Your objective is to apply core concepts from your Week 1 studies to solve complex, real-world AI implementation dilemmas. You must successfully navigate four strategic crises to generate your completion certificate.</p>
+                    <ul class="list-disc list-inside text-slate-400 space-y-2 mt-4 ml-2">
+                        <li><strong>Crisis 1:</strong> Troubleshoot a failed AI Information System rollout.</li>
+                        <li><strong>Crisis 2:</strong> Solve the Productivity Paradox to achieve a positive ROI.</li>
+                        <li><strong>Crisis 3:</strong> Optimize Porter's Value Chain with predictive AI models.</li>
+                        <li><strong>Crisis 4:</strong> Build a sustainable Competitive Advantage (Moat).</li>
+                    </ul>
+                </div>
+
+                <div class="flex justify-end border-t border-slate-700 pt-6">
+                    <button class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-500 transition shadow-lg" onclick="advanceTab(1)">
+                        Acknowledge &amp; Start Simulation <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="tab1" class="tab-content">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-white">Crisis 1: The Drive-Thru Disaster</h3>
+                    <span class="bg-red-500/20 text-red-400 border border-red-500/50 px-3 py-1 rounded-full text-sm font-bold animate-pulse">System Failing</span>
+                </div>
+                
+                <div class="bg-slate-700/50 border-l-4 border-sky-500 p-6 rounded-r-lg mb-6 shadow-inner">
+                    <h4 class="text-lg font-bold text-sky-400 mb-2"><i class="fas fa-file-alt mr-2"></i>Briefing</h4>
+                    <p class="text-slate-300 leading-relaxed">Your fast-food chain just spent $2M installing state-of-the-art Generative AI order-takers. The <strong>Hardware</strong> (microphones/speakers) and <strong>Software</strong> (AI voice models) are working perfectly. However, order fulfillment times have tripled, and error rates are at 60%. The cooks in the kitchen don't understand the new format of the AI-generated order tickets on their screens, and the store managers are frustrated.</p>
+                </div>
+
+                <div class="mb-6">
+                    <p class="font-semibold text-slate-200 mb-4 text-lg">Action Required: You have budget for exactly TWO strategic interventions. Allocate them to the correct components of the Information System to fix the root cause.</p>
+                    
+                    <p class="text-sm text-sky-400 mb-4 font-mono">Interventions Remaining: <span id="m1-tokens" class="text-xl font-bold text-white">2</span></p>
+
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="m1-grid">
+                        <div class="interactive-card border-2 border-slate-600 rounded-xl p-4 text-center bg-slate-800" onclick="toggleM1('Hardware', this)">
+                            <i class="fas fa-microchip text-3xl text-slate-400 mb-2"></i>
+                            <h5 class="font-bold text-white">Hardware</h5>
+                            <p class="text-xs text-slate-400 mt-1">Upgrade servers &amp; mics</p>
+                        </div>
+                        <div class="interactive-card border-2 border-slate-600 rounded-xl p-4 text-center bg-slate-800" onclick="toggleM1('Software', this)">
+                            <i class="fas fa-code text-3xl text-slate-400 mb-2"></i>
+                            <h5 class="font-bold text-white">Software</h5>
+                            <p class="text-xs text-slate-400 mt-1">Patch AI voice models</p>
+                        </div>
+                        <div class="interactive-card border-2 border-slate-600 rounded-xl p-4 text-center bg-slate-800" onclick="toggleM1('Data', this)">
+                            <i class="fas fa-database text-3xl text-slate-400 mb-2"></i>
+                            <h5 class="font-bold text-white">Data</h5>
+                            <p class="text-xs text-slate-400 mt-1">Gather more audio logs</p>
+                        </div>
+                        <div class="interactive-card border-2 border-slate-600 rounded-xl p-4 text-center bg-slate-800" onclick="toggleM1('Procedures', this)">
+                            <i class="fas fa-clipboard-list text-3xl text-slate-400 mb-2"></i>
+                            <h5 class="font-bold text-white">Procedures</h5>
+                            <p class="text-xs text-slate-400 mt-1">Rewrite kitchen workflows</p>
+                        </div>
+                        <div class="interactive-card border-2 border-slate-600 rounded-xl p-4 text-center bg-slate-800 col-span-2 md:col-span-1" onclick="toggleM1('People', this)">
+                            <i class="fas fa-users text-3xl text-slate-400 mb-2"></i>
+                            <h5 class="font-bold text-white">People</h5>
+                            <p class="text-xs text-slate-400 mt-1">Train kitchen staff</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="m1-feedback" class="hidden rounded-lg p-4 mb-6 border"></div>
+                
+                <div class="flex justify-end border-t border-slate-700 pt-6">
+                    <button id="btn-deploy-m1" class="bg-sky-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-sky-500 transition shadow-lg mr-4" onclick="evaluateM1()">Deploy Fixes</button>
+                    <button id="complete-m1" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-bold transition shadow-lg hidden" onclick="advanceTab(2)">
+                        Next Challenge <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="tab2" class="tab-content">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-white">Crisis 2: The $5M Sinkhole</h3>
+                    <span class="bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 px-3 py-1 rounded-full text-sm font-bold">ROI Warning</span>
+                </div>
+                
+                <div class="bg-slate-700/50 border-l-4 border-yellow-500 p-6 rounded-r-lg mb-6 shadow-inner">
+                    <h4 class="text-lg font-bold text-yellow-400 mb-2"><i class="fas fa-truck-loading mr-2"></i>Briefing</h4>
+                    <p class="text-slate-300 leading-relaxed">Your logistics firm deployed a $5 million AI routing system. However, the system's impact on delivery times is ZERO. This is the classic <strong>Productivity Paradox</strong>. Investigation reveals that veteran drivers are ignoring the AI routes because they "know the roads better," and warehouse staff are loading boxes alphabetically instead of by the AI's route sequence.</p>
+                </div>
+
+                <div class="mb-6 bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <p class="font-semibold text-slate-200 mb-4 text-lg">Action Required: You have a $100k emergency correction budget. Adjust the sliders to allocate funds to break the paradox. The system will predict productivity based on your allocation.</p>
+                    
+                    <div class="mb-2 flex justify-between text-sm">
+                        <span class="text-slate-400">Total Allocated:</span>
+                        <span id="m2-total" class="font-bold text-yellow-400 font-mono">$0 / $100k</span>
+                    </div>
+                    <div class="w-full bg-slate-700 h-2 rounded-full mb-8">
+                        <div id="m2-bar" class="bg-yellow-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="flex justify-between text-slate-300 font-medium mb-2">
+                                <span><i class="fas fa-server text-sky-400 mr-2"></i>AI Algorithm Upgrades (Technology)</span>
+                                <span id="val-tech" class="font-mono text-sky-400">$0</span>
+                            </label>
+                            <input type="range" id="slider-tech" min="0" max="100" value="0" step="10" class="w-full" oninput="updateM2()">
+                        </div>
+                        <div>
+                            <label class="flex justify-between text-slate-300 font-medium mb-2">
+                                <span><i class="fas fa-users text-emerald-400 mr-2"></i>Driver Change Management (People)</span>
+                                <span id="val-people" class="font-mono text-emerald-400">$0</span>
+                            </label>
+                            <input type="range" id="slider-people" min="0" max="100" value="0" step="10" class="w-full" oninput="updateM2()">
+                        </div>
+                        <div>
+                            <label class="flex justify-between text-slate-300 font-medium mb-2">
+                                <span><i class="fas fa-box text-purple-400 mr-2"></i>Warehouse Workflow Redesign (Process)</span>
+                                <span id="val-process" class="font-mono text-purple-400">$0</span>
+                            </label>
+                            <input type="range" id="slider-process" min="0" max="100" value="0" step="10" class="w-full" oninput="updateM2()">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 bg-slate-900 rounded-lg p-4 text-center border border-slate-700">
+                        <p class="text-sm text-slate-400 uppercase tracking-widest mb-1">Projected ROI Status</p>
+                        <p id="m2-status" class="text-2xl font-black text-slate-500">AWAITING ALLOCATION</p>
+                    </div>
+                </div>
+
+                <div id="m2-feedback" class="hidden rounded-lg p-4 mb-6 border"></div>
+
+                <div class="flex justify-between border-t border-slate-700 pt-6">
+                    <button class="text-slate-500 hover:text-slate-300 font-medium" onclick="openTab('tab1', document.getElementById('btn-tab1'))"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                    <button id="btn-deploy-m2" class="bg-yellow-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-yellow-500 transition shadow-lg" onclick="evaluateM2()">Run Simulation</button>
+                    <button id="complete-m2" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-bold transition shadow-lg hidden" onclick="advanceTab(3)">
+                        Next Challenge <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="tab3" class="tab-content">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-white">Crisis 3: The Blizzard Supply Chain</h3>
+                    <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 px-3 py-1 rounded-full text-sm font-bold">Time Sensitive</span>
+                </div>
+                
+                <div class="bg-slate-700/50 border-l-4 border-emerald-500 p-6 rounded-r-lg mb-6 shadow-inner">
+                    <h4 class="text-lg font-bold text-emerald-400 mb-2"><i class="fas fa-snowflake mr-2"></i>Briefing</h4>
+                    <p class="text-slate-300 leading-relaxed">A massive blizzard is hitting the Northeast in exactly 72 hours. Your retail giant has a powerful Predictive Weather AI, but it needs to be integrated into the correct parts of your <strong>Value Chain</strong> to ensure winter coats are physically moved from national reserves into local stores before the storm hits.</p>
+                </div>
+
+                <div class="mb-6">
+                    <p class="font-semibold text-slate-200 mb-4 text-lg">Action Required: Select the TWO primary Value Chain activities where the AI agent must be deployed to physically move the inventory ahead of the storm.</p>
+                    
+                    <div class="flex flex-col md:flex-row justify-center gap-2 mb-8 mt-6">
+                        <!-- Value Chain Visualizer -->
+                        <div class="interactive-card flex-1 bg-slate-800 border-2 border-slate-700 rounded-lg p-3 text-center relative" onclick="toggleM3('Inbound Logistics', this)">
+                            <div class="text-xs text-slate-400 uppercase font-bold mb-1">Step 1</div>
+                            <div class="font-bold text-white">Inbound Logistics</div>
+                            <p class="text-[11px] text-slate-400 mt-2 leading-tight">Receiving, storing, and managing raw materials or goods from suppliers.</p>
+                        </div>
+                        <div class="hidden md:flex items-center text-slate-600"><i class="fas fa-chevron-right"></i></div>
+                        <div class="interactive-card flex-1 bg-slate-800 border-2 border-slate-700 rounded-lg p-3 text-center relative" onclick="toggleM3('Operations', this)">
+                            <div class="text-xs text-slate-400 uppercase font-bold mb-1">Step 2</div>
+                            <div class="font-bold text-white">Operations</div>
+                            <p class="text-[11px] text-slate-400 mt-2 leading-tight">Transforming inputs and resources into the final product or service.</p>
+                        </div>
+                        <div class="hidden md:flex items-center text-slate-600"><i class="fas fa-chevron-right"></i></div>
+                        <div class="interactive-card flex-1 bg-slate-800 border-2 border-slate-700 rounded-lg p-3 text-center relative" onclick="toggleM3('Outbound Logistics', this)">
+                            <div class="text-xs text-slate-400 uppercase font-bold mb-1">Step 3</div>
+                            <div class="font-bold text-white">Outbound Logistics</div>
+                            <p class="text-[11px] text-slate-400 mt-2 leading-tight">Distributing and delivering finished goods to stores or directly to customers.</p>
+                        </div>
+                        <div class="hidden md:flex items-center text-slate-600"><i class="fas fa-chevron-right"></i></div>
+                        <div class="interactive-card flex-1 bg-slate-800 border-2 border-slate-700 rounded-lg p-3 text-center relative" onclick="toggleM3('Marketing & Sales', this)">
+                            <div class="text-xs text-slate-400 uppercase font-bold mb-1">Step 4</div>
+                            <div class="font-bold text-white">Marketing &amp; Sales</div>
+                            <p class="text-[11px] text-slate-400 mt-2 leading-tight">Advertising, promoting, and facilitating customer purchases.</p>
+                        </div>
+                        <div class="hidden md:flex items-center text-slate-600"><i class="fas fa-chevron-right"></i></div>
+                        <div class="interactive-card flex-1 bg-slate-800 border-2 border-slate-700 rounded-lg p-3 text-center relative" onclick="toggleM3('Service', this)">
+                            <div class="text-xs text-slate-400 uppercase font-bold mb-1">Step 5</div>
+                            <div class="font-bold text-white">Service</div>
+                            <p class="text-[11px] text-slate-400 mt-2 leading-tight">Post-sale support, maintenance, and handling customer returns.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="m3-feedback" class="hidden rounded-lg p-4 mb-6 border"></div>
+
+                <div class="flex justify-between border-t border-slate-700 pt-6">
+                    <button class="text-slate-500 hover:text-slate-300 font-medium" onclick="openTab('tab2', document.getElementById('btn-tab2'))"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                    <button id="btn-deploy-m3" class="bg-emerald-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-emerald-500 transition shadow-lg" onclick="evaluateM3()">Inject AI Agent</button>
+                    <button id="complete-m3" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-bold transition shadow-lg hidden" onclick="advanceTab(4)">
+                        Next Challenge <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="tab4" class="tab-content">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-white">Crisis 4: Building the Moat</h3>
+                    <span class="bg-purple-500/20 text-purple-400 border border-purple-500/50 px-3 py-1 rounded-full text-sm font-bold">Strategy</span>
+                </div>
+                
+                <div class="bg-slate-700/50 border-l-4 border-purple-500 p-6 rounded-r-lg mb-6 shadow-inner">
+                    <h4 class="text-lg font-bold text-purple-400 mb-2"><i class="fas fa-tractor mr-2"></i>Briefing</h4>
+                    <p class="text-slate-300 leading-relaxed">You are the CEO of a modern tractor company. Competitors are undercutting your hardware prices. You need to achieve a long-term <strong>Competitive Advantage</strong> using AI so that once a farmer buys your tractor, it becomes mathematically/operationally painful for them to switch to a competitor next season.</p>
+                </div>
+
+                <div class="mb-6">
+                    <p class="font-semibold text-slate-200 mb-4 text-lg">Action Required: Approve the product roadmap feature that successfully establishes "High Switching Costs" (Locking in the buyer).</p>
+                    
+                    <div class="space-y-3" id="m4-options">
+                        <label class="flex items-start p-4 border border-slate-600 bg-slate-800 rounded-lg hover:bg-slate-700 cursor-pointer transition">
+                            <input type="radio" name="m4" value="wrong1" class="mt-1 h-5 w-5 accent-purple-500">
+                            <span class="ml-3 text-slate-200">Lower the price of replacement parts using AI supply chain optimization.</span>
+                        </label>
+                        <label class="flex items-start p-4 border border-slate-600 bg-slate-800 rounded-lg hover:bg-slate-700 cursor-pointer transition">
+                            <input type="radio" name="m4" value="correct" class="mt-1 h-5 w-5 accent-purple-500">
+                            <span class="ml-3 text-slate-200">Build an AI soil-mapping OS that only interfaces with your tractors, holding years of the farmer's historical crop yield data.</span>
+                        </label>
+                        <label class="flex items-start p-4 border border-slate-600 bg-slate-800 rounded-lg hover:bg-slate-700 cursor-pointer transition">
+                            <input type="radio" name="m4" value="wrong2" class="mt-1 h-5 w-5 accent-purple-500">
+                            <span class="ml-3 text-slate-200">Open-source your AI algorithms so farmers can use them on any competitor's tractor.</span>
+                        </label>
+                        <label class="flex items-start p-4 border border-slate-600 bg-slate-800 rounded-lg hover:bg-slate-700 cursor-pointer transition">
+                            <input type="radio" name="m4" value="wrong3" class="mt-1 h-5 w-5 accent-purple-500">
+                            <span class="ml-3 text-slate-200">Run an AI-generated marketing campaign to re-brand the tractors.</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="m4-feedback" class="hidden rounded-lg p-4 mb-6 border"></div>
+
+                <div class="flex justify-between border-t border-slate-700 pt-6">
+                    <button class="text-slate-500 hover:text-slate-300 font-medium" onclick="openTab('tab3', document.getElementById('btn-tab3'))"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                    <button id="btn-deploy-m4" class="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-500 transition shadow-lg" onclick="evaluateM4()">Approve Roadmap</button>
+                    <button id="complete-m4" class="bg-gradient-to-r from-sky-500 to-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:from-sky-400 hover:to-indigo-500 transition shadow-lg hidden animate-pulse" onclick="unlockCertification()">
+                        Generate Report <i class="fas fa-flag-checkered ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="tab5" class="tab-content">
+                <div id="form-container" class="max-w-xl mx-auto text-center py-10">
+                    <i class="fas fa-shield-halved text-6xl text-sky-400 mb-6 drop-shadow-[0_0_15px_rgba(56,189,248,0.5)]"></i>
+                    <h3 class="text-3xl font-bold mb-4 text-white">Simulation Complete</h3>
+                    <p class="mb-8 text-slate-400 text-lg">Strategic objectives achieved. Enter your official identifier below to cryptographically sign and generate your completion certificate.</p>
+                    
+                    <div class="bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-xl text-left">
+                        <label for="studentName" class="block text-sm font-semibold text-slate-300 mb-2 uppercase tracking-wider">Student Full Name</label>
+                        <input type="text" id="studentName" class="w-full px-4 py-3 rounded-lg border border-slate-600 bg-slate-900 text-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition shadow-inner text-lg outline-none" placeholder="e.g., Jane Doe">
+                        
+                        <button onclick="generateCertificate()" class="w-full mt-6 bg-gradient-to-r from-sky-500 to-indigo-600 text-white px-6 py-4 rounded-lg font-bold text-lg hover:from-sky-400 hover:to-indigo-500 transition shadow-lg flex items-center justify-center group">
+                            Generate Secure Certificate <i class="fas fa-lock ml-2 group-hover:text-sky-200 transition"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="tab6" class="tab-content">
+                <div class="certificate-container mx-auto" id="printable-cert" style="max-width: 900px;">
+                    <div class="certificate-inner bg-white bg-opacity-95">
+                        <div class="mb-6">
+                            <h1 class="text-3xl md:text-4xl font-serif text-gray-800 uppercase tracking-widest border-b-2 border-gray-300 pb-4 inline-block">Certificate of Completion</h1>
+                        </div>
+                        
+                        <p class="text-gray-600 text-xl mb-4 italic">This acknowledges that</p>
+                        
+                        <div class="my-8">
+                            <h2 id="certNameDisplay" class="text-5xl md:text-6xl font-black scanline-text py-2 tracking-wide uppercase">STUDENT NAME</h2>
+                        </div>
+                        
+                        <p class="text-gray-700 text-lg mb-10 max-w-2xl mx-auto leading-relaxed">
+                            Has successfully completed the interactive laboratory simulation for<br>
+                            <span class="font-bold text-xl text-blue-900 block mt-2">Management Information Systems</span>
+                            <span class="font-bold text-gray-800">Week 1: AI Strategy Simulation</span>
+                        </p>
+                        
+                        <div class="flex flex-col md:flex-row justify-between items-end mt-12 px-4 md:px-10">
+                            <div class="text-left w-full md:w-auto mb-6 md:mb-0">
+                                <p class="font-bold text-gray-800 border-b border-gray-400 pb-1 text-sm md:text-base" id="certDateDisplay">Date</p>
+                                <p class="text-xs text-gray-500 uppercase mt-1 tracking-wider">Official Timestamp</p>
+                            </div>
+                            <div class="text-right w-full md:w-auto">
+                                <p class="font-bold text-gray-800 border-b border-gray-400 pb-1 italic text-lg" style="font-family: 'Brush Script MT', cursive;">Timothy Brinkley</p>
+                                <p class="text-xs text-gray-800 font-semibold uppercase mt-1">Instructor of Record</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="seal">
+                        BCC
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-sky-900/30 border border-sky-700 p-6 rounded-lg text-center max-w-3xl mx-auto">
+                    <h4 class="font-bold text-sky-400 text-lg mb-2"><i class="fas fa-camera mr-2"></i>Submission Instructions</h4>
+                    <p class="text-slate-300">Please take a screenshot of this entire certificate and attach it into the correct Instructure Canvas assignment for your Week 1 Lab credit.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            m1Selections: [],
+            m3Selections: [],
+            completed: { 1: false, 2: false, 3: false, 4: false }
+        };
+
+        // --- Tab Navigation Logic ---
+        function openTab(tabId, btnElement) {
+            if (btnElement.disabled) return;
+
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+
+            const tabBtns = document.getElementsByClassName("tab-btn");
+            for (let i = 0; i < tabBtns.length; i++) {
+                tabBtns[i].classList.remove("text-sky-400", "border-b-2", "border-sky-400");
+                tabBtns[i].classList.add("text-slate-500");
+            }
+
+            document.getElementById(tabId).classList.add("active");
+            
+            btnElement.classList.remove("text-slate-500");
+            btnElement.classList.add("text-sky-400", "border-b-2", "border-sky-400");
+        }
+
+        function advanceTab(nextModuleNum) {
+            const nextBtn = document.getElementById(`btn-tab${nextModuleNum}`);
+            nextBtn.disabled = false;
+            openTab(`tab${nextModuleNum}`, nextBtn);
+        }
+
+        // --- Module 1 Logic (5 Components) ---
+        function toggleM1(component, el) {
+            if (state.completed[1]) return; // locked if done
+            
+            const index = state.m1Selections.indexOf(component);
+            if (index > -1) {
+                state.m1Selections.splice(index, 1);
+                el.classList.remove('selected', 'border-sky-400');
+                el.classList.add('border-slate-600');
+            } else {
+                if (state.m1Selections.length < 2) {
+                    state.m1Selections.push(component);
+                    el.classList.add('selected', 'border-sky-400');
+                    el.classList.remove('border-slate-600');
+                }
+            }
+            document.getElementById('m1-tokens').innerText = 2 - state.m1Selections.length;
+        }
+
+        function evaluateM1() {
+            const feedback = document.getElementById('m1-feedback');
+            const btnDeploy = document.getElementById('btn-deploy-m1');
+            const btnNext = document.getElementById('complete-m1');
+
+            if (state.m1Selections.length !== 2) {
+                showFeedback(feedback, 'error', 'You must allocate exactly 2 intervention tokens before deploying.');
+                return;
+            }
+
+            if (state.m1Selections.includes('People') && state.m1Selections.includes('Procedures')) {
+                showFeedback(feedback, 'success', 'Excellent. By rewriting the workflows (Procedures) and training the staff (People), the IS ecosystem stabilizes. Error rates drop to 2%.');
+                btnDeploy.style.display = 'none';
+                btnNext.style.display = 'inline-flex';
+                state.completed[1] = true;
+            } else {
+                showFeedback(feedback, 'error', 'Failure. You threw more tech/data at a human problem. The software works, but the staff still doesn\'t know how to read the tickets or execute the tasks. Re-allocate.');
+            }
+        }
+
+        // --- Module 2 Logic (Productivity Paradox) ---
+        function updateM2() {
+            const t = parseInt(document.getElementById('slider-tech').value) * 1000;
+            const p = parseInt(document.getElementById('slider-people').value) * 1000;
+            const r = parseInt(document.getElementById('slider-process').value) * 1000;
+            
+            const total = t + p + r;
+            document.getElementById('val-tech').innerText = '$' + (t/1000) + 'k';
+            document.getElementById('val-people').innerText = '$' + (p/1000) + 'k';
+            document.getElementById('val-process').innerText = '$' + (r/1000) + 'k';
+            
+            const totalEl = document.getElementById('m2-total');
+            totalEl.innerText = `$${total/1000}k / $100k`;
+            
+            const bar = document.getElementById('m2-bar');
+            bar.style.width = (total/1000) + '%';
+            
+            if (total > 100000) {
+                totalEl.classList.add('text-red-500');
+                totalEl.classList.remove('text-yellow-400');
+                bar.classList.add('bg-red-500');
+                bar.classList.remove('bg-yellow-500', 'bg-emerald-500');
+            } else {
+                totalEl.classList.remove('text-red-500');
+                totalEl.classList.add('text-yellow-400');
+                bar.classList.remove('bg-red-500');
+                bar.classList.add(total === 100000 ? 'bg-emerald-500' : 'bg-yellow-500');
+            }
+
+            // Live ROI Calculation
+            const status = document.getElementById('m2-status');
+            if (total === 0) {
+                status.innerText = "AWAITING ALLOCATION";
+                status.className = "text-2xl font-black text-slate-500";
+            } else if (total > 100000) {
+                status.innerText = "BUDGET EXCEEDED";
+                status.className = "text-2xl font-black text-red-500";
+            } else {
+                status.innerText = "SIMULATING...";
+                status.className = "text-2xl font-black text-sky-400 animate-pulse";
+            }
+        }
+
+        function evaluateM2() {
+            const t = parseInt(document.getElementById('slider-tech').value) * 1000;
+            const p = parseInt(document.getElementById('slider-people').value) * 1000;
+            const r = parseInt(document.getElementById('slider-process').value) * 1000;
+            const total = t + p + r;
+            
+            const feedback = document.getElementById('m2-feedback');
+            const status = document.getElementById('m2-status');
+            const btnDeploy = document.getElementById('btn-deploy-m2');
+            const btnNext = document.getElementById('complete-m2');
+
+            if (total !== 100000) {
+                showFeedback(feedback, 'error', 'You must allocate exactly $100k to run the simulation.');
+                status.innerText = "INVALID BUDGET";
+                status.className = "text-2xl font-black text-red-500";
+                return;
+            }
+
+            // Win condition: Must prioritize people/process over tech to fix a paradox
+            if (p >= 30000 && r >= 30000 && t <= 40000) {
+                showFeedback(feedback, 'success', 'Success! By investing heavily in change management and redesigning the warehouse workflows to match the AI, the drivers and loaders adopted the system. Productivity spiked by 40%.');
+                status.innerText = "+40% ROI (PARADOX BROKEN)";
+                status.className = "text-2xl font-black text-emerald-400";
+                btnDeploy.style.display = 'none';
+                btnNext.style.display = 'inline-flex';
+                state.completed[2] = true;
+                
+                // Lock sliders
+                ['tech', 'people', 'process'].forEach(id => document.getElementById(`slider-${id}`).disabled = true);
+            } else {
+                showFeedback(feedback, 'error', 'Paradox remains. If you dump money into tech without aggressively funding workflow redesign and driver buy-in, the technology sits unused. Rebalance away from Technology.');
+                status.innerText = "NEGATIVE ROI";
+                status.className = "text-2xl font-black text-red-500";
+            }
+        }
+
+        // --- Module 3 Logic (Value Chain) ---
+        function toggleM3(activity, el) {
+            if (state.completed[3]) return;
+            
+            const index = state.m3Selections.indexOf(activity);
+            if (index > -1) {
+                state.m3Selections.splice(index, 1);
+                el.classList.remove('selected', 'border-sky-400', 'bg-sky-900/30');
+            } else {
+                if (state.m3Selections.length < 2) {
+                    state.m3Selections.push(activity);
+                    el.classList.add('selected', 'border-sky-400', 'bg-sky-900/30');
+                }
+            }
+        }
+
+        function evaluateM3() {
+            const feedback = document.getElementById('m3-feedback');
+            const btnDeploy = document.getElementById('btn-deploy-m3');
+            const btnNext = document.getElementById('complete-m3');
+
+            if (state.m3Selections.length !== 2) {
+                showFeedback(feedback, 'error', 'You must select exactly TWO activities to inject the AI agent.');
+                return;
+            }
+
+            if (state.m3Selections.includes('Inbound Logistics') && state.m3Selections.includes('Outbound Logistics')) {
+                showFeedback(feedback, 'success', 'Strategic execution! The AI predicted the weather, sped up receipt of goods from suppliers (Inbound), and immediately routed trucks to regional stores (Outbound). Shelves are stocked, competitors are empty.');
+                btnDeploy.style.display = 'none';
+                btnNext.style.display = 'inline-flex';
+                state.completed[3] = true;
+            } else {
+                showFeedback(feedback, 'error', 'Logistics Failure. While Service and Marketing are important, they don\'t physically move the coats. The coats are trapped in central distribution while the blizzard hits.');
+            }
+        }
+
+        // --- Module 4 Logic (Competitive Advantage) ---
+        function evaluateM4() {
+            const radios = document.getElementsByName('m4');
+            let selectedValue = null;
+            let selectedLabel = null;
+            
+            for (let radio of radios) {
+                if (radio.checked) {
+                    selectedValue = radio.value;
+                    selectedLabel = radio.closest('label');
+                    break;
+                }
+            }
+
+            const feedback = document.getElementById('m4-feedback');
+            const btnDeploy = document.getElementById('btn-deploy-m4');
+            const btnNext = document.getElementById('complete-m4');
+
+            if (!selectedValue) {
+                showFeedback(feedback, 'error', 'Please select a roadmap feature to approve.');
+                return;
+            }
+
+            // Reset borders
+            document.querySelectorAll('#m4-options label').forEach(l => {
+                l.classList.remove('border-emerald-500', 'border-red-500', 'bg-emerald-900/20', 'bg-red-900/20');
+                l.classList.add('border-slate-600');
+            });
+
+            if (selectedValue === 'correct') {
+                selectedLabel.classList.remove('border-slate-600');
+                selectedLabel.classList.add('border-emerald-500', 'bg-emerald-900/20');
+                showFeedback(feedback, 'success', 'Brilliant. By tightly coupling proprietary software data with the hardware, the farmer loses their historical crop data if they switch brands. You have created extremely high switching costs.');
+                btnDeploy.style.display = 'none';
+                btnNext.style.display = 'inline-flex';
+                state.completed[4] = true;
+            } else {
+                selectedLabel.classList.remove('border-slate-600');
+                selectedLabel.classList.add('border-red-500', 'bg-red-900/20');
+                showFeedback(feedback, 'error', 'Flawed strategy. Price drops are easily copied. Open-sourcing removes your moat entirely. Marketing doesn\'t lock a user into your ecosystem technically.');
+            }
+        }
+
+        // --- Utility ---
+        function showFeedback(el, type, message) {
+            el.classList.remove('hidden', 'bg-red-900/30', 'border-red-500', 'text-red-400', 'bg-emerald-900/30', 'border-emerald-500', 'text-emerald-400');
+            
+            if (type === 'error') {
+                el.classList.add('bg-red-900/30', 'border-red-500', 'text-red-400');
+                el.innerHTML = `<p class="font-bold"><i class="fas fa-exclamation-triangle mr-2"></i> ERROR</p><p class="text-sm mt-1 text-slate-300">${message}</p>`;
+            } else {
+                el.classList.add('bg-emerald-900/30', 'border-emerald-500', 'text-emerald-400');
+                el.innerHTML = `<p class="font-bold"><i class="fas fa-check-circle mr-2"></i> SUCCESS</p><p class="text-sm mt-1 text-slate-300">${message}</p>`;
+            }
+        }
+
+        function unlockCertification() {
+            if (!state.completed[4]) return;
+            const btn5 = document.getElementById('btn-tab5');
+            btn5.classList.remove('hidden');
+            btn5.disabled = false;
+            openTab('tab5', btn5);
+        }
+
+        function generateCertificate() {
+            const nameInput = document.getElementById('studentName').value.trim();
+            
+            if (!nameInput) {
+                alert("Identifier missing. Please enter your name to sign the certificate.");
+                document.getElementById('studentName').focus();
+                return;
+            }
+
+            // Hide Nav
+            document.getElementById('tab-nav').style.display = 'none';
+            document.querySelector('header h2').innerText = "Simulation Finalized";
+
+            // Show Cert Tab
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+            document.getElementById('tab6').classList.add("active");
+
+            // Set Data
+            document.getElementById('certNameDisplay').innerText = nameInput;
+
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateStr = now.toLocaleDateString('en-US', dateOptions);
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short' });
+            
+            document.getElementById('certDateDisplay').innerHTML = `${dateStr}<br><span class="text-sm font-normal text-gray-600 block mt-1">${timeStr}</span>`;
+        }
+
+        // Add event listener for Enter key on the name input
+        document.getElementById('studentName').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                generateCertificate();
+            }
+        });
+    </script>
+</body>
+</html>

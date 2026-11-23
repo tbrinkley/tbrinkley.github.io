@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBIS 15 Ch. 8: QAM Phase Shift Audio Demo | Barstow Community College</title>
+  <meta name="description" content="Interactive CBIS 15 Chapter 8 Web Audio QAM Phase Shift Demo for Barstow Community College: hear and visualize 440Hz In-Phase (I) sine and 90-degree Quadrature (Q) cosine wave constructive interference.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2'/%3E%3C/svg%3E">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React 18 & Babel Standalone (zero-build browser JSX runtime) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Analytics 4 (EDDI) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+  <script src="js/analytics.js"></script>
+</head>
+<body class="bg-slate-50">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Inline Lucide-compatible 24x24 SVG Icon Components
+    const createIcon = (children) => ({ className = "w-4 h-4", ...props }) => (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        aria-hidden="true"
+        {...props}
+      >
+        {children}
+      </svg>
+    );
+
+    const Play = createIcon(<polygon points="6 3 20 12 6 21 6 3" />);
+    const Square = createIcon(<rect width="18" height="18" x="3" y="3" rx="2" />);
+    const Volume2 = createIcon(<>
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </>);
+    const Activity = createIcon(<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />);
+    const Info = createIcon(<>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </>);
+
+    function App() {
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [activeMode, setActiveMode] = useState(null); // 'I', 'Q', 'MIX', 'SEQ'
+      const [statusText, setStatusText] = useState('Ready to play');
+      
+      const isPlayingRef = useRef(false);
+      const sequenceIdRef = useRef(0);
+      const audioCtxRef = useRef(null);
+      const oscIRef = useRef(null);
+      const oscQRef = useRef(null);
+      const gainIRef = useRef(null);
+      const gainQRef = useRef(null);
+      const masterGainRef = useRef(null);
+      const analyserRef = useRef(null);
+      const canvasRef = useRef(null);
+      const animationRef = useRef(null);
+
+      // Initialize Web Audio API
+      const initAudio = () => {
+        if (!audioCtxRef.current) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          audioCtxRef.current = new Ctx();
+          
+          // Create master gain to prevent clipping
+          masterGainRef.current = audioCtxRef.current.createGain();
+          masterGainRef.current.gain.value = 0.3; // Lower volume for safety
+          
+          // Create Analyser for visualization
+          analyserRef.current = audioCtxRef.current.createAnalyser();
+          analyserRef.current.fftSize = 2048;
+          
+          masterGainRef.current.connect(analyserRef.current);
+          analyserRef.current.connect(audioCtxRef.current.destination);
+        }
+        
+        if (audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume();
+        }
+      };
+
+      const setupOscillators = () => {
+        if (oscIRef.current) { try { oscIRef.current.stop(); } catch (_) {} }
+        if (oscQRef.current) { try { oscQRef.current.stop(); } catch (_) {} }
+
+        const ctx = audioCtxRef.current;
+        
+        // In-Phase Wave (Standard Sine)
+        oscIRef.current = ctx.createOscillator();
+        const realI = new Float32Array([0, 0]); 
+        const imagI = new Float32Array([0, 1]); // Sine
+        const waveI = ctx.createPeriodicWave(realI, imagI);
+        oscIRef.current.setPeriodicWave(waveI);
+        oscIRef.current.frequency.value = 440; // 440 Hz
+
+        // Quadrature Wave (90-degree shifted Sine = Cosine)
+        oscQRef.current = ctx.createOscillator();
+        const realQ = new Float32Array([0, 1]); // Cosine
+        const imagQ = new Float32Array([0, 0]);
+        const waveQ = ctx.createPeriodicWave(realQ, imagQ);
+        oscQRef.current.setPeriodicWave(waveQ);
+        oscQRef.current.frequency.value = 440; // 440 Hz
+
+        // Independent volume controls
+        gainIRef.current = ctx.createGain();
+        gainQRef.current = ctx.createGain();
+        gainIRef.current.gain.value = 0;
+        gainQRef.current.gain.value = 0;
+
+        oscIRef.current.connect(gainIRef.current);
+        oscQRef.current.connect(gainQRef.current);
+        gainIRef.current.connect(masterGainRef.current);
+        gainQRef.current.connect(masterGainRef.current);
+
+        oscIRef.current.start();
+        oscQRef.current.start();
+      };
+
+      const stopAudio = () => {
+        isPlayingRef.current = false;
+        sequenceIdRef.current += 1;
+        if (audioCtxRef.current && gainIRef.current) {
+          gainIRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.05);
+        }
+        if (audioCtxRef.current && gainQRef.current) {
+          gainQRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.05);
+        }
+        setIsPlaying(false);
+        setActiveMode(null);
+        setStatusText('Stopped');
+        
+        // Capture current oscillator refs so we only stop these instances
+        const oldI = oscIRef.current;
+        const oldQ = oscQRef.current;
+        oscIRef.current = null;
+        oscQRef.current = null;
+
+        setTimeout(() => {
+          if (oldI) { try { oldI.stop(); } catch (_) {} }
+          if (oldQ) { try { oldQ.stop(); } catch (_) {} }
+        }, 100);
+      };
+
+      const playMode = (mode) => {
+        initAudio();
+        setupOscillators();
+        sequenceIdRef.current += 1;
+        isPlayingRef.current = true;
+        setIsPlaying(true);
+        setActiveMode(mode);
+        
+        const t = audioCtxRef.current.currentTime;
+        
+        if (mode === 'I') {
+          gainIRef.current.gain.setTargetAtTime(1, t, 0.05);
+          gainQRef.current.gain.setTargetAtTime(0, t, 0.05);
+          setStatusText('Playing: Base Wave (In-Phase)');
+        } else if (mode === 'Q') {
+          gainIRef.current.gain.setTargetAtTime(0, t, 0.05);
+          gainQRef.current.gain.setTargetAtTime(1, t, 0.05);
+          setStatusText('Playing: 90° Shifted Wave (Quadrature)');
+        } else if (mode === 'MIX') {
+          gainIRef.current.gain.setTargetAtTime(1, t, 0.05);
+          gainQRef.current.gain.setTargetAtTime(1, t, 0.05);
+          setStatusText('Playing: Combined Mixed Wave (Notice it is louder!)');
+        }
+      };
+
+      const runSequence = async () => {
+        initAudio();
+        setupOscillators();
+        const seqId = ++sequenceIdRef.current;
+        isPlayingRef.current = true;
+        setIsPlaying(true);
+        setActiveMode('SEQ');
+        
+        const ctx = audioCtxRef.current;
+        
+        // Step 1: Base Wave
+        setStatusText('Sequence: Playing Base Wave (3 seconds)');
+        gainIRef.current.gain.setTargetAtTime(1, ctx.currentTime, 0.05);
+        gainQRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+        
+        await new Promise(r => setTimeout(r, 3000));
+        if (!isPlayingRef.current || sequenceIdRef.current !== seqId) return;
+        
+        // Step 2: Silence
+        setStatusText('Sequence: Silence (1 second)');
+        gainIRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+        
+        await new Promise(r => setTimeout(r, 1000));
+        if (!isPlayingRef.current || sequenceIdRef.current !== seqId) return;
+        
+        // Step 3: Mixed Wave
+        setStatusText('Sequence: Playing Combined Mixed Wave (3 seconds)');
+        gainIRef.current.gain.setTargetAtTime(1, ctx.currentTime, 0.05);
+        gainQRef.current.gain.setTargetAtTime(1, ctx.currentTime, 0.05);
+        
+        await new Promise(r => setTimeout(r, 3000));
+        if (!isPlayingRef.current || sequenceIdRef.current !== seqId) return;
+        
+        stopAudio();
+        setStatusText('Sequence: Complete');
+      };
+
+      // Visualizer drawing function
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        const canvasCtx = canvas.getContext('2d');
+        
+        const draw = () => {
+          animationRef.current = requestAnimationFrame(draw);
+          
+          // Default flat line if no audio
+          if (!analyserRef.current || !isPlaying) {
+            canvasCtx.fillStyle = 'rgb(15, 23, 42)'; // tailwind slate-900
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeStyle = 'rgb(71, 85, 105)'; // tailwind slate-600
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, canvas.height / 2);
+            canvasCtx.lineTo(canvas.width, canvas.height / 2);
+            canvasCtx.stroke();
+            return;
+          }
+
+          const bufferLength = analyserRef.current.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyserRef.current.getByteTimeDomainData(dataArray);
+
+          canvasCtx.fillStyle = 'rgb(15, 23, 42)';
+          canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+          canvasCtx.lineWidth = 3;
+          
+          // Color changes based on mode
+          if (activeMode === 'I') canvasCtx.strokeStyle = 'rgb(59, 130, 246)'; // Blue
+          else if (activeMode === 'Q') canvasCtx.strokeStyle = 'rgb(239, 68, 68)'; // Red
+          else canvasCtx.strokeStyle = 'rgb(168, 85, 247)'; // Purple for mix/seq
+
+          canvasCtx.beginPath();
+          
+          // Zoom in on the wave across the full canvas width to make the phase visible
+          const samplesToDraw = bufferLength / 4;
+          const sliceWidth = canvas.width / (samplesToDraw - 1);
+          let x = 0;
+
+          for (let i = 0; i < samplesToDraw; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = v * (canvas.height / 2);
+
+            if (i === 0) canvasCtx.moveTo(x, y);
+            else canvasCtx.lineTo(x, y);
+
+            x += sliceWidth;
+          }
+          canvasCtx.stroke();
+        };
+
+        draw();
+
+        return () => {
+          cancelAnimationFrame(animationRef.current);
+        };
+      }, [isPlaying, activeMode]);
+
+      // Cleanup on unmount
+      useEffect(() => {
+        return () => {
+          isPlayingRef.current = false;
+          if (audioCtxRef.current) {
+            audioCtxRef.current.close();
+          }
+        };
+      }, []);
+
+      return (
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+          {/* Back to Home Bar */}
+          <div className="max-w-2xl w-full mb-3 flex items-center justify-between gap-2">
+            <a
+              href="index.html#bcc-classes"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 text-xs font-bold shadow-sm transition"
+            >
+              ← Back to Home
+            </a>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-slate-500">
+              BCC CBIS 15 • Ch. 8 • Audio Demo
+            </span>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden border border-slate-200">
+            {/* Header */}
+            <div className="bg-slate-900 p-6 text-white text-center">
+              <Activity className="w-12 h-12 mx-auto mb-3 text-blue-400" />
+              <h1 className="text-2xl font-bold">QAM Waveform Simulator</h1>
+              <p className="text-slate-400 mt-2">Hear and see how phase-shifted waves combine</p>
+            </div>
+
+            {/* Visualizer Display */}
+            <div className="bg-slate-900 border-t border-b border-slate-800 p-4">
+              <canvas 
+                ref={canvasRef} 
+                width="600" 
+                height="150" 
+                className="w-full h-32 rounded-lg bg-slate-900"
+              ></canvas>
+              <div className="flex justify-between text-xs text-slate-500 mt-2 px-2 uppercase tracking-wide font-semibold">
+                <span>Amplitude (Volume)</span>
+                <span>Time (Phase)</span>
+              </div>
+            </div>
+
+            <div className="p-8">
+              {/* Status Monitor */}
+              <div className="bg-slate-100 rounded-lg p-4 mb-8 flex items-center justify-between border border-slate-200">
+                <div className="flex items-center">
+                  <Volume2 className={`w-5 h-5 mr-3 ${isPlaying ? 'text-blue-500 animate-pulse' : 'text-slate-400'}`} />
+                  <span className="font-mono text-sm text-slate-700 font-medium">{statusText}</span>
+                </div>
+                {isPlaying && (
+                  <button 
+                    onClick={stopAudio}
+                    className="bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-md transition-colors"
+                    title="Stop Audio"
+                  >
+                    <Square className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <button 
+                  onClick={() => playMode('I')}
+                  disabled={isPlaying && activeMode === 'SEQ'}
+                  className="flex flex-col items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl border border-blue-200 transition-colors disabled:opacity-50"
+                >
+                  <span className="font-bold mb-1">Play I-Wave Only</span>
+                  <span className="text-xs text-blue-600">Standard 440Hz Sine Wave</span>
+                </button>
+                
+                <button 
+                  onClick={() => playMode('Q')}
+                  disabled={isPlaying && activeMode === 'SEQ'}
+                  className="flex flex-col items-center justify-center p-4 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl border border-red-200 transition-colors disabled:opacity-50"
+                >
+                  <span className="font-bold mb-1">Play Q-Wave Only</span>
+                  <span className="text-xs text-red-600">Shifted by 90 Degrees</span>
+                </button>
+
+                <button 
+                  onClick={() => playMode('MIX')}
+                  disabled={isPlaying && activeMode === 'SEQ'}
+                  className="md:col-span-2 flex flex-col items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl border border-purple-200 transition-colors disabled:opacity-50"
+                >
+                  <span className="font-bold mb-1">Play Combined Mix (I + Q)</span>
+                  <span className="text-xs text-purple-600">Notice the amplitude increases due to constructive interference</span>
+                </button>
+              </div>
+
+              <hr className="border-slate-200 mb-8" />
+
+              {/* Automated Sequence */}
+              <div className="text-center">
+                <button 
+                  onClick={isPlaying ? stopAudio : runSequence}
+                  className={`inline-flex items-center px-6 py-3 rounded-full font-bold text-white transition-transform active:scale-95 shadow-md ${
+                    isPlaying 
+                    ? 'bg-red-500 hover:bg-red-600' 
+                    : 'bg-slate-900 hover:bg-slate-800'
+                  }`}
+                >
+                  {isPlaying ? (
+                    <><Square className="w-5 h-5 mr-2" /> Stop Simulation</>
+                  ) : (
+                    <><Play className="w-5 h-5 mr-2" /> Run 3-Part Audio Sequence</>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Footer Info */}
+            <div className="bg-slate-50 p-4 border-t border-slate-200 text-xs text-slate-500 flex items-start">
+              <Info className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
+              <p>
+                When two identical waves are 90 degrees out of phase, they do not cancel out. Instead, they merge into a single wave that has a <strong>41.4% higher amplitude</strong>. Your ear interprets this strictly as an increase in volume, while a Wi-Fi router reads this as a specific QAM symbol state!
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

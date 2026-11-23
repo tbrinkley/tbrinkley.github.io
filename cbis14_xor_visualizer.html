@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 14: XOR Bitwise Visualization | Barstow Community College</title>
+    <meta name="description" content="Interactive CBIS 14 cybersecurity lab for Barstow Community College visualizing bitwise XOR known-plaintext key recovery alongside an interactive Bitwise Operators Guide.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 15 6-8 6 8'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
+        .font-mono { font-family: 'Fira Code', monospace; }
+        .bit-box { transition: all 0.2s ease; }
+        .bit-col:hover .bit-box { transform: scale(1.1); z-index: 10; box-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
+    </style>
+</head>
+<body class="bg-slate-950 flex flex-col items-center justify-center min-h-screen p-4 text-slate-200">
+
+    <!-- Back to Home Strip -->
+    <div class="max-w-4xl w-full mb-3 flex items-center justify-between gap-2">
+        <a href="index.html#bcc-classes" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-300 text-xs font-bold shadow-sm transition">
+            &larr; Back to Home
+        </a>
+        <span class="text-[11px] font-mono font-bold uppercase tracking-widest text-slate-400">
+            BCC CBIS 14 &bull; Bitwise Crypto Lab
+        </span>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl max-w-4xl w-full">
+        
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-slate-700 mb-8">
+            <button onclick="switchTab('calc')" id="btn-calc" class="px-6 py-3 text-sky-400 border-b-2 border-sky-400 font-bold hover:bg-slate-800/50 transition-colors">XOR Calculator</button>
+            <button onclick="switchTab('guide')" id="btn-guide" class="px-6 py-3 text-slate-400 border-b-2 border-transparent font-bold hover:bg-slate-800/50 transition-colors hover:text-slate-200">Operators Guide</button>
+        </div>
+
+        <!-- Calculator Tab -->
+        <div id="tab-calc" class="block">
+            <div class="text-center mb-10">
+                <h1 class="text-3xl font-bold text-white mb-2">Bitwise XOR (<span class="text-sky-400">^</span>) Calculation</h1>
+                <p class="text-slate-400">Hover over the columns to see how each bit is compared.</p>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex flex-wrap justify-center gap-6 mb-10 text-sm font-medium bg-slate-800/50 p-4 rounded-xl">
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded-full bg-slate-700"></div>
+                    <span>Same Bits = <strong class="text-white">0</strong></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded-full bg-sky-500"></div>
+                    <span>Different Bits = <strong class="text-white">1</strong></span>
+                </div>
+            </div>
+
+            <!-- Math Grid -->
+            <div class="overflow-x-auto py-2 px-1">
+                <div class="flex flex-col gap-4 font-mono text-xl relative min-w-[560px]">
+                
+                    <!-- Row 1: 66 ('B') -->
+                    <div class="flex items-center gap-6">
+                        <div class="w-32 text-right flex-shrink-0">
+                            <span class="text-slate-400 text-sm block">Encrypted</span>
+                            <span class="text-sky-300 font-bold">66 ('B')</span>
+                        </div>
+                        <div class="flex gap-2 flex-1 justify-between relative z-10" id="row1">
+                            <!-- Bits injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Operator -->
+                    <div class="absolute left-[134px] top-[52px] text-sky-500 font-bold text-2xl pointer-events-none">
+                        ^
+                    </div>
+
+                    <!-- Row 2: 112 ('p') -->
+                    <div class="flex items-center gap-6">
+                        <div class="w-32 text-right flex-shrink-0">
+                            <span class="text-slate-400 text-sm block">Known Text</span>
+                            <span class="text-emerald-400 font-bold">112 ('p')</span>
+                        </div>
+                        <div class="flex gap-2 flex-1 justify-between relative z-10" id="row2">
+                            <!-- Bits injected by JS -->
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-700 my-2 ml-36">
+
+                    <!-- Row 3: Result -->
+                    <div class="flex items-center gap-6">
+                        <div class="w-32 text-right flex-shrink-0">
+                            <span class="text-slate-400 text-sm block">Result Key</span>
+                            <span class="text-amber-400 font-bold">50 ('2')</span>
+                        </div>
+                        <div class="flex gap-2 flex-1 justify-between relative z-10" id="row3">
+                            <!-- Bits injected by JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Guide Tab -->
+        <div id="tab-guide" class="hidden space-y-6">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-white mb-2">Bitwise Operators Guide</h2>
+                <p class="text-slate-400">How each operator manipulates binary data.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h3 class="text-xl font-bold text-sky-400 mb-2">AND (&amp;)</h3>
+                    <p class="text-slate-300 text-sm mb-3">Returns 1 only if <strong>both</strong> bits are 1. Acts as a strict filter.</p>
+                    <ul class="text-sm font-mono text-slate-400 space-y-1 list-disc ml-5 marker:text-slate-500">
+                        <li>1 &amp; 1 = 1</li>
+                        <li>1 &amp; 0 = 0</li>
+                        <li>0 &amp; 0 = 0</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h3 class="text-xl font-bold text-emerald-400 mb-2">OR (|)</h3>
+                    <p class="text-slate-300 text-sm mb-3">Returns 1 if <strong>either</strong> bit is 1. Guaranteed to turn a bit on.</p>
+                    <ul class="text-sm font-mono text-slate-400 space-y-1 list-disc ml-5 marker:text-slate-500">
+                        <li>1 | 1 = 1</li>
+                        <li>1 | 0 = 1</li>
+                        <li>0 | 0 = 0</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h3 class="text-xl font-bold text-amber-400 mb-2">XOR (^)</h3>
+                    <p class="text-slate-300 text-sm mb-3">Returns 1 if bits are <strong>different</strong>. Toggles bits and encrypts data.</p>
+                    <ul class="text-sm font-mono text-slate-400 space-y-1 list-disc ml-5 marker:text-slate-500">
+                        <li>1 ^ 1 = 0</li>
+                        <li>1 ^ 0 = 1</li>
+                        <li>0 ^ 0 = 0</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h3 class="text-xl font-bold text-purple-400 mb-2">NOT (~)</h3>
+                    <p class="text-slate-300 text-sm mb-3">Inverts the bits. Turns 1 into 0, and 0 into 1.</p>
+                    <ul class="text-sm font-mono text-slate-400 space-y-1 list-disc ml-5 marker:text-slate-500">
+                        <li>~1 = 0</li>
+                        <li>~0 = 1</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h3 class="text-xl font-bold text-pink-400 mb-2">Left Shift (&lt;&lt;)</h3>
+                    <p class="text-slate-300 text-sm mb-3">Pushes bits left, adding 0s on the right. Multiplies by 2.</p>
+                    <ul class="text-sm font-mono text-slate-400 space-y-1 list-disc ml-5 marker:text-slate-500">
+                        <li>0010 &lt;&lt; 1 = 0100</li>
+                        <li>0100 &lt;&lt; 2 = 10000</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h3 class="text-xl font-bold text-indigo-400 mb-2">Right Shift (&gt;&gt;)</h3>
+                    <p class="text-slate-300 text-sm mb-3">Pushes bits right, removing bits on the edge. Divides by 2.</p>
+                    <ul class="text-sm font-mono text-slate-400 space-y-1 list-disc ml-5 marker:text-slate-500">
+                        <li>0100 &gt;&gt; 1 = 0010</li>
+                        <li>0010 &gt;&gt; 2 = 0000</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    const val1 = "01000010"; // 66
+    const val2 = "01110000"; // 112
+    const res  = "00110010"; // 50
+
+    const row1Container = document.getElementById('row1');
+    const row2Container = document.getElementById('row2');
+    const row3Container = document.getElementById('row3');
+
+    for (let i = 0; i < 8; i++) {
+        // Create a column wrapper for hover effects
+        const colWrap1 = document.createElement('div');
+        const colWrap2 = document.createElement('div');
+        const colWrap3 = document.createElement('div');
+        
+        // Add classes for styling and hover grouping
+        [colWrap1, colWrap2, colWrap3].forEach(el => {
+            el.className = 'bit-col flex flex-col items-center cursor-crosshair';
+            el.addEventListener('mouseenter', () => highlightCol(i, true));
+            el.addEventListener('mouseleave', () => highlightCol(i, false));
+        });
+
+        // Bit Box 1
+        const b1 = val1[i];
+        colWrap1.innerHTML = `<div class="bit-box w-10 h-12 sm:w-14 sm:h-16 flex items-center justify-center rounded border ${b1 === '1' ? 'bg-slate-700 border-slate-600' : 'bg-slate-800 border-slate-700 text-slate-500'}" id="b1-${i}">${b1}</div>`;
+        
+        // Bit Box 2
+        const b2 = val2[i];
+        colWrap2.innerHTML = `<div class="bit-box w-10 h-12 sm:w-14 sm:h-16 flex items-center justify-center rounded border ${b2 === '1' ? 'bg-slate-700 border-slate-600' : 'bg-slate-800 border-slate-700 text-slate-500'}" id="b2-${i}">${b2}</div>`;
+        
+        // Bit Box 3 (Result)
+        const r = res[i];
+        colWrap3.innerHTML = `<div class="bit-box w-10 h-12 sm:w-14 sm:h-16 flex items-center justify-center rounded border-2 font-bold ${r === '1' ? 'bg-sky-500 border-sky-400 text-slate-950 shadow-[0_0_15px_rgba(14,165,233,0.6)]' : 'bg-slate-800 border-slate-700 text-slate-600'}" id="r-${i}">${r}</div>`;
+
+        row1Container.appendChild(colWrap1);
+        row2Container.appendChild(colWrap2);
+        row3Container.appendChild(colWrap3);
+    }
+
+    function highlightCol(index, isHovering) {
+        const boxes = [
+            document.getElementById(`b1-${index}`),
+            document.getElementById(`b2-${index}`),
+            document.getElementById(`r-${index}`)
+        ];
+        
+        if (isHovering) {
+            boxes.forEach(box => {
+                box.style.transform = 'scale(1.1)';
+                box.style.zIndex = '20';
+                if (!box.classList.contains('bg-sky-500')) {
+                    box.style.borderColor = '#38bdf8';
+                }
+            });
+        } else {
+            boxes.forEach(box => {
+                box.style.transform = 'scale(1)';
+                box.style.zIndex = '1';
+                if (!box.classList.contains('bg-sky-500')) {
+                    box.style.borderColor = ''; // reset to class default
+                }
+            });
+        }
+    }
+
+    // Tab Switching Logic
+    function switchTab(tab) {
+        const calcTab = document.getElementById('tab-calc');
+        const guideTab = document.getElementById('tab-guide');
+        const btnCalc = document.getElementById('btn-calc');
+        const btnGuide = document.getElementById('btn-guide');
+
+        if (tab === 'calc') {
+            calcTab.classList.remove('hidden');
+            calcTab.classList.add('block');
+            guideTab.classList.remove('block');
+            guideTab.classList.add('hidden');
+            
+            btnCalc.classList.add('text-sky-400', 'border-sky-400');
+            btnCalc.classList.remove('text-slate-400', 'border-transparent');
+            
+            btnGuide.classList.add('text-slate-400', 'border-transparent');
+            btnGuide.classList.remove('text-sky-400', 'border-sky-400');
+        } else {
+            guideTab.classList.remove('hidden');
+            guideTab.classList.add('block');
+            calcTab.classList.remove('block');
+            calcTab.classList.add('hidden');
+            
+            btnGuide.classList.add('text-sky-400', 'border-sky-400');
+            btnGuide.classList.remove('text-slate-400', 'border-transparent');
+            
+            btnCalc.classList.add('text-slate-400', 'border-transparent');
+            btnCalc.classList.remove('text-sky-400', 'border-sky-400');
+        }
+    }
+</script>
+</body>
+</html>

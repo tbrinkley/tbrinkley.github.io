@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVC Word Lab | Interactive 1st Grade Phonics</title>
+    <meta name="description" content="Interactive 1st-grade CVC Word Lab featuring touch and mouse drag-and-drop phonics spelling levels (CAT, DOG, PIG, BUS, SUN), speech synthesis, confetti rewards, and a printable completion certificate.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230284c7'%3E%3Ctext x='12' y='18' text-anchor='middle' font-size='18' font-family='sans-serif' font-weight='bold'%3E%E2%AD%90%3C/text%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Comic+Neue:wght@700&family=Pinyon+Script&display=swap');
+
+        body {
+            font-family: 'Comic Neue', cursive;
+            background-color: #f0f9ff;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+        }
+
+        input, textarea {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .font-header {
+            font-family: 'Fredoka One', cursive;
+        }
+        
+        .font-script {
+            font-family: 'Pinyon Script', cursive;
+        }
+
+        /* Tile Styling */
+        .tile {
+            cursor: grab;
+            transition: transform 0.1s;
+            touch-action: none; /* Critical for touch dragging */
+            z-index: 50; /* Base z-index */
+        }
+        .tile.dragging {
+            z-index: 9999 !important; /* Ensure it's above everything */
+            cursor: grabbing;
+            transform: scale(1.1);
+            pointer-events: none; /* Let clicks pass through */
+        }
+
+        /* Slot Styling */
+        .slot {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .slot.hovered {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+            transform: scale(1.05);
+        }
+        .slot.error {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+            border-color: #ef4444; /* Red border */
+            background-color: #fee2e2;
+        }
+        
+        /* Error X overlay */
+        .error-x {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #ef4444;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .slot.error .error-x {
+            opacity: 1;
+        }
+
+        /* Tab Locking */
+        .tab-locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(100%);
+        }
+
+        /* Animations */
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in {
+            animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Confetti Canvas */
+        #confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        /* Certificate Background Pattern */
+        .cert-bg {
+            background-image: radial-gradient(#e0f2fe 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="min-h-screen w-full flex flex-col items-center justify-start bg-sky-100 text-slate-800 pb-8">
+
+    <canvas id="confetti"></canvas>
+
+    <!-- Back to Home Strip -->
+    <div class="w-full max-w-4xl px-4 pt-3 flex items-center justify-between gap-2 z-10">
+        <a href="index.html#interactive" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 text-xs font-sans font-bold shadow-sm transition">
+            &larr; Back to Home
+        </a>
+        <span class="text-[11px] font-sans font-bold uppercase tracking-widest text-sky-700/70">
+            1st Grade Phonics &bull; CVC Lab
+        </span>
+    </div>
+
+    <!-- Header / Navigation -->
+    <header class="w-full max-w-4xl p-4 flex flex-col items-center gap-4 z-10">
+        <h1 class="text-3xl md:text-4xl font-header text-sky-600 tracking-wide drop-shadow-sm">CVC Word Lab</h1>
+        
+        <!-- Tabs -->
+        <div class="flex gap-2 md:gap-4 bg-white p-2 rounded-2xl shadow-lg overflow-x-auto w-full justify-center" id="tab-container">
+            <!-- Tabs injected by JS -->
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="flex-1 w-full max-w-4xl flex flex-col items-center justify-center p-4 relative z-0">
+        
+        <!-- GAME VIEW (Hidden when certificate is active) -->
+        <div id="game-view" class="w-full flex flex-col items-center">
+            <!-- Image & Context -->
+            <div id="image-container" class="mb-8 p-6 bg-white rounded-3xl shadow-xl border-4 border-white ring-4 ring-sky-200 transform transition-all duration-500 hover:scale-105">
+                <div id="word-emoji" class="text-8xl md:text-9xl pop-in">🐱</div>
+            </div>
+
+            <!-- Drop Zones (The Word) -->
+            <div id="drop-zones" class="flex gap-4 md:gap-8 mb-12">
+                <!-- Zones injected by JS -->
+            </div>
+
+            <!-- Draggable Letter Bank -->
+            <div class="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-inner border-2 border-sky-100 w-full max-w-2xl">
+                <p class="text-center text-sky-400 font-bold mb-4 uppercase tracking-widest text-sm">Drag letters to boxes</p>
+                <div id="letter-bank" class="flex flex-wrap gap-4 justify-center min-h-[80px]">
+                    <!-- Draggable tiles injected by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- CERTIFICATE VIEW (Hidden by default) -->
+        <div id="certificate-view" class="hidden w-full max-w-2xl flex-col items-center">
+            
+            <!-- Input Form -->
+            <div id="cert-form" class="bg-white p-8 rounded-3xl shadow-xl text-center w-full">
+                <h2 class="text-3xl font-header text-sky-600 mb-4">You Did It! 🎉</h2>
+                <p class="mb-6 text-xl text-slate-600">Enter your name to get your award.</p>
+                <input type="text" id="student-name" placeholder="Your Name" class="w-full p-4 text-2xl border-4 border-sky-100 rounded-xl mb-6 text-center focus:border-sky-400 outline-none uppercase font-header text-sky-600 placeholder-sky-200">
+                <button onclick="generateCertificate()" class="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8 rounded-xl shadow-lg transform transition hover:scale-105 active:scale-95 w-full">
+                    Claim Certificate
+                </button>
+            </div>
+
+            <!-- Actual Certificate Display (Hidden until generated) -->
+            <div id="actual-certificate" class="hidden w-full bg-white border-8 border-double border-yellow-400 p-8 rounded-lg shadow-2xl cert-bg text-center relative overflow-hidden">
+                <!-- Decorative Corner -->
+                <div class="absolute top-0 right-0 p-4">
+                    <div class="text-yellow-400 text-6xl">🏆</div>
+                </div>
+
+                <h2 class="text-4xl md:text-5xl font-header text-sky-600 mb-2 uppercase tracking-widest mt-4">Certificate</h2>
+                <h3 class="text-xl md:text-2xl text-sky-400 font-bold uppercase tracking-wide mb-8">of Completion</h3>
+                
+                <p class="text-lg text-slate-500 italic mb-2">This is to certify that</p>
+                
+                <div id="cert-name-display" class="font-script text-5xl md:text-6xl text-slate-800 mb-8 border-b-2 border-slate-200 pb-2 mx-8 min-h-[80px]">Student Name</div>
+                
+                <p class="text-lg text-slate-500 italic mb-6">has successfully mastered all CVC words!</p>
+                
+                <div class="flex justify-between items-end mt-12 px-8">
+                    <div class="flex flex-col items-center">
+                        <div id="cert-date-display" class="text-slate-600 font-bold text-sm mb-1"></div>
+                        <div class="w-32 border-b-2 border-slate-400 mb-1"></div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider">Date</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="font-script text-3xl text-sky-500">CVC Lab</div>
+                        <div class="w-32 border-b-2 border-slate-400 mb-1"></div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider">Signature</span>
+                    </div>
+                </div>
+            </div>
+            
+            <p id="email-status" class="mt-4 text-slate-500 text-sm hidden">Attempting to email report to tbrinkley@gmail.com...</p>
+
+        </div>
+
+    </main>
+
+    <!-- Success Message Overlay (Hidden by default) -->
+    <div id="success-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl text-center transform scale-90 transition-transform duration-300" id="success-modal">
+            <div class="text-8xl mb-4">🌟</div>
+            <h2 class="text-4xl font-header text-yellow-500 mb-2">Great Job!</h2>
+            <p id="success-word" class="text-2xl font-bold text-slate-600 mb-6">CAT</p>
+            <div class="animate-pulse text-sky-500 font-bold">Next level loading...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Data ---
+        const levels = [
+            { id: 1, type: 'word', word: "CAT", emoji: "🐱" },
+            { id: 2, type: 'word', word: "DOG", emoji: "🐶" },
+            { id: 3, type: 'word', word: "PIG", emoji: "🐷" },
+            { id: 4, type: 'word', word: "BUS", emoji: "🚌" },
+            { id: 5, type: 'word', word: "SUN", emoji: "☀️" },
+            { id: 6, type: 'certificate', word: "CERT", emoji: "🎓" } // Special Certificate Level
+        ];
+
+        let currentLevelIndex = 0;
+        let unlockedIndex = 0;
+        let placedLetters = {}; // Map slot index to letter value
+
+        // --- DOM Elements ---
+        const tabContainer = document.getElementById('tab-container');
+        const gameView = document.getElementById('game-view');
+        const certificateView = document.getElementById('certificate-view');
+        const wordEmoji = document.getElementById('word-emoji');
+        const dropZonesContainer = document.getElementById('drop-zones');
+        const letterBank = document.getElementById('letter-bank');
+        
+        // Modal Elements
+        const successOverlay = document.getElementById('success-overlay');
+        const successModal = document.getElementById('success-modal');
+        const successWord = document.getElementById('success-word');
+
+        // --- Initialization ---
+        function init() {
+            renderTabs();
+            loadLevel(currentLevelIndex);
+        }
+
+        // --- Core Logic ---
+
+        function renderTabs() {
+            tabContainer.innerHTML = '';
+            levels.forEach((level, index) => {
+                const btn = document.createElement('button');
+                const isLocked = index > unlockedIndex;
+                const isActive = index === currentLevelIndex;
+                
+                let classes = `px-4 py-2 rounded-xl font-bold text-lg md:text-xl transition-all duration-200 flex items-center gap-2 `;
+                
+                if (isLocked) {
+                    classes += `bg-slate-100 text-slate-400 tab-locked border-2 border-transparent`;
+                    btn.disabled = true;
+                    btn.innerHTML = `<span class="text-slate-300">🔒</span>`;
+                } else if (isActive) {
+                    classes += `bg-sky-500 text-white shadow-md transform scale-105 border-2 border-sky-600`;
+                    btn.innerHTML = `${level.emoji} ${level.type === 'certificate' ? 'Award' : index + 1}`;
+                } else {
+                    classes += `bg-white text-sky-600 border-2 border-sky-100 hover:bg-sky-50`;
+                    btn.onclick = () => loadLevel(index);
+                    btn.innerHTML = `<span class="opacity-50">✅</span> ${level.type === 'certificate' ? 'Award' : index + 1}`;
+                }
+
+                btn.className = classes;
+                tabContainer.appendChild(btn);
+            });
+        }
+
+        function loadLevel(index) {
+            currentLevelIndex = index;
+            const level = levels[index];
+            renderTabs();
+
+            if (level.type === 'certificate') {
+                // Show Certificate View
+                gameView.classList.add('hidden');
+                certificateView.classList.remove('hidden');
+                certificateView.classList.add('flex');
+            } else {
+                // Show Game View
+                certificateView.classList.add('hidden');
+                certificateView.classList.remove('flex');
+                gameView.classList.remove('hidden');
+                
+                setupGameLevel(level);
+            }
+        }
+
+        function scrambleLetters(word) {
+            const arr = word.split('');
+            for (let attempt = 0; attempt < 8; attempt++) {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                if (arr.join('') !== word) break;
+            }
+            return arr;
+        }
+
+        function setupGameLevel(level) {
+            placedLetters = {};
+            
+            // Update visuals
+            wordEmoji.textContent = level.emoji;
+            // Trigger animation re-flow
+            wordEmoji.classList.remove('pop-in');
+            void wordEmoji.offsetWidth;
+            wordEmoji.classList.add('pop-in');
+
+            // Setup slots
+            dropZonesContainer.innerHTML = '';
+            for (let i = 0; i < level.word.length; i++) {
+                const slot = document.createElement('div');
+                slot.className = `slot w-20 h-20 md:w-24 md:h-24 border-4 border-dashed border-sky-300 rounded-2xl flex items-center justify-center bg-white/50 relative overflow-hidden`;
+                slot.dataset.index = i;
+                
+                // Add hidden X for error state
+                const errorX = document.createElement('div');
+                errorX.className = 'error-x font-header';
+                errorX.textContent = 'X';
+                slot.appendChild(errorX);
+
+                dropZonesContainer.appendChild(slot);
+            }
+
+            // Setup Letters (Scramble)
+            letterBank.innerHTML = '';
+            const letters = scrambleLetters(level.word);
+            
+            letters.forEach((char) => {
+                createDraggableTile(char, letterBank);
+            });
+        }
+
+        function createDraggableTile(char, container) {
+            const tile = document.createElement('div');
+            tile.className = `tile w-16 h-16 md:w-20 md:h-20 bg-white border-b-8 border-r-4 border-sky-200 rounded-xl shadow-lg flex items-center justify-center text-4xl font-header text-sky-600 select-none relative`;
+            tile.textContent = char;
+            tile.dataset.char = char;
+            
+            addDragBehavior(tile);
+            container.appendChild(tile);
+        }
+
+        // --- Custom Drag & Drop Engine (Mouse & Touch) ---
+        let draggedItem = null;
+        let touchOffset = { x: 0, y: 0 };
+        let startContainer = null;
+        let placeholder = null;
+
+        function startDrag(e) {
+            const el = e.currentTarget;
+            if (el.dataset.locked === 'true') return;
+            e.preventDefault();
+            const evt = e.touches ? e.touches[0] : e;
+            
+            draggedItem = el;
+            startContainer = el.parentElement;
+
+            const rect = el.getBoundingClientRect();
+            touchOffset.x = evt.clientX - rect.left;
+            touchOffset.y = evt.clientY - rect.top;
+
+            placeholder = document.createElement('div');
+            placeholder.className = el.className;
+            placeholder.style.opacity = '0';
+            placeholder.style.pointerEvents = 'none';
+            startContainer.insertBefore(placeholder, el);
+
+            el.style.width = rect.width + 'px';
+            el.style.height = rect.height + 'px';
+            el.style.position = 'fixed';
+            el.style.left = rect.left + 'px';
+            el.style.top = rect.top + 'px';
+            el.classList.add('dragging');
+            el.classList.add('shadow-2xl');
+            document.body.appendChild(el);
+        }
+
+        function moveDrag(e) {
+            if (!draggedItem) return;
+            if (e.cancelable) e.preventDefault();
+            const evt = e.touches ? e.touches[0] : e; 
+            
+            const x = evt.clientX - touchOffset.x;
+            const y = evt.clientY - touchOffset.y;
+            
+            draggedItem.style.left = x + 'px';
+            draggedItem.style.top = y + 'px';
+
+            // Highlight Drop Zones
+            const slots = document.querySelectorAll('.slot');
+            slots.forEach(slot => {
+                const rect = slot.getBoundingClientRect();
+                if (evt.clientX >= rect.left && evt.clientX <= rect.right &&
+                    evt.clientY >= rect.top && evt.clientY <= rect.bottom) {
+                    slot.classList.add('hovered');
+                } else {
+                    slot.classList.remove('hovered');
+                }
+            });
+        }
+
+        function endDrag(e) {
+            if (!draggedItem) return;
+            const evt = e.changedTouches ? e.changedTouches[0] : e;
+
+            let dropped = false;
+            const slots = document.querySelectorAll('.slot');
+            
+            for (const slot of slots) {
+                const rect = slot.getBoundingClientRect();
+                if (evt.clientX >= rect.left && evt.clientX <= rect.right &&
+                    evt.clientY >= rect.top && evt.clientY <= rect.bottom) {
+                    
+                    const correctChar = levels[currentLevelIndex].word[slot.dataset.index];
+                    const draggedChar = draggedItem.dataset.char;
+
+                    if (slot.children.length <= 1) { 
+                        if (correctChar === draggedChar) {
+                            snapToContainer(draggedItem, slot);
+                            draggedItem.dataset.locked = 'true';
+                            draggedItem.style.cursor = 'default';
+                            placedLetters[slot.dataset.index] = draggedItem.dataset.char;
+                            dropped = true;
+                            playSound('pop');
+                        } else {
+                            triggerError(slot);
+                            dropped = false; 
+                        }
+                    }
+                    slot.classList.remove('hovered');
+                    break;
+                }
+                slot.classList.remove('hovered');
+            }
+
+            if (!dropped) {
+                returnToBank(draggedItem);
+            }
+
+            draggedItem.classList.remove('dragging');
+            draggedItem.classList.remove('shadow-2xl');
+            
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.removeChild(placeholder);
+            }
+            
+            draggedItem = null;
+            placeholder = null;
+            startContainer = null;
+
+            checkWinCondition();
+        }
+
+        // Attach global pointer/touch move & end listeners ONCE (prevents listener buildup across levels)
+        window.addEventListener('mousemove', moveDrag);
+        window.addEventListener('touchmove', moveDrag, { passive: false });
+        window.addEventListener('mouseup', endDrag);
+        window.addEventListener('touchend', endDrag);
+
+        function addDragBehavior(el) {
+            el.addEventListener('mousedown', startDrag);
+            el.addEventListener('touchstart', startDrag, { passive: false });
+        }
+
+        function triggerError(slot) {
+            slot.classList.add('error');
+            setTimeout(() => {
+                slot.classList.remove('error');
+            }, 500);
+        }
+
+        function snapToContainer(el, container) {
+            el.style.position = 'static';
+            el.style.left = 'auto';
+            el.style.top = 'auto';
+            el.style.width = ''; 
+            el.style.height = ''; 
+            el.style.transform = 'none';
+            container.appendChild(el);
+        }
+
+        function returnToBank(el) {
+            const bank = document.getElementById('letter-bank');
+            snapToContainer(el, bank);
+            if (startContainer && startContainer.classList.contains('slot')) {
+                delete placedLetters[startContainer.dataset.index];
+            }
+        }
+
+        // --- Game Logic ---
+
+        function checkWinCondition() {
+            const currentWord = levels[currentLevelIndex].word;
+            let formedWord = "";
+            for (let i = 0; i < currentWord.length; i++) {
+                if (placedLetters[i]) formedWord += placedLetters[i];
+            }
+
+            if (formedWord === currentWord) {
+                handleSuccess(currentWord);
+            }
+        }
+
+        function handleSuccess(word) {
+            const tiles = document.querySelectorAll('.tile');
+            tiles.forEach(t => t.style.pointerEvents = 'none');
+
+            fireConfetti();
+            speakWord(word);
+
+            setTimeout(() => {
+                successWord.textContent = word;
+                successOverlay.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    successOverlay.classList.remove('opacity-0');
+                    successModal.classList.remove('scale-90');
+                });
+
+                if (currentLevelIndex >= unlockedIndex && unlockedIndex < levels.length - 1) {
+                    unlockedIndex++;
+                }
+
+                setTimeout(() => {
+                    closeModalAndAdvance();
+                }, 3000); 
+            }, 500);
+        }
+
+        function closeModalAndAdvance() {
+            successOverlay.classList.add('opacity-0');
+            successModal.classList.add('scale-90');
+            
+            setTimeout(() => {
+                successOverlay.classList.add('hidden');
+                if (currentLevelIndex < levels.length - 1) {
+                    loadLevel(currentLevelIndex + 1);
+                }
+            }, 300);
+        }
+
+        // --- Certificate Logic ---
+        function generateCertificate() {
+            const nameInput = document.getElementById('student-name');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                alert("Please enter your name!");
+                return;
+            }
+
+            // Hide Form, Show Certificate
+            document.getElementById('cert-form').classList.add('hidden');
+            document.getElementById('actual-certificate').classList.remove('hidden');
+            document.getElementById('cert-name-display').textContent = name;
+            document.getElementById('cert-date-display').textContent = new Date().toLocaleDateString();
+            
+            fireConfetti();
+            
+            // Email Logic (Simulation/Mailto)
+            setTimeout(() => {
+                sendEmailToTeacher(name);
+            }, 1000);
+        }
+
+        function sendEmailToTeacher(studentName) {
+            const email = "tbrinkley@gmail.com";
+            const subject = `CVC Lab Completion: ${studentName}`;
+            const body = `Hi,\n\nStudent ${studentName} has successfully completed all 5 CVC word levels in the interactive lab!\n\nDate: ${new Date().toLocaleDateString()}\n\nGreat job!`;
+            
+            // Show status
+            const statusEl = document.getElementById('email-status');
+            statusEl.classList.remove('hidden');
+            
+            // Attempt mailto
+            window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }
+
+        // --- Audio ---
+        function speakWord(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.8;
+                utterance.pitch = 1.2;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function playSound(type) {}
+
+        // --- Confetti Effect ---
+        function fireConfetti() {
+            const canvas = document.getElementById('confetti');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
+
+            for (let i = 0; i < 150; i++) {
+                particles.push({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                    w: Math.random() * 10 + 5,
+                    h: Math.random() * 10 + 5,
+                    vx: (Math.random() - 0.5) * 20,
+                    vy: (Math.random() - 0.5) * 20,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 150
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let active = false;
+                
+                particles.forEach(p => {
+                    if (p.life > 0) {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.5; // gravity
+                        p.life--;
+                        active = true;
+
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(p.x, p.y, p.w, p.h);
+                    }
+                });
+
+                if (active) requestAnimationFrame(animate);
+                else ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            animate();
+        }
+
+        window.addEventListener('resize', () => {
+             const canvas = document.getElementById('confetti');
+             canvas.width = window.innerWidth;
+             canvas.height = window.innerHeight;
+        });
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>

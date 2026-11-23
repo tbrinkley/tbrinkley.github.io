@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 14 Cyber Lab: The Silent Echo | Barstow Community College</title>
+    <meta name="description" content="Interactive CBIS 14 cybersecurity lab for Barstow Community College exploring acoustic and vibro-acoustic side-channel attacks, mouse polling rate seismography, and acoustic-to-seismic speech coupling.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322d3ee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12h3l2-6 4 12 3-9 2 3h6'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+        .panel {
+            background-color: #1e293b;
+            border-radius: 0.5rem;
+            border-top: 4px solid #06b6d4;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .panel-pink { border-top-color: #ec4899; }
+        .panel-amber { border-top-color: #f59e0b; }
+        
+        /* Custom range slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #06b6d4;
+            cursor: pointer;
+            margin-top: -8px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+        
+        .btn {
+            background-color: #334155;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            border: 1px solid #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+        .btn:hover:not(:disabled) { background-color: #475569; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn.active { background-color: #06b6d4; border-color: #22d3ee; }
+        .btn-pink.active { background-color: #ec4899; border-color: #f472b6; }
+        
+        .sim-canvas {
+            background-color: #020617;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            width: 100%;
+            height: 300px;
+        }
+        
+        .shake-animation {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both infinite;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            perspective: 1000px;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Tab Navigation Styles */
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            font-weight: bold;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            border-bottom-color: #06b6d4;
+            color: #22d3ee;
+            background-color: #1e293b;
+        }
+        .tab-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Anti-Cheat Scanline CSS */
+        .secure-container {
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
+            padding: 3rem;
+            border: 2px solid #334155;
+            border-radius: 0.5rem;
+        }
+        
+        .scanlines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.4) 50%,
+                rgba(0,0,0,0.4)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .scanline-bar {
+            width: 100%;
+            height: 15px;
+            background: rgba(6, 182, 212, 0.2);
+            position: absolute;
+            top: -15px; left: 0;
+            z-index: 11;
+            animation: scan 3s linear infinite;
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+        }
+
+        @keyframes scan {
+            0% { top: -15px; }
+            100% { top: 100%; }
+        }
+
+        .crt-text {
+            color: #22d3ee;
+            font-family: 'Courier New', Courier, monospace;
+            text-shadow: 2px 0 1px rgba(236, 72, 153, 0.6), -2px 0 1px rgba(6, 182, 212, 0.6);
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 5;
+        }
+        
+        .glitch-anim {
+            animation: glitch 5s infinite;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 1px) }
+            21% { transform: translate(0) }
+            40% { transform: translate(2px, -1px) }
+            41% { transform: translate(0) }
+            80% { transform: translate(-1px, -2px) }
+            81% { transform: translate(0) }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+<div class="max-w-6xl mx-auto">
+
+    <!-- Back to Home Strip -->
+    <div class="flex items-center justify-between gap-2 mb-4">
+        <a href="index.html#bcc-classes" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs font-bold shadow-sm transition">
+            &larr; Back to Home
+        </a>
+        <span class="text-[11px] font-mono font-bold uppercase tracking-widest text-slate-400">
+            BCC CBIS 14 &bull; Side-Channel Lab
+        </span>
+    </div>
+
+    <!-- Header & Navigation -->
+    <header class="mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-end mb-6 border-b border-slate-700 pb-4">
+            <div>
+                <h1 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-500 mb-2">
+                    Lab: The Silent Echo
+                </h1>
+                <p class="text-slate-400 text-lg">Acoustic &amp; Vibro-Acoustic Side-Channel Attacks</p>
+            </div>
+            <div class="flex gap-2 mt-4 md:mt-0">
+                <button id="nav-lab" class="tab-btn active" onclick="switchTab('lab')">1. Analysis Lab</button>
+                <button id="nav-auth" class="tab-btn" onclick="switchTab('auth')" disabled>2. Verification &#128274;</button>
+                <button id="nav-cert" class="tab-btn" onclick="switchTab('cert')" disabled>3. Report &#128274;</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- TAB 1: THE LAB -->
+    <div id="tab-lab" class="tab-content active">
+        
+        <!-- Objective Tracker -->
+        <div class="bg-slate-800 p-4 rounded-lg border border-slate-600 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+            <div class="font-bold text-cyan-400">Mission Objectives:</div>
+            <div id="obj-1" class="text-slate-500 text-sm flex items-center gap-2">&#9744; Analyze Acoustic Data</div>
+            <div id="obj-2" class="text-slate-500 text-sm flex items-center gap-2">&#9744; Achieve &gt;70% Vibro-Confidence</div>
+            <div id="obj-3" class="text-slate-500 text-sm flex items-center gap-2">&#9744; Simulate High-Volume Coupling</div>
+        </div>
+
+        <div class="panel">
+            <h2 class="text-2xl font-bold text-cyan-400 mb-4">&#128220; Mission Briefing</h2>
+            <p class="mb-4 text-slate-300 leading-relaxed">
+                Welcome to the lab. Today, we are exploiting a hardware vulnerability known as a side-channel attack. We won't use malware to steal passwords; instead, we will "listen" to the physical environment.
+            </p>
+            <p class="mb-2 text-slate-300 font-semibold">Your primary concepts to explore:</p>
+            <ul class="list-disc pl-6 text-slate-400 space-y-2 mb-4">
+                <li>Standard microphones capture unique acoustic signatures based on physical key location.</li>
+                <li>High-end gaming mice act as seismographs to intercept desk vibrations (Vibro-Acoustics).</li>
+                <li>Acoustic-to-seismic coupling allows solid objects to capture human speech.</li>
+            </ul>
+        </div>
+
+        <!-- Station 1: Acoustic -->
+        <div class="panel panel-pink">
+            <h2 class="text-2xl font-bold text-pink-400 mb-4">&#127908; Station 1: The Acoustic Attack (Airborne)</h2>
+            <p class="mb-4 text-slate-300">
+                Every key on a keyboard is located in a slightly different position and uses different mechanical stabilizers. When struck, the sound waves travel through the air to a nearby microphone.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                <div class="bg-slate-800 p-4 rounded">
+                    <h3 class="text-lg font-semibold mb-2 text-center text-slate-200">Extraction Accuracy by Distance/Medium</h3>
+                    <div class="relative w-full h-64">
+                        <canvas id="acousticChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-800 p-4 rounded flex flex-col justify-center">
+                    <h3 class="text-lg font-semibold mb-2 text-slate-200">Analysis Required</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                        Notice how accuracy drops over VoIP (like Zoom). Communication platforms use compression algorithms and background noise cancellation, which actively strip out the high-frequency "clicks" and "clacks" that ML models rely on.
+                    </p>
+                    <button class="btn bg-pink-600 hover:bg-pink-700 w-full" onclick="completeObjective(1)">Log Acoustic Findings</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Station 2: Vibro-Acoustic Simulator -->
+        <div class="panel">
+            <h2 class="text-2xl font-bold text-cyan-400 mb-4">&#128433;&#65039; Station 2: The Seismic Spy (Vibro-Acoustic Simulator)</h2>
+            <p class="mb-6 text-slate-300">
+                Microphones can be muted, but what if the attack vector is the mouse? High-end gaming mice sample their position up to 8000 times per second (8000Hz). The mouse sensor records these microscopic desk jitters. Adjust the hardware to capture a signal with &gt;70% confidence.
+            </p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Controls -->
+                <div class="bg-slate-800 p-5 rounded border border-slate-700 flex flex-col gap-6">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">1. Desk Surface Material</label>
+                        <div class="flex gap-2">
+                            <button class="btn active flex-1" id="mat-wood" onclick="setMaterial('wood')">Wood</button>
+                            <button class="btn flex-1" id="mat-steel" onclick="setMaterial('steel')">Steel</button>
+                            <button class="btn flex-1" id="mat-pad" onclick="setMaterial('pad')">Mousepad</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">
+                            2. Mouse Polling Rate: <span id="rateLabel" class="text-cyan-400">1000 Hz</span>
+                        </label>
+                        <input type="range" id="rateSlider" min="1" max="4" value="2" oninput="updateRate()">
+                        <div class="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>125Hz</span>
+                            <span>8000Hz</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">3. Trigger Keystroke</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="btn border-cyan-700 hover:bg-cyan-900" onclick="triggerStrike('space')">Spacebar</button>
+                            <button class="btn border-cyan-700 hover:bg-cyan-900" onclick="triggerStrike('shift')">Left Shift</button>
+                            <button class="btn col-span-2 border-cyan-700 hover:bg-cyan-900" onclick="triggerStrike('enter')">Enter Key</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualization -->
+                <div class="col-span-2 bg-slate-800 p-5 rounded border border-slate-700">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-bold text-slate-300">Raw Sensor Data (Jitter vs Time)</h3>
+                        <div class="text-xs px-2 py-1 bg-slate-900 rounded border border-slate-600">
+                            ML Decode Confidence: <span id="confidenceScore" class="font-bold text-amber-400">0%</span>
+                        </div>
+                    </div>
+                    <canvas id="seismicCanvas" class="sim-canvas"></canvas>
+                    <p id="analysisText" class="text-sm text-slate-400 mt-3 text-center min-h-[40px]">
+                        Waiting for input... Press a key to trigger a shockwave.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Station 3: Speech Coupling -->
+        <div class="panel panel-amber">
+            <h2 class="text-2xl font-bold text-amber-400 mb-4">&#128172; Station 3: Acoustic-to-Seismic Coupling</h2>
+            <p class="mb-4 text-slate-300">
+                When human speech hits a thin, rigid desk surface, the desk acts like a diaphragm, vibrating sympathetically with the sound waves. Simulate high-volume speech to observe the kinetic transfer.
+            </p>
+            <div class="bg-slate-800 p-6 rounded text-center">
+                <p class="text-sm text-slate-400 mb-6 max-w-2xl mx-auto">
+                    Increase the speaker volume above 80% to demonstrate how acoustic energy transfers into physical kinetic energy, allowing a gyroscope to pick up fundamental vocal frequencies.
+                </p>
+                
+                <div class="flex flex-col items-center gap-6">
+                    <div class="w-full max-w-md">
+                        <label class="block text-sm font-bold text-slate-300 mb-2">Voice Volume Input: <span id="volLabel">0%</span></label>
+                        <input type="range" id="volumeSlider" min="0" max="100" value="0" oninput="updateShake()">
+                    </div>
+                    
+                    <div id="deskObject" class="w-64 h-32 bg-amber-900 border-t-8 border-amber-700 rounded-lg flex items-center justify-center shadow-xl transition-all duration-75 relative">
+                        <div class="absolute -top-6 text-2xl">&#128433;&#65039;</div>
+                        <span class="text-amber-200 font-bold tracking-widest opacity-50">DESK SURFACE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TAB 2: VERIFICATION -->
+    <div id="tab-auth" class="tab-content">
+        <div class="panel border-t-4 border-green-500 max-w-2xl mx-auto mt-12 text-center">
+            <div class="text-6xl mb-4">&#128275;</div>
+            <h2 class="text-3xl font-bold text-green-400 mb-2">Lab Parameters Concluded</h2>
+            <p class="text-slate-300 mb-8">You have successfully demonstrated the mechanics of acoustic and vibro-acoustic side-channel attacks. To finalize your session and generate your secure report, please authenticate.</p>
+            
+            <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 text-left">
+                <label class="block text-sm font-bold text-cyan-400 mb-2 uppercase tracking-wider">Candidate Full Name</label>
+                <input type="text" id="studentName" class="w-full bg-slate-900 border border-slate-600 rounded p-3 text-white mb-4 focus:outline-none focus:border-cyan-400" placeholder="e.g. Jane Doe">
+                <button class="btn bg-green-600 hover:bg-green-700 w-full text-lg py-3" onclick="generateReport()">Generate Final Report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: SECURE REPORT (CERTIFICATE) -->
+    <div id="tab-cert" class="tab-content">
+        <div class="panel border-t-0 bg-transparent shadow-none p-0">
+            <div class="secure-container">
+                <div class="scanlines"></div>
+                <div class="scanline-bar"></div>
+                
+                <div class="crt-text glitch-anim text-center">
+                    <h2 class="text-4xl md:text-5xl font-bold mb-6 text-white tracking-widest border-b-2 border-cyan-500 pb-4 inline-block">SECURE COMMUNIQUE</h2>
+                    
+                    <div class="text-left max-w-3xl mx-auto space-y-4 mt-8 bg-black bg-opacity-50 p-6 rounded border border-slate-800 relative z-20">
+                        <p class="text-xl">SYSTEM RECORD: <span class="text-pink-500">SIDE-CHANNEL LAB COMPLETED</span></p>
+                        <p class="text-xl">OPERATIVE DESIGNATION:</p>
+                        <p id="certName" class="text-5xl font-bold text-cyan-300 my-4 uppercase break-words"></p>
+                        <div class="grid grid-cols-2 gap-4 mt-8 border-t border-slate-700 pt-4 text-sm md:text-base">
+                            <div>TIMESTAMP: <span id="certTime" class="text-amber-400"></span></div>
+                            <div>LOC: <span class="text-amber-400">OAK HILLS, CA NODE</span></div>
+                            <div>STATION 1 (AIRBORNE): <span class="text-green-500">VERIFIED</span></div>
+                            <div>STATION 2 (SEISMIC): <span class="text-green-500">VERIFIED</span></div>
+                            <div>STATION 3 (COUPLING): <span class="text-green-500">VERIFIED</span></div>
+                            <div class="col-span-2 mt-4 text-xs text-slate-500">SECURE HASH: <span id="certHash"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-6 text-slate-500 text-sm">
+                * Note: The visual interference patterns (scanlines) are active to prevent static image duplication of this document. Show this live screen to your instructor.
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Progression Logic ---
+    let completed = {
+        obj1: false,
+        obj2: false,
+        obj3: false
+    };
+    let clockInterval = null;
+
+    function completeObjective(num) {
+        if (completed['obj' + num]) return;
+        completed['obj' + num] = true;
+        const el = document.getElementById('obj-' + num);
+        el.innerHTML = '&#9745; ' + el.innerText.substring(2);
+        el.classList.remove('text-slate-500');
+        el.classList.add('text-green-400', 'font-bold');
+        checkOverallCompletion();
+    }
+
+    function checkOverallCompletion() {
+        if (completed.obj1 && completed.obj2 && completed.obj3) {
+            const authBtn = document.getElementById('nav-auth');
+            authBtn.disabled = false;
+            authBtn.innerHTML = '2. Verification &#128275;';
+            authBtn.classList.add('animate-pulse'); // Draw attention
+        }
+    }
+
+    function switchTab(tabId) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        
+        // Show target
+        document.getElementById('tab-' + tabId).classList.add('active');
+        document.getElementById('nav-' + tabId).classList.add('active');
+        document.getElementById('nav-auth').classList.remove('animate-pulse');
+        
+        if (tabId === 'lab') resizeCanvas(); // Fix canvas render if hidden
+    }
+
+    function generateReport() {
+        const nameInput = document.getElementById('studentName').value.trim();
+        if (nameInput.length < 2) {
+            alert('Please enter your full name to proceed.');
+            return;
+        }
+        
+        // Populate Certificate Data
+        document.getElementById('certName').innerText = nameInput;
+        document.getElementById('certTime').innerText = new Date().toLocaleString();
+        
+        // Create a deterministic-looking hash to make it look official and hard to fake textually
+        const hashStr = btoa(nameInput + Date.now()).substring(0, 24).toUpperCase();
+        document.getElementById('certHash').innerText = "0x" + hashStr;
+        
+        // Unlock and Switch to Tab 3
+        const certBtn = document.getElementById('nav-cert');
+        certBtn.disabled = false;
+        certBtn.innerHTML = '3. Report &#128275;';
+        switchTab('cert');
+        
+        // Start live clock update (clear any previous interval first)
+        if (clockInterval) clearInterval(clockInterval);
+        clockInterval = setInterval(() => {
+            document.getElementById('certTime').innerText = new Date().toLocaleString();
+        }, 1000);
+    }
+
+    // --- Station 1: Chart.js Setup ---
+    Chart.defaults.color = '#94a3b8';
+    const ctxAcoustic = document.getElementById('acousticChart').getContext('2d');
+    new Chart(ctxAcoustic, {
+        type: 'bar',
+        data: {
+            labels: ['Phone (10cm)', 'Phone (1m)', 'Zoom Call', 'Smart Speaker'],
+            datasets: [{
+                label: 'Decryption Accuracy (%)',
+                data: [95, 82, 45, 78],
+                backgroundColor: ['#ec4899', '#f472b6', '#475569', '#a855f7'],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, max: 100, grid: { color: '#334155' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // --- Station 2: Simulator Logic ---
+    const canvas = document.getElementById('seismicCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+        canvas.width = Math.max(200, canvas.parentElement.clientWidth - 40);
+        canvas.height = 300;
+        drawGrid();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    let currentMaterial = 'wood';
+    let currentRateStep = 1; // 0=125Hz, 1=1000Hz (matches default slider value="2"), 2=4000Hz, 3=8000Hz
+    const rateValues = [125, 1000, 4000, 8000];
+    
+    const materials = {
+        wood: { damping: 0.04, baseAmp: 1.0, noise: 2 },
+        steel: { damping: 0.015, baseAmp: 1.5, noise: 8 },
+        pad: { damping: 0.15, baseAmp: 0.3, noise: 0.5 }
+    };
+    
+    const keys = {
+        space: { name: 'Spacebar', freq: 0.08, impact: 100 },
+        shift: { name: 'Left Shift', freq: 0.18, impact: 60 },
+        enter: { name: 'Enter Key', freq: 0.12, impact: 85 }
+    };
+
+    function drawGrid() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        for(let i=0; i<canvas.height; i+=25) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
+        for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+        ctx.strokeStyle = '#334155';
+        ctx.beginPath(); ctx.moveTo(0, canvas.height/2); ctx.lineTo(canvas.width, canvas.height/2); ctx.stroke();
+    }
+
+    function setMaterial(mat) {
+        currentMaterial = mat;
+        document.querySelectorAll('[id^="mat-"]').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('mat-' + mat).classList.add('active');
+        document.getElementById('analysisText').innerText = `Surface changed to ${mat.toUpperCase()}. Waiting for keystroke...`;
+        drawGrid();
+    }
+
+    function updateRate() {
+        currentRateStep = parseInt(document.getElementById('rateSlider').value, 10) - 1;
+        const hz = rateValues[currentRateStep];
+        document.getElementById('rateLabel').innerText = hz + " Hz";
+        document.getElementById('analysisText').innerText = `Sensor configured to ${hz} captures per second. Waiting for keystroke...`;
+        drawGrid();
+    }
+
+    function triggerStrike(keyId) {
+        const key = keys[keyId];
+        const mat = materials[currentMaterial];
+        const hz = rateValues[currentRateStep];
+        
+        drawGrid();
+        
+        let stepX = Math.max(1, 20 - (currentRateStep * 6)); 
+        
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height/2);
+        ctx.strokeStyle = currentRateStep === 3 ? '#ec4899' : '#06b6d4';
+        ctx.lineWidth = 2;
+
+        let points = [];
+
+        for (let x = 0; x < canvas.width; x += stepX) {
+            let y = 0;
+            if (x > 20) {
+                let activeX = x - 20;
+                let decayFactor = Math.exp(-mat.damping * activeX);
+                let rawWave = Math.sin(key.freq * activeX);
+                if (keyId === 'enter') rawWave += 0.5 * Math.sin((key.freq * 2) * activeX);
+                let noise = (Math.random() * mat.noise * 2) - mat.noise;
+                y = (key.impact * mat.baseAmp * rawWave * decayFactor) + (noise * decayFactor);
+            }
+            let finalY = (canvas.height / 2) - y;
+            points.push({x: x, y: finalY});
+            ctx.lineTo(x, finalY);
+        }
+        ctx.stroke();
+
+        ctx.fillStyle = '#f8fafc';
+        points.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, currentRateStep === 3 ? 1 : 2, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        let confidence = 10;
+        if (hz === 1000) confidence = 45;
+        if (hz === 4000) confidence = 75;
+        if (hz === 8000) confidence = 95;
+        if (currentMaterial === 'pad') confidence = Math.floor(confidence * 0.2);
+        if (currentMaterial === 'steel') confidence = Math.max(10, confidence - 15);
+        
+        const confSpan = document.getElementById('confidenceScore');
+        confSpan.innerText = confidence + "%";
+        confSpan.className = "font-bold " + (confidence > 70 ? "text-green-400" : (confidence > 30 ? "text-amber-400" : "text-red-400"));
+
+        let analysis = `Detected: [${key.name}] signature. `;
+        if (confidence > 70 && !completed.obj2) completeObjective(2);
+
+        if (hz <= 1000) analysis += "Data is aliased. ML models will struggle to identify this specific key.";
+        else if (currentMaterial === 'pad') analysis += "Signal absorbed by soft surface. Data unusable.";
+        else analysis += "High-fidelity waveform captured. Signature is distinct and easily readable by ML.";
+        
+        document.getElementById('analysisText').innerText = analysis;
+    }
+
+    // --- Station 3: Speech Coupling Logic ---
+    function updateShake() {
+        const vol = parseInt(document.getElementById('volumeSlider').value, 10);
+        const desk = document.getElementById('deskObject');
+        document.getElementById('volLabel').innerText = vol + "%";
+        
+        if (vol > 10) {
+            desk.classList.add('shake-animation');
+            let speed = Math.max(0.05, 0.6 - (vol / 200)); 
+            desk.style.animationDuration = speed + 's';
+        } else {
+            desk.classList.remove('shake-animation');
+            desk.style.animationDuration = '';
+        }
+
+        if (vol > 80 && !completed.obj3) {
+            completeObjective(3);
+        }
+    }
+
+    // Initialize Canvas sizes on load
+    window.onload = () => {
+        resizeCanvas();
+    };
+</script>
+</body>
+</html>

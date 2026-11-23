@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 15: Network Ports & Services Lab | Barstow Community College</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas for PNG Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&family=Cinzel:wght@700;900&family=Alex+Brush&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b1120;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .serif-title {
+            font-family: 'Cinzel', serif;
+        }
+        .signature-font {
+            font-family: 'Alex Brush', cursive;
+        }
+
+        /* Retro CSS Scanline Effect OVER the text */
+        .retro-scanline-text {
+            background-image: repeating-linear-gradient(
+                to bottom,
+                #f59e0b 0px,
+                #f59e0b 2px,
+                #78350f 2px,
+                #78350f 4px
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0px 0px 18px rgba(245, 158, 11, 0.25);
+        }
+
+        /* Custom Metallic Switch Chasis */
+        .switch-chassis {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid #334155;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.08), 0 12px 30px -5px rgba(0, 0, 0, 0.7);
+        }
+
+        /* RJ45 Port Realistic Styling */
+        .rj45-socket {
+            position: relative;
+            background: #090d16;
+            border: 2px solid #475569;
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.9);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .rj45-socket.drag-over {
+            transform: scale(1.06);
+            box-shadow: 0 0 18px currentColor, inset 0 0 10px currentColor;
+        }
+        .rj45-pins {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 6px;
+            height: 6px;
+        }
+        .rj45-pin {
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+            border-radius: 0 0 1px 1px;
+        }
+
+        /* CSS-Drawn Golden Seal containing "BCC" */
+        .bcc-golden-seal {
+            position: relative;
+            width: 112px;
+            height: 112px;
+            border-radius: 9999px;
+            background: radial-gradient(circle at 30% 30%, #fef08a 0%, #f59e0b 45%, #b45309 85%, #78350f 100%);
+            box-shadow: 
+                0 0 0 4px #78350f,
+                0 0 0 7px #fbbf24,
+                0 10px 25px -5px rgba(0, 0, 0, 0.7),
+                inset 0 2px 6px rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .bcc-golden-seal::before {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border-radius: 9999px;
+            border: 2px dashed #78350f;
+            pointer-events: none;
+        }
+        .bcc-golden-seal-inner {
+            width: 84px;
+            height: 84px;
+            border-radius: 9999px;
+            background: radial-gradient(circle at 70% 70%, #b45309 0%, #d97706 50%, #fde047 100%);
+            border: 2px solid #92400e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.45);
+        }
+
+        /* Draggable Cable Plug Styling */
+        .service-plug {
+            cursor: grab;
+            transition: all 0.18s ease;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .service-plug:active {
+            cursor: grabbing;
+        }
+        .service-plug.selected-plug {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 0 0 3px #38bdf8, 0 10px 20px -5px rgba(56, 189, 248, 0.5);
+            background: #1e293b;
+        }
+
+        /* Animations */
+        @keyframes pulse-error {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .shake-error {
+            animation: pulse-error 0.4s ease-in-out;
+        }
+
+        @keyframes pop-success {
+            0% { transform: scale(0.92); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pop-match {
+            animation: pop-success 0.35s ease-out;
+        }
+    </style>
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-sky-500 selection:text-white">
+
+    <!-- Top Navigation & Status Header -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <!-- Branding -->
+            <div class="flex items-center gap-3">
+                <a href="index.html#bcc-classes" class="text-xs font-bold text-sky-300 hover:text-amber-300 bg-slate-950 border border-slate-700 hover:border-amber-400 px-2.5 py-2 rounded-lg transition shrink-0" aria-label="Back to Timothy Brinkley homepage">
+                    <i class="fa-solid fa-arrow-left mr-1"></i>Home
+                </a>
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-500/20 border border-amber-300/40">
+                    <i class="fa-solid fa-network-wired text-slate-950 text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">CBIS 15</span>
+                        <span class="text-xs text-slate-400 font-medium hidden sm:inline">Barstow Community College</span>
+                    </div>
+                    <h1 class="text-base sm:text-lg font-extrabold text-white tracking-tight">Information Networking: Switch Port Patch Lab</h1>
+                </div>
+            </div>
+
+            <!-- Progress & Navigation Tabs -->
+            <div class="flex items-center gap-2 sm:gap-4 ml-auto">
+                <div class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2.5">
+                    <span class="text-xs text-slate-400 font-medium">Patched:</span>
+                    <span id="progressCounter" class="mono text-sm font-extrabold text-emerald-400">0 / 19</span>
+                </div>
+
+                <!-- Tab Switcher -->
+                <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+                    <button id="tabLabBtn" onclick="switchTab('lab')" class="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all bg-sky-600 text-white shadow">
+                        <i class="fa-solid fa-ethernet mr-1.5"></i>Switch Lab
+                    </button>
+                    <button id="tabCertBtn" onclick="switchTab('cert')" disabled class="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all text-slate-500 cursor-not-allowed flex items-center gap-1.5">
+                        <i id="certLockIcon" class="fa-solid fa-lock text-xs"></i>
+                        <span>Certificate</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Directional Feedback Banner (Sticky below header on mobile) -->
+    <div id="feedbackContainer" class="sticky top-[61px] z-30 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-3 pointer-events-none">
+        <div id="feedbackBanner" class="pointer-events-auto rounded-xl border border-slate-700/80 bg-slate-900/95 backdrop-blur-md px-4 py-3 shadow-xl flex items-center justify-between gap-3 transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <div id="feedbackIconBox" class="w-9 h-9 rounded-lg bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 shrink-0">
+                    <i id="feedbackIcon" class="fa-solid fa-circle-info text-lg"></i>
+                </div>
+                <div>
+                    <p id="feedbackTitle" class="text-xs sm:text-sm font-bold text-slate-100">
+                        Instructions: Drag a Service Cable to its matching Rainbow RJ45 Port on the switch (or Tap a Service, then Tap a Jack on mobile).
+                    </p>
+                    <p id="feedbackSub" class="text-xs text-slate-400">
+                        Ports are arranged in ascending numerical order from Port 20/21 up to Port 5060/5061.
+                    </p>
+                </div>
+            </div>
+            <button onclick="resetLabConfirm()" class="shrink-0 text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                <i class="fa-solid fa-rotate-right mr-1"></i>Reset
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-5">
+
+        <!-- ======================= TAB 1: SWITCH LAB VIEW ======================= -->
+        <section id="labView" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- LEFT COLUMN: Unpatched Service Cables Tray -->
+            <div class="lg:col-span-5 xl:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl lg:sticky lg:top-[140px]">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+                        <h2 class="text-sm sm:text-base font-extrabold uppercase tracking-wider text-slate-200">
+                            Services (<span id="remainingCount">19</span> Left)
+                        </h2>
+                    </div>
+                    <span class="text-[11px] text-slate-400">
+                        <i class="fa-solid fa-hand-pointer mr-1 text-sky-400"></i>Drag right or Tap
+                    </span>
+                </div>
+
+                <!-- Selected Service Mobile Helper Bar -->
+                <div id="mobileSelectedBar" class="hidden mb-3 bg-sky-950/80 border border-sky-500/50 rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+                    <div class="text-xs text-sky-200 leading-snug">
+                        <span class="font-bold">Selected:</span>
+                        <span id="mobileSelectedName" class="mono font-extrabold text-white ml-1"></span>
+                        <span class="text-sky-300 block sm:inline">— Tap matching RJ45 port on the right!</span>
+                    </div>
+                    <button onclick="clearSelectedService()" class="text-xs bg-sky-800/80 hover:bg-sky-700 text-sky-100 px-2.5 py-1 rounded-lg font-semibold shrink-0">
+                        Cancel
+                    </button>
+                </div>
+
+                <!-- Draggable Service Cards List (Left Side) -->
+                <div id="servicePool" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2.5 max-h-[65vh] overflow-y-auto pr-1">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: 19-Port Rainbow Managed Rack Switch -->
+            <div class="lg:col-span-7 xl:col-span-8 switch-chassis rounded-2xl p-4 sm:p-6 relative overflow-hidden">
+                <!-- Rack Ears & Screws Aesthetic -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-700/80">
+                    <div class="flex items-center gap-3">
+                        <div class="flex flex-col gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-slate-700 border border-slate-500 block"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-slate-700 border border-slate-500 block"></span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="mono text-xs font-extrabold tracking-widest text-amber-400 uppercase">BCC-CORE-SW19</span>
+                                <span class="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>SYST ONLINE
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5">19-Port Rainbow Managed Gigabit Switch • Ports Ordered Ascending (Low <i class="fa-solid fa-arrow-right mx-1"></i> High)</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 text-xs text-slate-400 mono">
+                        <span><i class="fa-solid fa-arrow-up text-sky-400 mr-1"></i>LOWER PORTS: Up/Left</span>
+                        <span><i class="fa-solid fa-arrow-down text-amber-400 mr-1"></i>HIGHER PORTS: Down/Right</span>
+                    </div>
+                </div>
+
+                <!-- Switch RJ45 Jacks Grid (Right Side) -->
+                <div id="switchPortsGrid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-3.5">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ======================= TAB 2: CERTIFICATE VIEW ======================= -->
+        <section id="certView" class="hidden space-y-6 max-w-4xl mx-auto">
+
+            <!-- Student Name Entry Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                        <i class="fa-solid fa-award text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-extrabold text-white">All 19 Switch Ports Patched Successfully!</h2>
+                        <p class="text-xs sm:text-sm text-slate-400">Enter your First and Last Name below and click <strong>Generate Certificate</strong> to lock in your official completion time.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="firstNameInput" class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">First Name <span class="text-rose-400">*</span></label>
+                        <input id="firstNameInput" type="text" placeholder="e.g. Alex" class="w-full rounded-xl bg-slate-950 border border-slate-700 focus:border-amber-400 focus:outline-none px-3.5 py-2.5 text-sm text-white placeholder-slate-500 transition">
+                    </div>
+                    <div>
+                        <label for="lastNameInput" class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Last Name <span class="text-rose-400">*</span></label>
+                        <input id="lastNameInput" type="text" placeholder="e.g. Rivera" class="w-full rounded-xl bg-slate-950 border border-slate-700 focus:border-amber-400 focus:outline-none px-3.5 py-2.5 text-sm text-white placeholder-slate-500 transition">
+                    </div>
+                </div>
+
+                <!-- Validation Error Message -->
+                <div id="nameValidationError" class="hidden mt-3 rounded-xl bg-rose-950/90 border border-rose-500/50 px-3.5 py-2 text-xs font-semibold text-rose-200 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+                    <span>Please enter both your First Name and Last Name before generating your certificate.</span>
+                </div>
+
+                <div class="mt-4 flex flex-wrap items-center justify-end gap-3">
+                    <button id="generateCertBtn" onclick="generateCertificate()" class="w-full sm:w-auto px-6 py-3 rounded-xl font-extrabold text-sm bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 hover:brightness-110 shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Generate Certificate</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Certificate Display & Export Container (Revealed after clicking Generate) -->
+            <div id="certificateOutputWrapper" class="hidden space-y-5">
+
+                <!-- Styled App Frame Hosting the Certificate -->
+                <div class="p-2 sm:p-4 rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 border border-slate-700 shadow-2xl overflow-x-auto">
+                    <!-- Target Element for html2canvas -->
+                    <div id="certificateCaptureNode" class="relative bg-[#080d1a] text-slate-100 rounded-2xl p-6 sm:p-10 border-4 border-amber-500/80 shadow-inner min-w-[320px]" style="background-image: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.14), transparent 70%);">
+                        
+                        <!-- Decorative Corner Filigree Borders -->
+                        <div class="pointer-events-none absolute inset-2.5 border border-amber-400/30 rounded-xl"></div>
+                        <div class="pointer-events-none absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-amber-400"></div>
+                        <div class="pointer-events-none absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-amber-400"></div>
+                        <div class="pointer-events-none absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-amber-400"></div>
+                        <div class="pointer-events-none absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-amber-400"></div>
+
+                        <!-- Certificate Header -->
+                        <div class="text-center space-y-1.5 relative z-10">
+                            <p class="text-xs sm:text-sm font-extrabold uppercase tracking-[0.28em] text-amber-400">Barstow Community College</p>
+                            <h3 class="serif-title text-2xl sm:text-4xl font-black tracking-wide text-white uppercase">Certificate of Completion</h3>
+                            <p class="text-xs sm:text-sm text-slate-300 font-medium">CBIS 15 • Information Networking — Common Ports &amp; Protocols Switch Lab</p>
+                        </div>
+
+                        <div class="my-6 text-center relative z-10">
+                            <p class="text-xs uppercase tracking-widest text-slate-400 mb-2">This certifies that</p>
+                            <!-- Student Name with Retro CSS Scanline Effect OVER the text -->
+                            <div id="certStudentName" class="retro-scanline-text serif-title text-3xl sm:text-5xl font-black tracking-wider py-2 px-4 inline-block break-words max-w-full">
+                                STUDENT NAME
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto mt-2">
+                                has accurately identified and patched all <span class="text-amber-300 font-bold">19 rainbow-coded RJ45 switch ports</span> to their corresponding TCP/UDP network services and protocols.
+                            </p>
+                        </div>
+
+                        <!-- Telemetry & Timing Grid + BCC Golden Seal -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-center my-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 relative z-10">
+                            <!-- Time Stamps -->
+                            <div class="md:col-span-2 space-y-2.5 text-left">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-2">
+                                    <span class="text-xs uppercase tracking-wider text-slate-400 font-bold">Start Time:</span>
+                                    <span id="certStartTime" class="mono text-xs sm:text-sm font-bold text-sky-300">--</span>
+                                </div>
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-2">
+                                    <span class="text-xs uppercase tracking-wider text-slate-400 font-bold">End Time:</span>
+                                    <span id="certEndTime" class="mono text-xs sm:text-sm font-bold text-emerald-300">--</span>
+                                </div>
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between pt-0.5">
+                                    <span class="text-xs uppercase tracking-wider text-amber-300 font-extrabold">Total Active Time:</span>
+                                    <span id="certTotalTime" class="mono text-base sm:text-lg font-extrabold text-amber-400">--</span>
+                                </div>
+                            </div>
+
+                            <!-- CSS-Drawn Golden Seal containing "BCC" -->
+                            <div class="flex flex-col items-center justify-center">
+                                <div class="bcc-golden-seal">
+                                    <div class="bcc-golden-seal-inner">
+                                        <span class="text-[9px] font-black tracking-widest text-amber-950 uppercase">OFFICIAL</span>
+                                        <span class="serif-title text-2xl font-black tracking-wider text-amber-950 leading-none my-0.5">BCC</span>
+                                        <span class="text-[8px] font-extrabold tracking-widest text-amber-950 uppercase">CBIS 15 LAB</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Signatures Footer -->
+                        <div class="pt-4 border-t border-slate-800/90 flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+                            <div class="text-center sm:text-left">
+                                <p class="signature-font text-2xl sm:text-3xl text-amber-200 leading-none">Timothy Brinkley &amp; Wes Frogge</p>
+                                <p class="text-xs font-bold tracking-wider uppercase text-slate-400 mt-1">Timothy Brinkley &amp; Wes Frogge — CBIS 15 Instructors</p>
+                            </div>
+                            <div class="text-center sm:text-right">
+                                <span class="mono text-[11px] text-slate-400 block">19/19 RJ45 PORTS VERIFIED</span>
+                                <span class="mono text-xs font-bold text-emerald-400">STATUS: PASSED (100%)</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Download Action & Canvas Submission Instructions -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center space-y-3 shadow-xl">
+                    <button id="downloadPngBtn" onclick="downloadCertificatePNG()" class="px-6 py-3.5 rounded-xl font-extrabold text-sm sm:text-base bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/20 transition inline-flex items-center gap-2">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Download Certificate as PNG</span>
+                    </button>
+                    <p class="text-xs sm:text-sm font-semibold text-amber-300 max-w-xl mx-auto">
+                        Please take a screenshot of this certificate or download the PNG and attach it to your Canvas assignment.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Reset Confirmation Modal (No native alert/confirm) -->
+    <div id="resetModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                    <i class="fa-solid fa-rotate-right text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-white">Reset Switch Patch Lab?</h3>
+                    <p class="text-xs text-slate-400">This will unpatch all RJ45 cables and restore the alphabetical list of services.</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeResetModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300">Cancel</button>
+                <button onclick="confirmResetLab()" class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white">Yes, Reset Lab</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /*************************************************************************
+         * 1. TIME MATH LOGIC (Captures startTime with Milliseconds on App Load)
+         *************************************************************************/
+        const startTime = new Date();
+
+        function formatDateTimeWithMS(dateObj) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const hours = String(dateObj.getHours()).padStart(2, '0');
+            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+            const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+            const ms = String(dateObj.getMilliseconds()).padStart(3, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${ms}`;
+        }
+
+        function formatActiveTimeDiff(startMs, endMs) {
+            const totalSeconds = Math.max(0, Math.floor((endMs - startMs) / 1000));
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+        }
+
+        /*************************************************************************
+         * 2. ATTACHED PORT LIST DATA (19 Ports ordered Low to High + Rainbow Colors)
+         *************************************************************************/
+        const PORTS_DATA = [
+            { id: 'ftp',    orderIndex: 0,  portLabel: '20/21',     numericSort: 20,   service: 'FTP',      desc: 'File Transfer Protocol',                        color: '#EF4444', colorName: 'Red' },
+            { id: 'ssh',    orderIndex: 1,  portLabel: '22',        numericSort: 22,   service: 'SSH, SFTP',desc: 'Secure Shell, Secure File Transfer Protocol',   color: '#F97316', colorName: 'Red-Orange' },
+            { id: 'telnet', orderIndex: 2,  portLabel: '23',        numericSort: 23,   service: 'Telnet',   desc: 'Telnet',                                        color: '#FB923C', colorName: 'Orange' },
+            { id: 'smtp',   orderIndex: 3,  portLabel: '25',        numericSort: 25,   service: 'SMTP',     desc: 'Simple Mail Transfer Protocol',                 color: '#F59E0B', colorName: 'Amber' },
+            { id: 'dns',    orderIndex: 4,  portLabel: '53',        numericSort: 53,   service: 'DNS',      desc: 'Domain Name System',                            color: '#EAB308', colorName: 'Yellow' },
+            { id: 'dhcp',   orderIndex: 5,  portLabel: '67/68',     numericSort: 67,   service: 'DHCP',     desc: 'Dynamic Host Configuration Protocol',           color: '#A3E635', colorName: 'Chartreuse' },
+            { id: 'tftp',   orderIndex: 6,  portLabel: '69',        numericSort: 69,   service: 'TFTP',     desc: 'Trivial File Transfer Protocol',                color: '#84CC16', colorName: 'Lime' },
+            { id: 'http',   orderIndex: 7,  portLabel: '80',        numericSort: 80,   service: 'HTTP',     desc: 'Hypertext Transfer Protocol',                   color: '#22C55E', colorName: 'Green' },
+            { id: 'ntp',    orderIndex: 8,  portLabel: '123',       numericSort: 123,  service: 'NTP',      desc: 'Network Time Protocol',                         color: '#10B981', colorName: 'Emerald' },
+            { id: 'snmp',   orderIndex: 9,  portLabel: '161/162',   numericSort: 161,  service: 'SNMP',     desc: 'Simple Network Management Protocol',            color: '#14B8A6', colorName: 'Teal' },
+            { id: 'ldap',   orderIndex: 10, portLabel: '389',       numericSort: 389,  service: 'LDAP',     desc: 'Lightweight Directory Access Protocol',         color: '#06B6D4', colorName: 'Cyan' },
+            { id: 'https',  orderIndex: 11, portLabel: '443',       numericSort: 443,  service: 'HTTPS',    desc: 'Hypertext Transfer Protocol Secure',            color: '#0EA5E9', colorName: 'Sky Blue' },
+            { id: 'smb',    orderIndex: 12, portLabel: '445',       numericSort: 445,  service: 'SMB',      desc: 'Server Message Block',                          color: '#3B82F6', colorName: 'Blue' },
+            { id: 'syslog', orderIndex: 13, portLabel: '514',       numericSort: 514,  service: 'Syslog',   desc: 'Syslog',                                        color: '#6366F1', colorName: 'Indigo' },
+            { id: 'smtps',  orderIndex: 14, portLabel: '587',       numericSort: 587,  service: 'SMTPS',    desc: 'Simple Mail Transfer Protocol Secure',          color: '#8B5CF6', colorName: 'Violet' },
+            { id: 'ldaps',  orderIndex: 15, portLabel: '636',       numericSort: 636,  service: 'LDAPS',    desc: 'Lightweight Directory Access Protocol over SSL',color: '#A855F7', colorName: 'Purple' },
+            { id: 'sql',    orderIndex: 16, portLabel: '1433',      numericSort: 1433, service: 'SQL',      desc: 'Broadcast Structured Query Language (SQL) Server', color: '#D946EF', colorName: 'Fuchsia' },
+            { id: 'rdp',    orderIndex: 17, portLabel: '3389',      numericSort: 3389, service: 'RDP',      desc: 'Remote Desktop Protocol',                       color: '#EC4899', colorName: 'Magenta' },
+            { id: 'sip',    orderIndex: 18, portLabel: '5060/5061', numericSort: 5060, service: 'SIP',      desc: 'Session Initiation Protocol',                   color: '#F43F5E', colorName: 'Rose' }
+        ];
+
+        // State tracking
+        let matchedPortIds = new Set();
+        let sortedServices = [];
+        let selectedServiceId = null; // Supports mobile tap-to-assign & desktop click
+
+        /*************************************************************************
+         * 3. INITIALIZATION & RENDERING
+         *************************************************************************/
+        function sortAlphabetically(arr) {
+            return [...arr].sort((a, b) => a.service.localeCompare(b.service));
+        }
+
+        function initLab() {
+            matchedPortIds.clear();
+            selectedServiceId = null;
+            sortedServices = sortAlphabetically(PORTS_DATA);
+            renderServicePool();
+            renderSwitchPorts();
+            updateProgressUI();
+        }
+
+        function renderServicePool() {
+            const poolEl = document.getElementById('servicePool');
+            const remaining = sortedServices.filter(item => !matchedPortIds.has(item.id));
+            document.getElementById('remainingCount').textContent = remaining.length;
+
+            if (remaining.length === 0) {
+                poolEl.innerHTML = `
+                    <div class="col-span-full bg-emerald-950/50 border border-emerald-500/40 rounded-xl p-4 text-center">
+                        <p class="text-sm font-extrabold text-emerald-300">
+                            <i class="fa-solid fa-circle-check mr-1.5"></i>All 19 Network Services Patched! Opening Certificate Tab...
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            poolEl.innerHTML = remaining.map(item => {
+                const isSelected = selectedServiceId === item.id;
+                return `
+                    <div
+                        id="plug-${item.id}"
+                        draggable="true"
+                        ondragstart="handleDragStart(event, '${item.id}')"
+                        onclick="handleServiceTap('${item.id}')"
+                        class="service-plug rounded-xl bg-slate-950 border ${isSelected ? 'border-sky-400 selected-plug' : 'border-slate-700/90 hover:border-slate-500'} p-3 flex items-start gap-3 shadow-md"
+                    >
+                        <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 shrink-0 mt-0.5">
+                            <i class="fa-solid fa-plug text-sm"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="mono font-extrabold text-sm text-white truncate">${item.service}</span>
+                                <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold">RJ45</span>
+                            </div>
+                            <p class="text-xs text-slate-400 leading-snug mt-0.5 line-clamp-2">${item.desc}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update mobile selection helper bar
+            const mobileBar = document.getElementById('mobileSelectedBar');
+            const mobileName = document.getElementById('mobileSelectedName');
+            if (selectedServiceId) {
+                const selObj = PORTS_DATA.find(p => p.id === selectedServiceId);
+                if (selObj) {
+                    mobileBar.classList.remove('hidden');
+                    mobileName.textContent = `${selObj.service} (${selObj.desc})`;
+                }
+            } else {
+                mobileBar.classList.add('hidden');
+            }
+        }
+
+        function renderSwitchPorts() {
+            const gridEl = document.getElementById('switchPortsGrid');
+            gridEl.innerHTML = PORTS_DATA.map((port, idx) => {
+                const isMatched = matchedPortIds.has(port.id);
+                const jackNumber = String(idx + 1).padStart(2, '0');
+
+                return `
+                    <div
+                        id="jack-${port.id}"
+                        ondragover="handleDragOver(event)"
+                        ondragenter="handleDragEnter(event, '${port.id}')"
+                        ondragleave="handleDragLeave(event, '${port.id}')"
+                        ondrop="handleDrop(event, '${port.id}')"
+                        onclick="handleJackTap('${port.id}')"
+                        style="border-color: ${port.color}; color: ${port.color};"
+                        class="rj45-socket rounded-xl p-3 cursor-pointer flex flex-col justify-between min-h-[128px] select-none ${isMatched ? 'pop-match' : ''}"
+                    >
+                        <!-- Top LED & Switch Jack Index -->
+                        <div class="flex items-center justify-between gap-1 mb-1.5">
+                            <span class="mono text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-900/90 text-slate-300 border border-slate-700">
+                                GE 0/${jackNumber}
+                            </span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] font-bold uppercase tracking-wider" style="color: ${port.color}">${port.colorName}</span>
+                                <span class="w-2.5 h-2.5 rounded-full ${isMatched ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-amber-400/40'}"></span>
+                            </div>
+                        </div>
+
+                        <!-- Inner RJ45 Gold Pins + Port Number -->
+                        <div class="my-1 bg-slate-950/90 border rounded-lg p-2 text-center relative overflow-hidden" style="border-color: ${port.color}66;">
+                            <div class="rj45-pins mb-1.5 opacity-80">
+                                <span class="rj45-pin"></span><span class="rj45-pin"></span><span class="rj45-pin"></span><span class="rj45-pin"></span>
+                                <span class="rj45-pin"></span><span class="rj45-pin"></span><span class="rj45-pin"></span><span class="rj45-pin"></span>
+                            </div>
+                            <div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">PORT</div>
+                            <div class="mono text-base sm:text-lg font-extrabold tracking-tight text-white">${port.portLabel}</div>
+                        </div>
+
+                        <!-- Bottom Status / Patched Label -->
+                        ${isMatched ? `
+                            <div class="mt-1.5 rounded-lg px-2 py-1 text-center text-slate-950 font-extrabold text-xs mono flex items-center justify-center gap-1 shadow" style="background-color: ${port.color};">
+                                <i class="fa-solid fa-check-circle"></i>
+                                <span>${port.service}</span>
+                            </div>
+                        ` : `
+                            <div class="mt-1.5 rounded-lg bg-slate-900/80 border border-dashed px-2 py-1 text-center text-[11px] font-semibold text-slate-400" style="border-color: ${port.color}55;">
+                                Drop / Tap Plug
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /*************************************************************************
+         * 4. DRAG & DROP + MOBILE TAP INTERACTION HANDLERS
+         *************************************************************************/
+        function handleDragStart(e, serviceId) {
+            selectedServiceId = serviceId;
+            e.dataTransfer.setData('text/plain', serviceId);
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragEnter(e, portId) {
+            e.preventDefault();
+            if (matchedPortIds.has(portId)) return;
+            const el = document.getElementById(`jack-${portId}`);
+            if (el) el.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e, portId) {
+            const el = document.getElementById(`jack-${portId}`);
+            if (el) el.classList.remove('drag-over');
+        }
+
+        function handleDrop(e, targetPortId) {
+            e.preventDefault();
+            const el = document.getElementById(`jack-${targetPortId}`);
+            if (el) el.classList.remove('drag-over');
+
+            const draggedServiceId = e.dataTransfer.getData('text/plain') || selectedServiceId;
+            if (!draggedServiceId) return;
+
+            evaluateMatchAttempt(draggedServiceId, targetPortId);
+        }
+
+        // Mobile & Click-to-Assign Handlers
+        function handleServiceTap(serviceId) {
+            if (matchedPortIds.has(serviceId)) return;
+            selectedServiceId = (selectedServiceId === serviceId) ? null : serviceId;
+            renderServicePool();
+        }
+
+        function clearSelectedService() {
+            selectedServiceId = null;
+            renderServicePool();
+        }
+
+        function handleJackTap(targetPortId) {
+            if (matchedPortIds.has(targetPortId)) return;
+            if (!selectedServiceId) {
+                setFeedback(
+                    'info',
+                    'Select a Service Cable First!',
+                    'Tap one of the unpatched Network Service cards above, then tap its matching RJ45 switch jack.'
+                );
+                return;
+            }
+            evaluateMatchAttempt(selectedServiceId, targetPortId);
+        }
+
+        /*************************************************************************
+         * 5. DIRECTIONAL PORT FEEDBACK LOGIC (UP / DOWN ON PORTS LIST)
+         *************************************************************************/
+        function evaluateMatchAttempt(serviceId, targetPortId) {
+            if (matchedPortIds.has(targetPortId)) return;
+
+            const serviceObj = PORTS_DATA.find(p => p.id === serviceId);
+            const targetPortObj = PORTS_DATA.find(p => p.id === targetPortId);
+            if (!serviceObj || !targetPortObj) return;
+
+            if (serviceObj.id === targetPortObj.id) {
+                // Correct Match!
+                matchedPortIds.add(serviceObj.id);
+                selectedServiceId = null;
+
+                setFeedback(
+                    'success',
+                    `Correct Match! ${serviceObj.service} (${serviceObj.desc}) patched to Port ${targetPortObj.portLabel}.`,
+                    `Switch port GE 0/${String(targetPortObj.orderIndex + 1).padStart(2, '0')} (${targetPortObj.colorName}) link is now UP.`
+                );
+
+                renderServicePool();
+                renderSwitchPorts();
+                updateProgressUI();
+
+                // Check if all 19 are complete
+                if (matchedPortIds.size === PORTS_DATA.length) {
+                    unlockCertificateTab();
+                }
+            } else {
+                // Incorrect Match -> Calculate whether student needs to go UP (higher port) or DOWN (lower port)
+                const jackEl = document.getElementById(`jack-${targetPortId}`);
+                if (jackEl) {
+                    jackEl.classList.remove('shake-error');
+                    void jackEl.offsetWidth; // trigger reflow
+                    jackEl.classList.add('shake-error');
+                }
+
+                const needsHigherPort = serviceObj.orderIndex > targetPortObj.orderIndex;
+                if (needsHigherPort) {
+                    setFeedback(
+                        'error',
+                        `Incorrect! For "${serviceObj.service}", you need to go UP (Higher) on the ports list (above Port ${targetPortObj.portLabel}).`,
+                        `Hint: Look further right/down on the switch for a port number higher than ${targetPortObj.portLabel}.`
+                    );
+                } else {
+                    setFeedback(
+                        'error',
+                        `Incorrect! For "${serviceObj.service}", you need to go DOWN (Lower) on the ports list (below Port ${targetPortObj.portLabel}).`,
+                        `Hint: Look further left/up on the switch for a port number lower than ${targetPortObj.portLabel}.`
+                    );
+                }
+            }
+        }
+
+        function setFeedback(type, title, subtitle) {
+            const banner = document.getElementById('feedbackBanner');
+            const iconBox = document.getElementById('feedbackIconBox');
+            const icon = document.getElementById('feedbackIcon');
+            const titleEl = document.getElementById('feedbackTitle');
+            const subEl = document.getElementById('feedbackSub');
+
+            titleEl.textContent = title;
+            subEl.textContent = subtitle;
+
+            banner.className = 'pointer-events-auto rounded-xl border px-4 py-3 shadow-xl flex items-center justify-between gap-3 transition-all duration-300 backdrop-blur-md ';
+            if (type === 'success') {
+                banner.className += 'bg-emerald-950/95 border-emerald-500/60';
+                iconBox.className = 'w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0';
+                icon.className = 'fa-solid fa-circle-check text-lg';
+            } else if (type === 'error') {
+                banner.className += 'bg-rose-950/95 border-rose-500/60';
+                iconBox.className = 'w-9 h-9 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0';
+                icon.className = 'fa-solid fa-arrow-up-down text-lg';
+            } else {
+                banner.className += 'bg-slate-900/95 border-slate-700/80';
+                iconBox.className = 'w-9 h-9 rounded-lg bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 shrink-0';
+                icon.className = 'fa-solid fa-circle-info text-lg';
+            }
+        }
+
+        function updateProgressUI() {
+            const counter = document.getElementById('progressCounter');
+            counter.textContent = `${matchedPortIds.size} / ${PORTS_DATA.length}`;
+        }
+
+        /*************************************************************************
+         * 6. TAB NAVIGATION & CERTIFICATE GENERATION / PNG EXPORT
+         *************************************************************************/
+        function unlockCertificateTab() {
+            const certBtn = document.getElementById('tabCertBtn');
+            const lockIcon = document.getElementById('certLockIcon');
+
+            certBtn.disabled = false;
+            certBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/30 flex items-center gap-1.5 animate-pulse';
+            lockIcon.className = 'fa-solid fa-unlock text-xs';
+
+            setFeedback(
+                'success',
+                'Congratulations! All 19 Switch Ports Patched Correctly!',
+                'The Certificate tab is now unlocked. Switching to Certificate tab...'
+            );
+
+            setTimeout(() => {
+                switchTab('cert');
+            }, 900);
+        }
+
+        function switchTab(tabName) {
+            const labView = document.getElementById('labView');
+            const certView = document.getElementById('certView');
+            const labBtn = document.getElementById('tabLabBtn');
+            const certBtn = document.getElementById('tabCertBtn');
+            const feedbackContainer = document.getElementById('feedbackContainer');
+
+            if (tabName === 'cert' && matchedPortIds.size < PORTS_DATA.length) {
+                return;
+            }
+
+            if (tabName === 'lab') {
+                labView.classList.remove('hidden');
+                certView.classList.add('hidden');
+                feedbackContainer.classList.remove('hidden');
+                labBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all bg-sky-600 text-white shadow';
+                if (matchedPortIds.size === PORTS_DATA.length) {
+                    certBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all bg-slate-800 text-amber-300 flex items-center gap-1.5';
+                }
+            } else {
+                labView.classList.add('hidden');
+                certView.classList.remove('hidden');
+                feedbackContainer.classList.add('hidden');
+                labBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all bg-slate-800 text-slate-300';
+                certBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all bg-amber-500 text-slate-950 shadow flex items-center gap-1.5';
+            }
+        }
+
+        function generateCertificate() {
+            const firstInput = document.getElementById('firstNameInput');
+            const lastInput = document.getElementById('lastNameInput');
+            const errorBox = document.getElementById('nameValidationError');
+
+            const firstName = firstInput.value.trim();
+            const lastName = lastInput.value.trim();
+
+            if (!firstName || !lastName) {
+                errorBox.classList.remove('hidden');
+                return;
+            }
+            errorBox.classList.add('hidden');
+
+            // Capture endTime at the exact moment "Generate Certificate" is clicked
+            const endTime = new Date();
+            const formattedStart = formatDateTimeWithMS(startTime);
+            const formattedEnd = formatDateTimeWithMS(endTime);
+            const formattedActive = formatActiveTimeDiff(startTime.getTime(), endTime.getTime());
+
+            // Populate Certificate DOM
+            document.getElementById('certStudentName').textContent = `${firstName} ${lastName}`;
+            document.getElementById('certStartTime').textContent = formattedStart;
+            document.getElementById('certEndTime').textContent = formattedEnd;
+            document.getElementById('certTotalTime').textContent = formattedActive;
+
+            const wrapper = document.getElementById('certificateOutputWrapper');
+            wrapper.classList.remove('hidden');
+            wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function downloadCertificatePNG() {
+            const certNode = document.getElementById('certificateCaptureNode');
+            const downloadBtn = document.getElementById('downloadPngBtn');
+            const firstName = document.getElementById('firstNameInput').value.trim() || 'Student';
+            const lastName = document.getElementById('lastNameInput').value.trim() || 'BCC';
+            const fullName = `${firstName} ${lastName}`;
+
+            const originalBtnHTML = downloadBtn.innerHTML;
+            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Rendering PNG...</span>`;
+
+            try {
+                // Ensure web fonts are loaded before rendering
+                if (document.fonts && document.fonts.ready) {
+                    await document.fonts.ready;
+                }
+
+                const canvas = await html2canvas(certNode, {
+                    scale: 2,
+                    backgroundColor: '#080d1a',
+                    useCORS: true,
+                    logging: false,
+                    onclone: (clonedDoc) => {
+                        // html2canvas cannot render -webkit-background-clip: text with color: transparent.
+                        // Replace the cloned name node's content with a high-DPI canvas that draws the exact retro scanline text.
+                        const clonedNameEl = clonedDoc.getElementById('certStudentName');
+                        const liveNameEl = document.getElementById('certStudentName');
+                        if (clonedNameEl && liveNameEl) {
+                            const rect = liveNameEl.getBoundingClientRect();
+                            const computed = window.getComputedStyle(liveNameEl);
+                            const width = Math.max(Math.ceil(rect.width), 320);
+                            const height = Math.max(Math.ceil(rect.height), 64);
+                            const dpr = 2;
+
+                            const nameCanvas = clonedDoc.createElement('canvas');
+                            nameCanvas.width = width * dpr;
+                            nameCanvas.height = height * dpr;
+                            nameCanvas.style.width = `${width}px`;
+                            nameCanvas.style.height = `${height}px`;
+                            nameCanvas.style.display = 'inline-block';
+                            nameCanvas.style.verticalAlign = 'middle';
+
+                            const ctx = nameCanvas.getContext('2d');
+                            ctx.scale(dpr, dpr);
+
+                            // Draw the student name
+                            ctx.font = `${computed.fontWeight || '900'} ${computed.fontSize || '42px'} ${computed.fontFamily || 'Cinzel, serif'}`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+
+                            // Base gold fill
+                            ctx.fillStyle = '#f59e0b';
+                            ctx.fillText(fullName, width / 2, height / 2);
+
+                            // Apply retro scanline stripes clipped solely to the text glyphs
+                            ctx.globalCompositeOperation = 'source-atop';
+                            ctx.fillStyle = '#78350f';
+                            for (let y = 2; y < height; y += 4) {
+                                ctx.fillRect(0, y, width, 2);
+                            }
+
+                            // Reset classes on the cloned wrapper so html2canvas doesn't hide the canvas
+                            clonedNameEl.className = 'py-1 px-2 inline-block max-w-full';
+                            clonedNameEl.innerHTML = '';
+                            clonedNameEl.appendChild(nameCanvas);
+                        }
+                    }
+                });
+
+                const dataUrl = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                const safeName = `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_-]/g, '');
+                link.download = `CBIS15_Ports_Certificate_${safeName}.png`;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                console.error('Certificate export error:', err);
+            } finally {
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = originalBtnHTML;
+            }
+        }
+
+        /*************************************************************************
+         * 7. MODAL HELPERS FOR RESETTING LAB
+         *************************************************************************/
+        function resetLabConfirm() {
+            document.getElementById('resetModal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            document.getElementById('resetModal').classList.add('hidden');
+        }
+
+        function confirmResetLab() {
+            closeResetModal();
+            initLab();
+            setFeedback(
+                'info',
+                'Switch Lab Reset!',
+                'All 19 service cables have been unpatched and sorted alphabetically.'
+            );
+        }
+
+        // Start Lab on Window Load
+        window.onload = function () {
+            initLab();
+        };
+    </script>
+</body>
+</html>

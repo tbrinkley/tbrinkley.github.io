@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 13 Lab: RAD Prototype &amp; Web Services API Builder</title>
+    <meta name="description" content="Interactive CBIS 13 Management Information Systems lab for Barstow Community College: participate in a simulated JAD session, build a RAD wireframe prototype, and make Build vs. Buy Web Services API decisions.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='7' rx='1'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1'/%3E%3C/svg%3E">
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Caveat:wght@700&display=swap" rel="stylesheet" crossorigin="anonymous">
+
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            color: #1f2937;
+        }
+
+        .scanline-name {
+            background: repeating-linear-gradient(
+                to bottom,
+                #1e3a8a,
+                #1e3a8a 3px,
+                #60a5fa 3px,
+                #60a5fa 6px
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-block;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            text-shadow: 0px 0px 1px rgba(0,0,0,0.1);
+        }
+
+        .droppable-area {
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            position: relative;
+        }
+        
+        .droppable-area.drag-over {
+            background-color: #e0f2fe;
+            border-color: #3b82f6;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c1c1; 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8; 
+        }
+
+        .signature-font {
+            font-family: 'Caveat', cursive;
+        }
+
+        .cert-bg {
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-color: #ffffff;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .pulse-active {
+            animation: pulse-green 2s infinite;
+        }
+
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Phone frame styling */
+        .phone-frame {
+            border-radius: 36px;
+            border: 8px solid #1e293b;
+            background-color: #f8fafc;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 24px;
+            background-color: #1e293b;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const UI_COMPONENTS = [
+            { id: 'ui_map', name: 'Interactive Map Window', icon: '🗺️', desc: 'Displays realtime coordinates.', width: 400, height: 300 },
+            { id: 'ui_search', name: 'Customer Search Bar', icon: '🔍', desc: 'Look up client records.', width: 340, height: 200 },
+            { id: 'ui_status', name: 'Live Status Dashboard', icon: '📊', desc: 'Metrics and system status.', width: 320, height: 240 },
+            { id: 'ui_payment', name: 'Checkout/Payment Form', icon: '💳', desc: 'Collect payment info.', width: 340, height: 350 },
+            { id: 'ui_sms', name: 'Mobile SMS Gateway', icon: '📱', desc: 'Simulated phone text logs.', width: 280, height: 500 }
+        ];
+
+        const API_SERVICES = [
+            { id: 'api_maps', name: 'Google Maps API', provider: 'Buy/Integrate', icon: '📍', desc: 'Geocoding & routing service.' },
+            { id: 'api_stripe', name: 'Stripe API', provider: 'Buy/Integrate', icon: '💲', desc: 'Secure payment gateway.' },
+            { id: 'api_twilio', name: 'Twilio API', provider: 'Buy/Integrate', icon: '💬', desc: 'Programmable SMS/Voice.' },
+            { id: 'api_custom', name: 'Custom CRM Backend', provider: 'Build', icon: '🗄️', desc: 'In-house database.' }
+        ];
+
+        const JAD_STAKEHOLDERS = {
+            ops: { name: 'Operations Manager', avatar: '👔', color: 'text-blue-700', bg: 'bg-blue-100' },
+            csr: { name: 'Customer Service Rep', avatar: '🎧', color: 'text-green-700', bg: 'bg-green-100' },
+            tech: { name: 'Field Tech', avatar: '🔧', color: 'text-orange-700', bg: 'bg-orange-100' }
+        };
+
+        const INITIAL_JAD_MESSAGES = [
+            { id: 1, sender: 'ops', text: "Welcome to the JAD Session. We need a dashboard to track our field units." },
+            { id: 2, sender: 'csr', text: "And I need a way to look up customers and process their payments!" },
+            { id: 3, sender: 'tech', text: "Just make sure the map is accurate. We don't want to build a custom mapping tool, it takes too long." }
+        ];
+
+        const formatTimeWithMs = (date) => {
+            if (!date) return '';
+            const pad = (num, size) => num.toString().padStart(size, '0');
+            const h = pad(date.getHours(), 2);
+            const m = pad(date.getMinutes(), 2);
+            const s = pad(date.getSeconds(), 2);
+            const ms = pad(date.getMilliseconds(), 3);
+            return `${date.toLocaleDateString()} ${h}:${m}:${s}.${ms}`;
+        };
+
+        const calculateDuration = (start, end) => {
+            if (!start || !end) return '';
+            const diff = end.getTime() - start.getTime();
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            const ms = diff % 1000;
+            return `${minutes}m ${seconds}s ${ms}ms`;
+        };
+
+        const playPing = () => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(2000, ctx.currentTime);
+                gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            } catch (e) {
+                console.log("Audio failed to play", e);
+            }
+        };
+
+        const ComponentRenderer = ({ item, selectedAPIs, onRemove }) => {
+            const isMapsActive = selectedAPIs.includes('api_maps');
+            const isStripeActive = selectedAPIs.includes('api_stripe');
+            const isTwilioActive = selectedAPIs.includes('api_twilio');
+            const isCustomActive = selectedAPIs.includes('api_custom');
+
+            const removeBtn = (
+                <button 
+                    className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow hover:bg-red-600 z-[100]"
+                    onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
+                    title="Remove Component"
+                >
+                    ✖
+                </button>
+            );
+
+            // Reusable wrapper for standard components
+            const CardWrap = ({ children, activeState }) => (
+                <div className={`group relative bg-white rounded-xl shadow-lg border-2 flex flex-col overflow-hidden w-full h-full ${activeState ? 'border-green-400' : 'border-slate-300 border-dashed'} transition-all`}>
+                    {removeBtn}
+                    {children}
+                </div>
+            );
+
+            switch(item.id) {
+                case 'ui_map':
+                    return (
+                        <CardWrap activeState={isMapsActive}>
+                            <div className="bg-slate-100 p-2 text-xs font-bold border-b flex justify-between items-center z-10">
+                                <span className="flex items-center gap-1">🗺️ Fleet Map</span>
+                                {isMapsActive ? <span className="text-green-600 flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full pulse-active"></span> Maps API Live</span> : <span className="text-red-500 text-[10px] uppercase font-bold bg-red-100 px-1 rounded">No Data Source</span>}
+                            </div>
+                            <div className="flex-1 relative bg-slate-200 flex items-center justify-center overflow-hidden">
+                                {isMapsActive ? (
+                                    <div className="absolute inset-0 bg-blue-50" style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '15px 15px' }}>
+                                        {/* Mock map elements */}
+                                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-4xl drop-shadow-md animate-bounce">📍</div>
+                                        <div className="absolute top-1/3 left-1/4 text-2xl drop-shadow-md opacity-70">🚚</div>
+                                        <div className="absolute top-2/3 right-1/4 text-2xl drop-shadow-md opacity-70">🚚</div>
+                                        <div className="absolute bottom-2 left-2 right-2 bg-slate-800 text-green-400 font-mono p-2 text-xs rounded shadow-lg opacity-95 break-words border border-slate-700">
+                                            {`// Streaming JSON via Google Maps API
+{
+  "unit": "Truck-4",
+  "lat": 34.0522,
+  "lng": -118.2437,
+  "status": "en_route"
+}`}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center p-4">
+                                        <p className="text-sm text-slate-500 mb-2 font-medium">Map Canvas Empty</p>
+                                        <p className="text-xs text-slate-400 border border-slate-300 p-2 rounded bg-slate-50">Toggle "Google Maps API" to render mapping tiles and location data.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </CardWrap>
+                    );
+                case 'ui_search':
+                    return (
+                        <CardWrap activeState={isCustomActive}>
+                            <div className="bg-slate-100 p-2 text-xs font-bold border-b flex justify-between items-center z-10">
+                                <span>🔍 CRM Search</span>
+                                {isCustomActive ? <span className="text-green-600 text-[10px] bg-green-100 px-1 rounded border border-green-200">DB Connected</span> : <span className="text-red-500 text-[10px] bg-red-100 px-1 rounded border border-red-200">DB Offline</span>}
+                            </div>
+                            <div className="p-4 flex-1 flex flex-col bg-white">
+                                <div className="flex gap-2 mb-3">
+                                    <input type="text" placeholder="Search customer ID or name..." disabled className="flex-1 border rounded px-2 py-2 text-sm bg-slate-50" />
+                                    <button className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-sm">Find</button>
+                                </div>
+                                <div className="flex-1 bg-slate-50 border rounded p-2 overflow-hidden">
+                                    {isCustomActive ? (
+                                        <div className="space-y-2 animate-fade-in">
+                                            <div className="flex justify-between items-center bg-white p-2 shadow-sm rounded text-sm border-l-4 border-blue-500">
+                                                <span className="font-semibold text-slate-700">Alice Johnson</span>
+                                                <span className="text-xs text-slate-400">ID: 884-X</span>
+                                            </div>
+                                            <div className="flex justify-between items-center bg-white p-2 shadow-sm rounded text-sm border-l-4 border-slate-300">
+                                                <span className="font-semibold text-slate-700">Bob Smith</span>
+                                                <span className="text-xs text-slate-400">ID: 992-Y</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex items-center justify-center text-xs text-slate-400 italic text-center p-2">
+                                            Build & Connect "Custom CRM Backend" to load client records into the search system.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </CardWrap>
+                    );
+                case 'ui_payment':
+                    return (
+                        <CardWrap activeState={isStripeActive}>
+                            <div className="bg-slate-100 p-2 text-xs font-bold border-b flex justify-between items-center z-10">
+                                <span>💳 Payment Gateway</span>
+                                {isStripeActive ? <span className="text-green-600 flex items-center gap-1"><svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"></path></svg> Secured</span> : <span className="text-red-500 text-[10px] uppercase font-bold bg-red-100 px-1 rounded">Insecure</span>}
+                            </div>
+                            <div className="p-5 flex-1 flex flex-col bg-white">
+                                {isStripeActive ? (
+                                    <div className="space-y-4 animate-fade-in flex flex-col h-full">
+                                        <div className="bg-blue-50 p-2 rounded border border-blue-100 text-center mb-2 text-xs text-blue-700 font-semibold shadow-sm">
+                                            Checkout securely powered by Stripe API
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 mb-1 block">Card Number</label>
+                                            <div className="w-full h-10 bg-slate-100 rounded border border-slate-200 flex items-center px-3 text-slate-500 text-sm tracking-widest font-mono">
+                                                •••• •••• •••• 4242
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="flex-1">
+                                                <label className="text-xs font-bold text-slate-500 mb-1 block">Expiry</label>
+                                                <div className="w-full h-10 bg-slate-100 rounded border border-slate-200 px-3 flex items-center text-sm text-slate-500 font-mono">12/25</div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="text-xs font-bold text-slate-500 mb-1 block">CVC</label>
+                                                <div className="w-full h-10 bg-slate-100 rounded border border-slate-200 px-3 flex items-center text-sm text-slate-500 font-mono">•••</div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-auto">
+                                            <button className="w-full bg-green-600 hover:bg-green-700 transition text-white rounded py-3 text-sm font-bold shadow-md">Process Payment</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center border-2 border-dashed border-red-200 bg-red-50 rounded p-6 text-center">
+                                        <svg className="w-10 h-10 text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                        <p className="text-sm font-bold text-red-700 mb-2">PCI Compliance Warning</p>
+                                        <p className="text-xs text-red-600">Do not build custom payment forms. Buy/Integrate a payment API (e.g. Stripe) to securely tokenize card data.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </CardWrap>
+                    );
+                case 'ui_sms':
+                    return (
+                        <div className={`group phone-frame flex flex-col w-full h-full ${isTwilioActive ? 'border-slate-800' : 'border-slate-400 border-dashed'} transition-all duration-300`}>
+                            {removeBtn}
+                            <div className="phone-notch"></div>
+                            
+                            <div className="bg-slate-800 pt-8 pb-3 px-4 text-white text-sm font-bold flex justify-between items-center z-10 shadow-md">
+                                <span>Messages</span>
+                                {isTwilioActive ? <span className="text-green-400 text-[10px] font-mono bg-slate-700 px-1.5 py-0.5 rounded">Live</span> : <span className="text-red-400 text-[10px] font-mono bg-slate-700 px-1.5 py-0.5 rounded">Offline</span>}
+                            </div>
+                            
+                            <div className="flex-1 bg-slate-50 p-3 flex flex-col gap-3 overflow-hidden relative">
+                                {isTwilioActive ? (
+                                    <div className="animate-fade-in flex flex-col gap-3 w-full mt-2">
+                                        <div className="bg-blue-500 text-white rounded-2xl rounded-tl-sm p-3 text-xs shadow-sm self-start max-w-[85%] leading-relaxed">
+                                            Appointment confirmed for Alice at 2pm.
+                                        </div>
+                                        <div className="bg-slate-200 text-slate-800 rounded-2xl rounded-tr-sm p-3 text-xs shadow-sm self-end max-w-[85%] text-right leading-relaxed">
+                                            Thanks, see you then!
+                                        </div>
+                                        <div className="bg-blue-500 text-white rounded-2xl rounded-tl-sm p-3 text-xs shadow-sm self-start max-w-[85%] leading-relaxed">
+                                            Tech is 5 mins away. Tracker: http://...
+                                        </div>
+                                        
+                                        <div className="absolute bottom-3 left-3 right-3 bg-slate-900 bg-opacity-95 p-3 rounded-lg text-[10px] font-mono text-green-400 shadow-xl border border-slate-700">
+                                            <div className="text-slate-400 mb-1">// Twilio API Response</div>
+                                            POST /2010-04-01/...<br/>
+                                            To=+15551234<br/>
+                                            Status: 201 Created
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-center p-4">
+                                        <div className="text-xs text-slate-500 bg-white border border-slate-300 p-4 rounded-xl shadow-md">
+                                            <p className="font-bold text-red-500 mb-2 text-sm">No Signal</p>
+                                            <p className="italic">Enable the Twilio API to connect SMS functionality and view simulated texts.</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            {/* Home Bar */}
+                            <div className="h-6 bg-slate-50 flex items-center justify-center pb-2">
+                                <div className="w-1/3 h-1 bg-slate-300 rounded-full"></div>
+                            </div>
+                        </div>
+                    );
+                case 'ui_status':
+                    return (
+                        <CardWrap activeState={isCustomActive}>
+                            <div className="bg-slate-100 p-2 text-xs font-bold border-b flex justify-between items-center z-10">
+                                <span>📊 System Dashboard</span>
+                                {isCustomActive ? <span className="text-green-600 text-[10px] bg-green-100 px-1 rounded">Live Sync</span> : <span className="text-slate-400 text-[10px] bg-slate-200 px-1 rounded">Static</span>}
+                            </div>
+                            <div className="p-4 flex-1 flex flex-col gap-3 bg-white">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className={`p-3 rounded-lg border ${isCustomActive ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'} text-center transition-colors`}>
+                                        <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Active Units</div>
+                                        <div className="font-black text-2xl text-slate-700">{isCustomActive ? '14' : '--'}</div>
+                                    </div>
+                                    <div className={`p-3 rounded-lg border ${isCustomActive ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'} text-center transition-colors`}>
+                                        <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Uptime</div>
+                                        <div className="font-black text-2xl text-slate-700">{isCustomActive ? '99.9%' : '--'}</div>
+                                    </div>
+                                </div>
+                                <div className="flex-1 border rounded-lg bg-slate-50 p-2 relative overflow-hidden flex items-end">
+                                    {isCustomActive ? (
+                                        <div className="w-full h-full flex items-end justify-between px-2 gap-2 pb-1">
+                                            {[40, 70, 45, 90, 65, 80, 50, 60].map((h, i) => (
+                                                <div key={i} className="w-full bg-blue-500 hover:bg-blue-400 transition-colors rounded-t-sm" style={{ height: `${h}%` }}></div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-xs text-center text-slate-400 absolute inset-0 flex items-center justify-center p-4">
+                                            Connect "Custom CRM Backend" to visualize real-time telemetry here.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </CardWrap>
+                    );
+                default:
+                    return <div className="p-4 bg-white shadow rounded-lg border border-red-500 text-red-500">Unknown Component</div>;
+            }
+        };
+
+        const App = () => {
+            // App state
+            const [step, setStep] = useState('start'); 
+            const [studentName, setStudentName] = useState('');
+            const [nameError, setNameError] = useState(false);
+            const [showConfirmModal, setShowConfirmModal] = useState(false);
+            const [startTime, setStartTime] = useState(null);
+            const [endTime, setEndTime] = useState(null);
+            const [isDownloading, setIsDownloading] = useState(false);
+            const certRef = useRef(null);
+
+            // Lab state
+            const [canvasItems, setCanvasItems] = useState([]); // Array of { id, x, y, width, height }
+            const [selectedAPIs, setSelectedAPIs] = useState([]);
+            const [jadMessages, setJadMessages] = useState(INITIAL_JAD_MESSAGES);
+            const [isDragOver, setIsDragOver] = useState(false);
+            const messagesEndRef = useRef(null);
+            const prevMessageCountRef = useRef(INITIAL_JAD_MESSAGES.length);
+
+            useEffect(() => {
+                if (messagesEndRef.current) {
+                    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
+                
+                // Play ding ONLY if a new message was added during the simulation
+                if (jadMessages.length > prevMessageCountRef.current && step === 'lab') {
+                    playPing();
+                }
+                prevMessageCountRef.current = jadMessages.length;
+            }, [jadMessages, step]);
+
+            useEffect(() => {
+                if (step !== 'lab') return;
+
+                const checkRules = () => {
+                    let newMessages = [];
+                    const hasMapUI = canvasItems.some(i => i.id === 'ui_map');
+                    const hasMapsAPI = selectedAPIs.includes('api_maps');
+                    
+                    const hasPaymentUI = canvasItems.some(i => i.id === 'ui_payment');
+                    const hasStripeAPI = selectedAPIs.includes('api_stripe');
+
+                    const hasSearchUI = canvasItems.some(i => i.id === 'ui_search');
+                    const hasCustomAPI = selectedAPIs.includes('api_custom');
+
+                    const hasSmsUI = canvasItems.some(i => i.id === 'ui_sms');
+                    const hasTwilioAPI = selectedAPIs.includes('api_twilio');
+
+                    // Ops Manager feedback
+                    if (hasMapUI && !hasMapsAPI && !jadMessages.some(m => m.tag === 'map_warn')) {
+                        newMessages.push({ sender: 'ops', text: "I see a map UI, but what data is feeding it? We should 'Buy' an API for this rather than 'Build' it.", tag: 'map_warn' });
+                    }
+                    if (hasMapUI && hasMapsAPI && !jadMessages.some(m => m.tag === 'map_success')) {
+                        newMessages.push({ sender: 'tech', text: "Perfect. Hooking the map UI into the Google Maps API saves us months of dev time. Look at that JSON data flow!", tag: 'map_success' });
+                    }
+
+                    // CSR feedback
+                    if (hasPaymentUI && !hasStripeAPI && !jadMessages.some(m => m.tag === 'pay_warn')) {
+                        newMessages.push({ sender: 'csr', text: "We have a checkout form, but no secure way to process it! Turn on a payment API or we fail PCI compliance.", tag: 'pay_warn' });
+                    }
+                    if (hasPaymentUI && hasStripeAPI && !jadMessages.some(m => m.tag === 'pay_success')) {
+                        newMessages.push({ sender: 'csr', text: "Great! Integrating Stripe means we don't have to build our own PCI-compliant payment server. It looks secure now.", tag: 'pay_success' });
+                    }
+
+                    // Build vs Buy concept enforcement
+                    if (hasSearchUI && !hasCustomAPI && !jadMessages.some(m => m.tag === 'search_warn')) {
+                        newMessages.push({ sender: 'ops', text: "We need our proprietary customer data for that search bar. We should 'Build' a custom backend for that.", tag: 'search_warn' });
+                    }
+                    
+                    if (hasSmsUI && !hasTwilioAPI && !jadMessages.some(m => m.tag === 'sms_warn')) {
+                        newMessages.push({ sender: 'tech', text: "I see the Mobile SMS Gateway, but it has no service! We need to 'Buy' the Twilio API to power those texts.", tag: 'sms_warn' });
+                    }
+
+                    if (hasTwilioAPI && !hasSmsUI && !jadMessages.some(m => m.tag === 'twilio_warn')) {
+                        newMessages.push({ sender: 'csr', text: "We toggled the Twilio API, but there's no UI for it. Drag the tall, thin Mobile SMS Gateway phone component to the canvas!", tag: 'twilio_warn' });
+                    }
+
+                    if (hasSmsUI && hasTwilioAPI && !jadMessages.some(m => m.tag === 'sms_success')) {
+                        newMessages.push({ sender: 'csr', text: "Twilio API is connected! Now the notification log will actually send real texts to clients. I see the mock data working on the phone screen.", tag: 'sms_success' });
+                    }
+
+                    if (newMessages.length > 0) {
+                        setTimeout(() => {
+                            setJadMessages(prev => [...prev, ...newMessages.map((m, i) => ({...m, id: Date.now() + i}))]);
+                        }, 800);
+                    }
+                };
+
+                checkRules();
+            }, [canvasItems, selectedAPIs, step]);
+
+            const handleStart = (e) => {
+                e.preventDefault();
+                if (studentName.trim().length < 2) {
+                    setNameError(true);
+                    return;
+                }
+                setNameError(false);
+                setStartTime(new Date());
+                setStep('lab');
+            };
+
+            const handleDragStartSidebar = (e, item) => {
+                e.dataTransfer.setData('dragType', 'new');
+                e.dataTransfer.setData('itemId', item.id);
+            };
+
+            const handleDragStartCanvas = (e, item) => {
+                e.dataTransfer.setData('dragType', 'existing');
+                e.dataTransfer.setData('itemId', item.id);
+                // Calculate where inside the element the user clicked for smooth repositioning
+                const rect = e.currentTarget.getBoundingClientRect();
+                e.dataTransfer.setData('offsetX', e.clientX - rect.left);
+                e.dataTransfer.setData('offsetY', e.clientY - rect.top);
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                setIsDragOver(false);
+                
+                const dragType = e.dataTransfer.getData('dragType');
+                const itemId = e.dataTransfer.getData('itemId');
+                if (!itemId) return;
+
+                const compData = UI_COMPONENTS.find(i => i.id === itemId);
+                if (!compData) return;
+
+                const canvasRect = e.currentTarget.getBoundingClientRect();
+                
+                // Read offset if moving existing, otherwise assume center of component
+                const offsetX = parseFloat(e.dataTransfer.getData('offsetX')) || (compData.width / 2);
+                const offsetY = parseFloat(e.dataTransfer.getData('offsetY')) || (compData.height / 2);
+                
+                let newX = e.clientX - canvasRect.left - offsetX;
+                let newY = e.clientY - canvasRect.top - offsetY;
+
+                // Ensure it stays reasonably within bounds
+                newX = Math.max(0, newX);
+                newY = Math.max(0, newY);
+
+                if (dragType === 'new') {
+                    // Prevent duplicates
+                    if (canvasItems.some(i => i.id === itemId)) return;
+                    setCanvasItems([...canvasItems, { id: itemId, x: newX, y: newY, width: compData.width, height: compData.height }]);
+                } else if (dragType === 'existing') {
+                    // Reposition
+                    setCanvasItems(items => items.map(i => i.id === itemId ? { ...i, x: newX, y: newY } : i));
+                }
+            };
+
+            const toggleAPI = (apiId) => {
+                if (selectedAPIs.includes(apiId)) {
+                    setSelectedAPIs(selectedAPIs.filter(id => id !== apiId));
+                } else {
+                    setSelectedAPIs([...selectedAPIs, apiId]);
+                }
+            };
+
+            const removeCanvasItem = (itemId) => {
+                setCanvasItems(canvasItems.filter(i => i.id !== itemId));
+            };
+
+            const attemptFinish = () => {
+                // Strict check: Prevent incomplete submissions
+                if (canvasItems.length < UI_COMPONENTS.length || selectedAPIs.length < API_SERVICES.length) {
+                    setShowConfirmModal(true);
+                } else {
+                    finalizeLab();
+                }
+            };
+
+            const finalizeLab = () => {
+                setEndTime(new Date());
+                setShowConfirmModal(false);
+                setStep('certificate');
+            };
+
+            const downloadAsPNG = async () => {
+                if (!certRef.current) return;
+                setIsDownloading(true);
+                try {
+                    await new Promise(r => setTimeout(r, 150)); // Tiny delay ensures UI finishes rendering
+                    const dataUrl = await window.htmlToImage.toPng(certRef.current, {
+                        quality: 1.0,
+                        pixelRatio: 2, // High resolution
+                        backgroundColor: '#ffffff'
+                    });
+                    
+                    const link = document.createElement('a');
+                    link.download = `CBIS_13_Certificate_${studentName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
+                    link.href = dataUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch (err) {
+                    console.error("Failed to generate PNG image", err);
+                } finally {
+                    setIsDownloading(false);
+                }
+            };
+
+            if (step === 'start') {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-4">
+                        <div className="max-w-lg w-full mb-4 flex justify-between items-center">
+                            <a href="index.html#bcc-classes" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs font-bold transition">
+                                ← Back to Home
+                            </a>
+                            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">BCC CBIS 13 • Week 7</span>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-2 bg-blue-600"></div>
+                            <div className="text-center mb-8">
+                                <h1 className="text-3xl font-bold text-slate-800 mb-2">CBIS 13 Lab</h1>
+                                <h2 className="text-xl text-blue-600 font-semibold mb-4">Information Systems Development</h2>
+                                <p className="text-gray-600">Option 2: RAD Prototype &amp; Web Services API Builder</p>
+                            </div>
+                            
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6 text-sm text-slate-700 leading-relaxed shadow-inner">
+                                <strong>Objective:</strong> Act as a Systems Analyst. Participate in a simulated JAD session, visually map out a RAD wireframe, and make "Build vs. Buy" decisions by toggling Web Services / APIs to power your components.
+                            </div>
+
+                            <form onSubmit={handleStart} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Student Full Name</label>
+                                    <input 
+                                        type="text" 
+                                        className={`w-full px-4 py-3 border rounded-lg focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition-all ${nameError ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                                        placeholder="Enter name exactly as it should appear on certificate"
+                                        value={studentName}
+                                        onChange={(e) => {
+                                            setStudentName(e.target.value);
+                                            if (e.target.value.trim().length >= 2) setNameError(false);
+                                        }}
+                                    />
+                                    {nameError && <p className="text-red-500 text-xs mt-1 font-bold">Please enter a valid full name to proceed.</p>}
+                                </div>
+                                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold transition-all shadow-lg hover:shadow-xl mt-4">
+                                    Start Simulation
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (step === 'lab') {
+                return (
+                    <div className="min-h-screen flex flex-col bg-slate-100 h-screen overflow-hidden no-select">
+                        
+                        {/* Custom Modal for Empty Submission Warning - Hard Stop */}
+                        {showConfirmModal && (
+                            <div className="fixed inset-0 bg-slate-900 bg-opacity-75 z-[200] flex items-center justify-center backdrop-blur-sm">
+                                <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full animate-fade-in border-4 border-red-500">
+                                    <h3 className="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2 border-b pb-2">
+                                        <span className="text-red-500 text-3xl">🛑</span> Action Required
+                                    </h3>
+                                    <p className="text-slate-700 mb-6 font-medium">
+                                        You must complete the full prototype. To earn your certificate, you must:
+                                    </p>
+                                    <ul className="list-disc pl-6 mb-6 text-sm text-slate-600 space-y-2 font-medium">
+                                        <li>Drag and drop <strong>all {UI_COMPONENTS.length} UI components</strong> onto the canvas.</li>
+                                        <li>Connect <strong>all {API_SERVICES.length} Web Service/API</strong> toggles.</li>
+                                    </ul>
+                                    <div className="flex justify-end">
+                                        <button onClick={() => setShowConfirmModal(false)} className="px-6 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition shadow-lg w-full">Return to Lab to Complete Assignment</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Header */}
+                        <header className="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md shrink-0 z-50">
+                            <div className="flex items-center gap-4">
+                                <a href="index.html#bcc-classes" className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs font-bold transition">
+                                    ← Home
+                                </a>
+                                <div>
+                                    <h1 className="font-bold text-lg">CBIS 13 Systems Dev Lab</h1>
+                                    <p className="text-slate-400 text-xs">RAD Prototype &amp; API Architect</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="text-sm bg-slate-800 px-3 py-1.5 rounded border border-slate-700 shadow-inner">
+                                    Student: <span className="font-bold text-blue-400">{studentName}</span>
+                                </div>
+                                <button onClick={attemptFinish} className="bg-green-600 hover:bg-green-500 px-5 py-2.5 rounded-lg font-bold text-sm transition shadow-lg flex items-center gap-2 border border-green-500">
+                                    <span>Submit Prototype &amp; Generate Certificate</span>
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* Main Content Grid */}
+                        <div className="flex-1 flex overflow-hidden">
+                            
+                            {/* Left Panel: Tools & APIs */}
+                            <div className="w-1/4 bg-white border-r border-slate-200 flex flex-col shrink-0 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.05)]">
+                                <div className="p-4 border-b border-slate-200 bg-slate-50">
+                                    <h2 className="font-bold text-slate-800 uppercase tracking-wider text-sm">UI Components (RAD)</h2>
+                                    <p className="text-xs text-slate-500 mt-1">Drag elements to the canvas</p>
+                                </div>
+                                <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1">
+                                    {UI_COMPONENTS.map(item => {
+                                        const isPlaced = canvasItems.some(i => i.id === item.id);
+                                        return (
+                                            <div 
+                                                key={item.id}
+                                                draggable={!isPlaced}
+                                                onDragStart={(e) => handleDragStartSidebar(e, item)}
+                                                className={`p-3 rounded-lg border-2 border-dashed flex items-center gap-3 transition-all ${isPlaced ? 'border-green-300 bg-green-50 opacity-50 cursor-not-allowed' : 'border-slate-300 bg-white cursor-grab hover:bg-slate-50 hover:border-blue-400 hover:shadow-md'}`}
+                                                title={isPlaced ? "Already placed on canvas" : "Drag to canvas"}
+                                            >
+                                                <span className="text-3xl bg-slate-100 p-2 rounded-lg">{item.icon}</span>
+                                                <div>
+                                                    <div className="font-bold text-sm text-slate-800">{item.name}</div>
+                                                    <div className="text-xs text-slate-500 mt-0.5">{item.desc}</div>
+                                                </div>
+                                                {isPlaced && <span className="ml-auto text-green-500 font-bold text-lg">✓</span>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="p-4 border-b border-t border-slate-200 bg-slate-50">
+                                    <h2 className="font-bold text-slate-800 uppercase tracking-wider text-sm">Web Services (APIs)</h2>
+                                    <p className="text-xs text-slate-500 mt-1">Build vs. Buy decision toggles</p>
+                                </div>
+                                <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar h-[40%] bg-slate-100">
+                                    {API_SERVICES.map(api => {
+                                        const isChecked = selectedAPIs.includes(api.id);
+                                        return (
+                                            <label key={api.id} className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all shadow-sm ${isChecked ? 'bg-blue-50 border-blue-500' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-md'}`}>
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="mt-1.5 w-5 h-5 text-blue-600 rounded cursor-pointer"
+                                                    checked={isChecked}
+                                                    onChange={() => toggleAPI(api.id)}
+                                                />
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="font-bold text-sm text-slate-800 flex items-center gap-1">{api.icon} {api.name}</span>
+                                                        <span className={`text-[9px] uppercase px-2 py-1 rounded font-bold shadow-sm ${api.provider === 'Build' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-blue-100 text-blue-800 border border-blue-200'}`}>{api.provider}</span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-600 leading-snug">{api.desc}</div>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Center Panel: Wireframe Canvas */}
+                            <div className="flex-1 bg-slate-200 p-6 flex flex-col relative shadow-inner overflow-hidden">
+                                <div className="mb-4 flex justify-between items-end bg-white/50 p-3 rounded-xl backdrop-blur-sm border border-white shadow-sm z-10">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                                            Wireframe Canvas <span className="text-xs font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-full border border-blue-200 uppercase tracking-wide">Absolute Positioning Active</span>
+                                        </h2>
+                                        <p className="text-sm text-slate-600 mt-1">Drag components from the left. Drag them around the canvas to reposition.</p>
+                                    </div>
+                                    <div className="text-sm font-medium text-blue-700 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
+                                        💡 Hint: Connect APIs to see mock data populate.
+                                    </div>
+                                </div>
+                                
+                                <div 
+                                    className={`flex-1 rounded-2xl border-4 relative overflow-hidden droppable-area shadow-inner ${isDragOver ? 'border-blue-500 bg-blue-50 shadow-[inset_0_0_20px_rgba(59,130,246,0.2)]' : 'border-slate-300 border-dashed bg-slate-100'}`}
+                                    style={{
+                                        backgroundImage: 'linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px)',
+                                        backgroundSize: '30px 30px'
+                                    }}
+                                    onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                                    onDragLeave={() => setIsDragOver(false)}
+                                    onDrop={handleDrop}
+                                >
+                                    {canvasItems.length === 0 && !isDragOver && (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 font-bold pointer-events-none text-xl bg-slate-100/50 backdrop-blur-sm">
+                                            <span className="text-6xl mb-4 opacity-70 animate-bounce">📥</span>
+                                            Drop UI Components Here
+                                        </div>
+                                    )}
+
+                                    {/* Render Placed Items */}
+                                    {canvasItems.map(item => (
+                                        <div
+                                            key={item.id}
+                                            draggable
+                                            onDragStart={(e) => handleDragStartCanvas(e, item)}
+                                            style={{
+                                                position: 'absolute',
+                                                left: item.x,
+                                                top: item.y,
+                                                width: item.width,
+                                                height: item.height,
+                                                cursor: 'move'
+                                            }}
+                                            className="hover:shadow-2xl transition-shadow z-10"
+                                        >
+                                            <ComponentRenderer 
+                                                item={item} 
+                                                selectedAPIs={selectedAPIs} 
+                                                onRemove={removeCanvasItem} 
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Right Panel: Simulated JAD Chat */}
+                            <div className="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0 shadow-[ -4px_0_15px_rgba(0,0,0,0.05) ] z-20">
+                                <div className="p-4 border-b border-slate-200 bg-slate-800 text-white">
+                                    <h2 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+                                        <span className="relative flex h-3 w-3">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                        </span>
+                                        Live JAD Session
+                                    </h2>
+                                    <p className="text-[10px] text-slate-300 mt-1">Stakeholders are watching...</p>
+                                </div>
+                                <div className="flex-1 p-4 overflow-y-auto bg-slate-50 custom-scrollbar">
+                                    {jadMessages.map((msg, idx) => {
+                                        const role = JAD_STAKEHOLDERS[msg.sender];
+                                        return (
+                                            <div key={msg.id} className={`mb-4 flex gap-3 animate-fade-in ${idx === jadMessages.length - 1 ? 'scale-100' : ''}`}>
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${role.bg} text-lg shadow-sm border border-white`}>
+                                                    {role.avatar}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className={`text-[10px] font-bold ${role.color} uppercase tracking-wider mb-1`}>{role.name}</div>
+                                                    <div className="text-sm text-slate-700 bg-white p-3 rounded-lg shadow-sm border border-slate-200 leading-relaxed">{msg.text}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <div ref={messagesEndRef} className="h-4" />
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                );
+            }
+
+            if (step === 'certificate') {
+                const durationStr = calculateDuration(startTime, endTime);
+                const startStr = formatTimeWithMs(startTime);
+                const endStr = formatTimeWithMs(endTime);
+
+                return (
+                    <div className="min-h-screen bg-slate-800 py-10 px-4 flex flex-col items-center custom-scrollbar overflow-auto">
+                        
+                        {/* Top Action Bar */}
+                        <div className="max-w-4xl w-full flex justify-between items-center mb-6 print:hidden">
+                            <div className="flex items-center gap-3">
+                                <a href="index.html#bcc-classes" className="bg-slate-700 border border-slate-600 hover:bg-slate-600 text-amber-300 px-4 py-3 rounded-lg font-bold transition shadow-sm text-sm">
+                                    ← Back to Home
+                                </a>
+                                <button 
+                                    onClick={downloadAsPNG} 
+                                    disabled={isDownloading}
+                                    className="bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-slate-400 text-slate-900 px-6 py-3 rounded-lg font-bold transition shadow-lg flex items-center gap-2 border border-green-400"
+                                >
+                                    {isDownloading ? '⏳ Generating PNG...' : '🖼️ Download PNG Certificate'}
+                                </button>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    setStep('start');
+                                    setCanvasItems([]);
+                                    setSelectedAPIs([]);
+                                    setJadMessages(INITIAL_JAD_MESSAGES);
+                                    setStudentName('');
+                                }} 
+                                className="bg-slate-700 border border-slate-600 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-bold transition shadow-sm"
+                            >
+                                Restart Lab
+                            </button>
+                        </div>
+
+                        <div ref={certRef} className="max-w-4xl w-full bg-white rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.6)] overflow-hidden cert-bg border-[12px] border-double border-slate-300 relative animate-fade-in">
+                            
+                            {/* Watermark/Styling Elements */}
+                            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-60 pointer-events-none transform translate-x-1/3 -translate-y-1/3"></div>
+                            
+                            <div className="p-12 relative z-10">
+                                {/* Header */}
+                                <div className="text-center border-b-4 border-slate-200 pb-8 mb-10">
+                                    <div className="flex justify-center items-center gap-4 mb-3">
+                                        <svg className="w-14 h-14 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                                        <h1 className="text-4xl font-black text-slate-800 uppercase tracking-widest">Certificate of Completion</h1>
+                                    </div>
+                                    <h2 className="text-2xl text-slate-700 font-bold mt-2">CBIS 13: Interactive Simulation Lab Week 7</h2>
+                                    <p className="text-slate-500 mt-2 text-lg font-medium">Information Systems Development: Option 2</p>
+                                </div>
+
+                                {/* Student Focus Area with Anti-Forgery Name */}
+                                <div className="text-center mb-12 bg-slate-50 py-8 rounded-2xl border-2 border-slate-200 shadow-sm relative overflow-hidden">
+                                    <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000), repeating-linear-gradient(45deg, #000 25%, #fff 25%, #fff 75%, #000 75%, #000)', backgroundPosition: '0 0, 10px 10px', backgroundSize: '20px 20px' }}></div>
+                                    <p className="text-slate-500 uppercase tracking-widest text-sm font-bold mb-3 relative z-10">Awarded to</p>
+                                    <div className="scanline-name text-6xl mb-3 relative z-10 px-4">{studentName}</div>
+                                    <p className="text-slate-400 text-xs mt-3 italic relative z-10 font-mono tracking-wider bg-white/80 inline-block px-3 py-1 rounded">Secured by Anti-Forgery Scanline Rendering</p>
+                                </div>
+
+                                {/* Concepts & Stats Grid */}
+                                <div className="grid grid-cols-2 gap-10 mb-12">
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                        <h3 className="font-bold text-slate-800 uppercase border-b-2 border-slate-100 pb-3 mb-4 text-sm tracking-wider flex items-center gap-2"><span className="text-xl">📚</span> Concepts Mastered</h3>
+                                        <ul className="space-y-3 text-sm text-slate-600 list-none">
+                                            <li className="flex items-start gap-2"><span className="text-blue-500 font-bold">✓</span> Rapid Application Development (RAD)</li>
+                                            <li className="flex items-start gap-2"><span className="text-blue-500 font-bold">✓</span> Joint Application Development (JAD)</li>
+                                            <li className="flex items-start gap-2"><span className="text-blue-500 font-bold">✓</span> Web Services &amp; RESTful APIs</li>
+                                            <li className="flex items-start gap-2"><span className="text-blue-500 font-bold">✓</span> The "Build vs. Buy" Spectrum</li>
+                                            <li className="flex items-start gap-2"><span className="text-blue-500 font-bold">✓</span> Systems Architecture Modeling</li>
+                                        </ul>
+                                    </div>
+                                    <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm">
+                                        <h3 className="font-bold text-slate-800 uppercase border-b-2 border-slate-200 pb-3 mb-4 text-sm tracking-wider flex items-center gap-2"><span className="text-xl">⏱️</span> Simulation Telemetry</h3>
+                                        <div className="space-y-4 text-sm">
+                                            <div className="flex justify-between items-center"><span className="text-slate-500 font-bold uppercase text-xs">Started</span> <span className="font-mono text-slate-700 bg-white px-2 py-1 rounded border shadow-sm">{startStr}</span></div>
+                                            <div className="flex justify-between items-center"><span className="text-slate-500 font-bold uppercase text-xs">Ended</span> <span className="font-mono text-slate-700 bg-white px-2 py-1 rounded border shadow-sm">{endStr}</span></div>
+                                            <div className="flex justify-between items-center border-t-2 border-slate-200 pt-4 mt-2"><span className="text-slate-800 font-black uppercase">Total Duration</span> <span className="font-mono text-blue-800 font-black bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 shadow-sm text-base">{durationStr}</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Visual System Architecture Map */}
+                                <div className="mb-16">
+                                    <h3 className="font-bold text-slate-800 uppercase border-b-2 border-slate-200 pb-3 mb-6 text-center text-sm tracking-wider">Generated System Architecture Map</h3>
+                                    <div className="bg-slate-100 p-8 rounded-2xl flex items-stretch gap-6 relative shadow-inner border border-slate-300">
+                                        
+                                        {/* Client Side */}
+                                        <div className="flex-1 bg-white p-5 rounded-xl border-2 border-blue-200 shadow-md flex flex-col">
+                                            <div className="text-center text-xs font-black text-blue-800 uppercase mb-4 bg-blue-50 py-2 rounded border border-blue-100 tracking-widest">Presentation Layer</div>
+                                            <div className="flex flex-col gap-3 flex-1 justify-center">
+                                                {canvasItems.length > 0 ? canvasItems.map(item => {
+                                                    const ref = UI_COMPONENTS.find(u => u.id === item.id);
+                                                    return (
+                                                        <div key={`arch-${item.id}`} className="text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg flex items-center gap-2 shadow-sm">
+                                                            <span className="text-lg">{ref.icon}</span> {ref.name}
+                                                        </div>
+                                                    )
+                                                }) : <span className="text-sm text-slate-400 italic font-medium text-center">No UI Built</span>}
+                                            </div>
+                                        </div>
+
+                                        {/* Connectors */}
+                                        <div className="flex flex-col justify-center items-center px-4">
+                                            <div className="text-[10px] text-slate-600 font-black tracking-widest uppercase mb-2 bg-slate-200 px-2 py-1 rounded">JSON / REST API</div>
+                                            <div className="flex items-center">
+                                                <div className="w-20 h-0 border-t-4 border-dashed border-blue-400"></div>
+                                                <svg className="w-8 h-8 text-blue-500 -ml-2 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                            </div>
+                                        </div>
+
+                                        {/* Server Side / APIs */}
+                                        <div className="flex-1 bg-white p-5 rounded-xl border-2 border-purple-200 shadow-md flex flex-col">
+                                            <div className="text-center text-xs font-black text-purple-800 uppercase mb-4 bg-purple-50 py-2 rounded border border-purple-100 tracking-widest">Service Layer</div>
+                                            <div className="flex flex-col justify-center gap-3 flex-1">
+                                                {selectedAPIs.length > 0 ? selectedAPIs.map(apiId => {
+                                                    const api = API_SERVICES.find(a => a.id === apiId);
+                                                    return (
+                                                        <div key={`arch-${api.id}`} className="text-sm bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg flex justify-between items-center shadow-sm">
+                                                            <span className="font-bold text-slate-700">{api.icon} {api.name}</span>
+                                                            <span className={`text-[10px] uppercase px-2 py-1 rounded font-black shadow-sm ${api.provider === 'Build' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>{api.provider}</span>
+                                                        </div>
+                                                    )
+                                                }) : <span className="text-sm text-slate-400 italic text-center block font-medium">No APIs Connected</span>}
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                {/* Footer Signatures */}
+                                <div className="flex justify-between items-end mt-12 px-12">
+                                    <div className="text-center w-56">
+                                        <div className="border-b-2 border-slate-400 pb-2 mb-2">
+                                            <span className="text-2xl font-bold text-slate-800 font-mono tracking-tighter">{new Date().toLocaleDateString()}</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Date Issued</p>
+                                    </div>
+                                    
+                                    {/* Golden Seal */}
+                                    <div className="flex-1 flex justify-center items-center pb-2">
+                                        <div className="relative w-28 h-28 flex items-center justify-center drop-shadow-xl hover:scale-105 transition-transform" title="Official BCC Seal">
+                                            {/* Sunburst Spikes using CSS Rotations */}
+                                            <div className="absolute w-24 h-24 bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700"></div>
+                                            <div className="absolute w-24 h-24 bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 rotate-[15deg]"></div>
+                                            <div className="absolute w-24 h-24 bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 rotate-[30deg]"></div>
+                                            <div className="absolute w-24 h-24 bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 rotate-[45deg]"></div>
+                                            <div className="absolute w-24 h-24 bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 rotate-[60deg]"></div>
+                                            <div className="absolute w-24 h-24 bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 rotate-[75deg]"></div>
+                                            
+                                            {/* Inner Gold Medallion */}
+                                            <div className="absolute w-20 h-20 rounded-full bg-gradient-to-tr from-yellow-500 via-yellow-400 to-yellow-200 border border-yellow-700/50 shadow-[inset_0_3px_6px_rgba(0,0,0,0.15)] flex items-center justify-center z-10">
+                                                <div className="w-16 h-16 rounded-full border-2 border-dashed border-yellow-700/60 flex flex-col items-center justify-center bg-gradient-to-bl from-transparent to-yellow-500/40">
+                                                     <span className="font-serif font-black text-3xl text-yellow-900 tracking-tighter drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] mt-0.5">BCC</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-center w-72">
+                                        <div className="border-b-2 border-slate-400 pb-2 mb-2 relative flex flex-col items-center justify-end h-20">
+                                            {/* Static text for instructor name per prompt */}
+                                            <span className="signature-font text-5xl text-blue-900 transform -rotate-2 opacity-90 drop-shadow-sm whitespace-nowrap">Timothy Brinkley</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Instructor Signature</p>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

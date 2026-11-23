@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CBIS 15 | Ch. 15 Physical &amp; Hardware Security: Policy &amp; Posture Command</title>
+  <meta name="description" content="Interactive Chapter 15 Physical & Hardware Security leadership simulation for Barstow Community College CBIS 15: perimeter barriers, firewalls, ACLs, IDS/IPS tuning, protocol encryption, and multi-policy compliance across 10 industry sectors." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- Google Analytics 4 (EDDI) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+  <script src="js/analytics.js"></script>
+  <style>
+    :root {
+      --bg-deep: #070b14;
+      --bg-panel: rgba(15, 23, 42, 0.86);
+      --bg-card: rgba(30, 41, 59, 0.72);
+      --border-glass: rgba(148, 163, 184, 0.22);
+      --accent-cyan: #38bdf8;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-gold: #fbbf24;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-mono: 'Courier New', Courier, monospace;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 15% 15%, #0f172a 0%, #070b14 60%, #03050a 100%);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      line-height: 1.55;
+      padding: 1.25rem;
+    }
+
+    .nav-strip {
+      max-width: 1140px;
+      margin: 0 auto 0.75rem auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .home-back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-glass);
+      color: var(--accent-gold);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .home-back-link:hover {
+      border-color: var(--accent-cyan);
+      background: rgba(30, 41, 59, 0.95);
+    }
+
+    .nav-strip-meta {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .app-shell {
+      max-width: 1140px;
+      margin: 0 auto;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glass);
+      border-radius: 16px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+    }
+
+    header.top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.1rem 1.6rem;
+      background: rgba(2, 6, 23, 0.85);
+      border-bottom: 1px solid var(--border-glass);
+    }
+
+    .brand-group h1 {
+      font-size: 1.15rem;
+      letter-spacing: 0.04em;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+    }
+
+    .brand-group p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .hud-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .hud-pill {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--border-glass);
+      border-radius: 10px;
+      padding: 0.45rem 0.85rem;
+      min-width: 118px;
+      text-align: center;
+    }
+
+    .hud-pill .label {
+      display: block;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .hud-pill .val {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-main);
+    }
+
+    .val-budget { color: var(--accent-emerald) !important; }
+    .val-sec { color: var(--accent-cyan) !important; }
+    .val-morale { color: var(--accent-amber) !important; }
+    .val-comp { color: #c084fc !important; }
+
+    .screen {
+      display: none;
+      padding: 1.8rem;
+    }
+
+    .screen.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-box {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(16, 185, 129, 0.08));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-box h2 {
+      font-size: 1.45rem;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+
+    .policy-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.9rem;
+    }
+
+    .p-badge {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent-cyan);
+    }
+
+    .industry-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+      gap: 0.85rem;
+      margin: 1.1rem 0 1.6rem 0;
+    }
+
+    .ind-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: 12px;
+      padding: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      color: var(--text-main);
+    }
+
+    .ind-card:hover {
+      border-color: var(--accent-cyan);
+      transform: translateY(-2px);
+    }
+
+    .ind-card.selected {
+      background: rgba(14, 165, 233, 0.18);
+      border: 2px solid var(--accent-cyan);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.22);
+    }
+
+    .ind-card h3 {
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+      color: #fff;
+    }
+
+    .ind-card p {
+      font-size: 0.77rem;
+      color: var(--text-muted);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.4rem;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.35);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-emerald {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff;
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #d97706, #f59e0b);
+      color: #090d16;
+    }
+
+    .phase-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-glass);
+      padding-bottom: 0.85rem;
+      margin-bottom: 1.2rem;
+      gap: 0.5rem;
+    }
+
+    .phase-tag {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--accent-emerald);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .dialogue-box {
+      background: rgba(2, 6, 23, 0.78);
+      border-left: 4px solid var(--accent-amber);
+      border-radius: 0 12px 12px 0;
+      padding: 1.1rem 1.3rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .dialogue-speaker {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent-amber);
+      margin-bottom: 0.3rem;
+    }
+
+    .dialogue-quote {
+      font-style: italic;
+      color: #e2e8f0;
+      font-size: 0.96rem;
+    }
+
+    .policy-alert {
+      background: rgba(192, 132, 252, 0.1);
+      border: 1px solid rgba(192, 132, 252, 0.35);
+      border-radius: 10px;
+      padding: 0.8rem 1rem;
+      font-size: 0.85rem;
+      margin-bottom: 1.3rem;
+      color: #e9d5ff;
+    }
+
+    .options-stack {
+      display: grid;
+      gap: 0.95rem;
+    }
+
+    .choice-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: 12px;
+      padding: 1.1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .choice-card:hover {
+      border-color: var(--accent-cyan);
+      background: rgba(30, 41, 59, 0.95);
+    }
+
+    .choice-card.chosen {
+      border: 2px solid var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .choice-card.disabled {
+      pointer-events: none;
+      opacity: 0.65;
+    }
+
+    .choice-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .choice-title {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    .choice-cost {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--accent-amber);
+      white-space: nowrap;
+    }
+
+    .choice-desc {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+    }
+
+    .debrief-panel {
+      display: none;
+      margin-top: 1.4rem;
+      background: rgba(2, 6, 23, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 12px;
+      padding: 1.3rem;
+    }
+
+    .debrief-panel.visible {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .debrief-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 0.9rem;
+      margin: 0.9rem 0 1.2rem 0;
+    }
+
+    .debrief-item {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border-glass);
+      border-radius: 10px;
+      padding: 0.85rem;
+      font-size: 0.84rem;
+    }
+
+    .debrief-item h4 {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.35rem;
+    }
+
+    .h-tech { color: var(--accent-cyan); }
+    .h-human { color: var(--accent-amber); }
+    .h-policy { color: #c084fc; }
+
+    /* Certificate Styles */
+    .cert-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      align-items: flex-end;
+      background: rgba(2, 6, 23, 0.75);
+      padding: 1.2rem;
+      border-radius: 12px;
+      border: 1px solid var(--border-glass);
+      margin-bottom: 1.5rem;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      flex: 1 1 200px;
+    }
+
+    .input-group label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    .input-group input {
+      background: #0f172a;
+      border: 1px solid var(--border-glass);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      color: #fff;
+      font-size: 0.95rem;
+    }
+
+    .cert-wrapper {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.1rem;
+    }
+
+    .cert-wrapper.visible {
+      display: flex;
+    }
+
+    #certificate-node {
+      width: 100%;
+      max-width: 880px;
+      background: linear-gradient(145deg, #0b1324 0%, #111c35 50%, #090f1d 100%);
+      border: 3px solid #d4af37;
+      border-radius: 14px;
+      padding: 2.2rem 2.4rem;
+      position: relative;
+      box-shadow: inset 0 0 0 6px rgba(212, 175, 55, 0.16), 0 20px 50px rgba(0, 0, 0, 0.75);
+      color: #f8fafc;
+    }
+
+    .cert-header {
+      text-align: center;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.4);
+      padding-bottom: 1rem;
+      margin-bottom: 1.3rem;
+    }
+
+    .cert-college {
+      font-size: 0.85rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #fbbf24;
+      font-weight: 700;
+    }
+
+    .cert-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      margin: 0.3rem 0;
+      letter-spacing: 0.03em;
+      color: #ffffff;
+    }
+
+    .cert-sub {
+      font-size: 0.9rem;
+      color: #94a3b8;
+    }
+
+    .cert-body {
+      text-align: center;
+      margin: 1.2rem 0;
+    }
+
+    /* Retro CSS Scanline Effect Over Student Name */
+    .student-scanline-name {
+      display: inline-block;
+      font-size: 2.35rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin: 0.55rem 0;
+      padding: 0.2rem 0.6rem;
+      background-image: repeating-linear-gradient(
+        0deg,
+        #38bdf8 0px,
+        #38bdf8 2px,
+        #0c4a6e 2px,
+        #0c4a6e 4px
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.45));
+    }
+
+    /* Solid fallback class toggled momentarily during html2canvas export */
+    .student-scanline-name.export-safe {
+      background-image: none !important;
+      -webkit-background-clip: border-box !important;
+      background-clip: border-box !important;
+      color: #38bdf8 !important;
+      text-shadow: 0 2px 0 #0c4a6e, 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    .cert-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+      gap: 0.7rem;
+      background: rgba(2, 6, 23, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 10px;
+      padding: 0.9rem;
+      margin: 1.2rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-align: left;
+    }
+
+    .cert-metrics div span {
+      display: block;
+      color: #94a3b8;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+    }
+
+    .cert-footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.2rem;
+      margin-top: 1.6rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(212, 175, 55, 0.35);
+    }
+
+    .sig-block {
+      text-align: center;
+      min-width: 190px;
+    }
+
+    .sig-script {
+      font-family: 'Brush Script MT', 'Segoe Script', cursive;
+      font-size: 1.55rem;
+      color: #e2e8f0;
+      border-bottom: 1px solid #94a3b8;
+      padding-bottom: 0.15rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .sig-title {
+      font-size: 0.74rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .bcc-seal {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fde68a, #d97706 70%, #92400e 100%);
+      border: 3px dashed #fef3c7;
+      box-shadow: 0 0 0 4px #b45309, 0 8px 20px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #1e1b08;
+      font-weight: 900;
+      text-align: center;
+      transform: rotate(-6deg);
+    }
+
+    .bcc-seal .acro {
+      font-size: 1.45rem;
+      letter-spacing: 0.08em;
+      line-height: 1;
+    }
+
+    .bcc-seal .sub {
+      font-size: 0.52rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .canvas-note {
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid var(--accent-emerald);
+      color: #a7f3d0;
+      padding: 0.75rem 1.1rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-align: center;
+      max-width: 880px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav-strip" aria-label="Site navigation">
+    <a href="index.html#bcc-classes" class="home-back-link">&larr; Back to Home</a>
+    <span class="nav-strip-meta">BCC CBIS 15 &bull; Ch. 15 Lab</span>
+  </nav>
+
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="brand-group">
+        <h1>CBIS 15 &bull; Ch. 15 Physical &amp; Hardware Security</h1>
+        <p>Perimeter Breach: Policy, Protocol &amp; Human-Factors Command Lab</p>
+      </div>
+      <div class="hud-grid">
+        <div class="hud-pill">
+          <span class="label">Industry</span>
+          <span class="val" id="hud-industry">Unassigned</span>
+        </div>
+        <div class="hud-pill">
+          <span class="label">IT Budget</span>
+          <span class="val val-budget" id="hud-budget">$120,000</span>
+        </div>
+        <div class="hud-pill">
+          <span class="label">Security Posture</span>
+          <span class="val val-sec" id="hud-sec">40%</span>
+        </div>
+        <div class="hud-pill">
+          <span class="label">Staff Morale</span>
+          <span class="val val-morale" id="hud-morale">75%</span>
+        </div>
+        <div class="hud-pill">
+          <span class="label">Policy Compliance</span>
+          <span class="val val-comp" id="hud-comp">35%</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- SCREEN 1: WELCOME & SECTOR SELECTION -->
+    <section id="screen-welcome" class="screen active">
+      <div class="hero-box">
+        <h2>IT Leadership Crisis Simulation: Chapter 15 Controls in the Wild</h2>
+        <p>
+          Firewalls, ACLs, IDS/IPS sensors, physical locks, and encrypted protocols never operate in a vacuum. Every rule you deploy collides with human convenience, operational deadlines, shadow IT workarounds, and overlapping legal mandates. Select your sector below and step into the Network Director role across four escalating leadership phases.
+        </p>
+        <div class="policy-badges">
+          <span class="p-badge">Barstow Community College Policies</span>
+          <span class="p-badge">California CCPA / CPRA &amp; § 1798.81.5</span>
+          <span class="p-badge">NIST CSF 2.0 Core &amp; Tiers</span>
+          <span class="p-badge">China Cybersecurity Law (CSL)</span>
+          <span class="p-badge">EU GDPR (Reg. 2016/679)</span>
+        </div>
+      </div>
+
+      <h3 style="font-size: 1rem; margin-bottom: 0.35rem; color: #e2e8f0;">Step 1: Choose Your Target Industry Sector</h3>
+      <p style="font-size: 0.84rem; color: var(--text-muted);">Each sector loads authentic hardware constraints, stakeholder pushback, and statutory liabilities.</p>
+
+      <div class="industry-grid" id="industry-grid"></div>
+
+      <button id="btn-start-lab" class="btn btn-primary" disabled>
+        Start Lab &amp; Record Timestamp
+      </button>
+    </section>
+
+    <!-- SCREEN 2: SIMULATION PHASES (1 TO 4) -->
+    <section id="screen-sim" class="screen">
+      <div class="phase-header">
+        <div>
+          <div class="phase-tag" id="phase-tag">Phase 1 of 4 &bull; Physical Perimeter</div>
+          <h2 id="phase-title" style="font-size: 1.3rem; color: #fff;">Title</h2>
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);" id="session-start-badge"></div>
+      </div>
+
+      <div class="dialogue-box">
+        <div class="dialogue-speaker" id="dialogue-speaker">Stakeholder</div>
+        <div class="dialogue-quote" id="dialogue-quote">"Quote"</div>
+      </div>
+
+      <div class="policy-alert" id="policy-alert"></div>
+
+      <div class="options-stack" id="options-stack"></div>
+
+      <div class="debrief-panel" id="debrief-panel">
+        <h3 style="font-size: 1.05rem; color: #fff;" id="debrief-headline">After-Action Leadership Debrief</h3>
+        <div class="debrief-grid">
+          <div class="debrief-item">
+            <h4 class="h-tech">Chapter 15 Technical Outcome</h4>
+            <p id="debrief-tech"></p>
+          </div>
+          <div class="debrief-item">
+            <h4 class="h-human">Human Factors &amp; Staff Reaction</h4>
+            <p id="debrief-human"></p>
+          </div>
+          <div class="debrief-item">
+            <h4 class="h-policy">Five-Policy &amp; Legal Fallout</h4>
+            <p id="debrief-policy"></p>
+          </div>
+        </div>
+        <button id="btn-next-phase" class="btn btn-emerald">Proceed to Next Phase &rarr;</button>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: FINAL CERTIFICATION & TIME MATH -->
+    <section id="screen-cert" class="screen">
+      <div class="hero-box" style="margin-bottom: 1.2rem;">
+        <h2>Simulation Complete — Governance &amp; Architecture Audit</h2>
+        <p id="final-summary-text">Review your final leadership posture below and generate your official CBIS 15 lab completion certificate.</p>
+      </div>
+
+      <div class="cert-form">
+        <div class="input-group">
+          <label for="input-first">First Name</label>
+          <input type="text" id="input-first" placeholder="Enter First Name" autocomplete="given-name" />
+        </div>
+        <div class="input-group">
+          <label for="input-last">Last Name</label>
+          <input type="text" id="input-last" placeholder="Enter Last Name" autocomplete="family-name" />
+        </div>
+        <button id="btn-generate-cert" class="btn btn-gold">Generate Official Certificate</button>
+      </div>
+
+      <div class="cert-wrapper" id="cert-wrapper">
+        <div class="canvas-note">
+          Please take a screenshot of this certificate and attach it into your Canvas assignment.
+        </div>
+
+        <div id="certificate-node">
+          <div class="cert-header">
+            <div class="cert-college">Barstow Community College &bull; Information Networking</div>
+            <div class="cert-title">Certificate of Lab Completion</div>
+            <div class="cert-sub">CBIS 15 — Chapter 15: Physical &amp; Hardware Security Policy Command</div>
+          </div>
+
+          <div class="cert-body">
+            <p style="font-size: 0.92rem; color: #cbd5e1;">This certifies that</p>
+            <div class="student-scanline-name" id="cert-student-name">STUDENT NAME</div>
+            <p style="font-size: 0.9rem; color: #cbd5e1; max-width: 680px; margin: 0.35rem auto 0 auto;">
+              has successfully navigated multi-layered physical security, firewall/ACL rulesets, IDS/IPS tuning, protocol encryption, and human-factors governance across the <strong id="cert-industry" style="color: #38bdf8;">Industry</strong> track.
+            </p>
+          </div>
+
+          <div class="cert-metrics">
+            <div><span>Start Timestamp</span><strong id="cert-start">--</strong></div>
+            <div><span>End Timestamp</span><strong id="cert-end">--</strong></div>
+            <div><span>Total Active Time</span><strong id="cert-total" style="color: #10b981;">--</strong></div>
+            <div><span>Remaining Budget</span><strong id="cert-budget" style="color: #fbbf24;">--</strong></div>
+            <div><span>Security / Compliance</span><strong id="cert-scores" style="color: #38bdf8;">--</strong></div>
+            <div><span>Posture Rating</span><strong id="cert-rank" style="color: #c084fc;">--</strong></div>
+          </div>
+
+          <div class="cert-footer">
+            <div class="sig-block">
+              <div class="sig-script">Timothy Brinkley</div>
+              <div class="sig-title">Instructor &bull; CBIS 15 Co-Architect</div>
+            </div>
+
+            <div class="bcc-seal">
+              <div class="acro">BCC</div>
+              <div class="sub">Verified Lab</div>
+            </div>
+
+            <div class="sig-block">
+              <div class="sig-script">Wes Frogge</div>
+              <div class="sig-title">Instructor &bull; CBIS 15 Co-Architect</div>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-download-png" class="btn btn-primary">
+          Download Certificate as PNG
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // GLOBAL STATE & TIMING
+    const labState = {
+      startTime: null,
+      startFormatted: "",
+      endTime: null,
+      endFormatted: "",
+      totalTimeFormatted: "",
+      chosenIndustry: null,
+      budget: 120000,
+      security: 40,
+      morale: 75,
+      compliance: 35,
+      currentPhase: 0,
+      completed: false,
+      history: []
+    };
+
+    const INDUSTRIES = [
+      {
+        id: "medical",
+        name: "Medical & Healthcare",
+        summary: "HIPAA, FDA IoMT Infusion Pumps, GDPR Art. 9/32, CCPA § 1798.146",
+        p1: {
+          speaker: "Biomedical Engineering Lead",
+          quote: "Our server closet AC failed, so we propped the door open with a box of IV bags. Also, nurses share one 'AdminNurse' login at the station so emergency charting doesn't lag.",
+          policy: "Active Mandates: HIPAA § 164.310 Physical Safeguards, GDPR Art. 32 Confidentiality, NIST CSF PR.AA-05/06.",
+          options: [
+            {
+              title: "Leave door propped & keep shared station login until next budget cycle",
+              cost: 0,
+              dSec: -15, dMorale: +5, dComp: -20,
+              tech: "Unattended open closet exposes servers to Partition Magic/boot-disk physical compromise; shared accounts destroy audit trails.",
+              human: "Nurses appreciate zero login friction today, but nobody feels accountable when patient records are mischarted.",
+              policy: "Triggers HIPAA physical/access violations and mirrors Centro Hospitalar Barreiro Montijo (€400k GDPR fine)."
+            },
+            {
+              title: "Lock door immediately with no cooling fix & force 60-second idle timeouts",
+              cost: 2000,
+              dSec: +10, dMorale: -25, dComp: +5,
+              tech: "Physical perimeter is sealed, but server rack thermal alarms spike while stations lock mid-resuscitation.",
+              human: "Nurses tape shared passwords onto monitor bezels in frustration, defeating logical access control.",
+              policy: "Meets physical barrier rules on paper but fails NIST GV.OC-01 clinical mission alignment."
+            },
+            {
+              title: "Deploy spot cooling, 3-layer badge door, and proximity badge-tap RBAC",
+              cost: 18000,
+              dSec: +20, dMorale: +10, dComp: +20,
+              tech: "Enforces three-layer physical security, magnetic badge zones, and fast single-user Role-Based Access Control (RBAC).",
+              human: "Clinicians tap badges in 1 second without typing passwords; IT cross-trains a backup EHR admin.",
+              policy: "Satisfies HIPAA § 164.310/312, GDPR Art. 32, and NIST CSF Tier 3 Repeatable governance."
+            }
+          ]
+        },
+        p2: {
+          speaker: "Nursing Unit Director",
+          quote: "BioMed just plugged 140 unpatchable infusion pumps running cleartext Telnet (TCP 23) onto the main EHR subnet. Don't touch them or our pumps drop offline!",
+          policy: "Active Mandates: FDA Medical Device Guidance, Proposed HIPAA Segmentation, CCPA § 1798.150 Encryption Safe Harbor.",
+          options: [
+            {
+              title: "Leave pumps on the flat EHR VLAN with Telnet (TCP 23) open",
+              cost: 0,
+              dSec: -18, dMorale: +5, dComp: -18,
+              tech: "Flat network lets any phished reception PC pivot via cleartext Telnet into infusion pumps and EHR servers.",
+              human: "Zero short-term clinical tickets, masking a 270-day average healthcare threat dwell time.",
+              policy: "Fails HIPAA segmentation, GDPR Art. 25 Privacy by Design, and forfeits CCPA encryption safe harbors."
+            },
+            {
+              title: "Install HIDS endpoint agents directly onto the infusion pumps",
+              cost: 14000,
+              dSec: +5, dMorale: -30, dComp: -15,
+              tech: "Third-party agents crash legacy pump firmware and sever live telemetry to central nursing monitors.",
+              human: "Emergency clinical escalation forces IT to roll back changes at 2:00 AM.",
+              policy: "Violates FDA cleared medical device configuration rules and NIST ID.RA-07 change impact assessments."
+            },
+            {
+              title: "Segment pumps into an isolated IoMT VLAN/Zone behind stateful ACLs & TLS gateway",
+              cost: 22000,
+              dSec: +22, dMorale: +5, dComp: +22,
+              tech: "Isolates IoMT devices in a dedicated security zone; Extended ACLs allow only encrypted HTTPS/TLS to EHR.",
+              human: "IT schedules a 30-minute rolling cutover with BioMed so patient care never pauses.",
+              policy: "Achieves HIPAA segmentation, GDPR Art. 32 compensating controls, and NIST PR.IR-01."
+            }
+          ]
+        }
+      },
+      {
+        id: "military",
+        name: "Military & Defense Contractor",
+        summary: "CMMC 2.0 Level 2, NIST SP 800-171, DFARS, DOJ False Claims Act",
+        p1: {
+          speaker: "Senior CNC & SQL Systems Specialist",
+          quote: "I'm the only engineer who knows how the defense CAD/SQL server works. If you revoke my remote Administrator login or make me train a backup, machining stops.",
+          policy: "Active Mandates: NIST SP 800-171 Access Control, CMMC 2.0 Level 2, NIST CSF GV.RR-02/04.",
+          options: [
+            {
+              title: "Keep remote Administrator active and leave single-admin knowledge undocumented",
+              cost: 0,
+              dSec: -20, dMorale: +5, dComp: -25,
+              tech: "Remote Administrator account is prime ransomware target; single point of human failure threatens total outage.",
+              human: "Specialist feels untouchable ('hero syndrome'), blocking peer cross-training and security audits.",
+              policy: "Fails CMMC Level 2 assessment and exposes firm to DOJ False Claims Act penalties (up to $4.6M)."
+            },
+            {
+              title: "Revoke his credentials abruptly before documenting the SQL/CNC workflows",
+              cost: 3000,
+              dSec: +12, dMorale: -30, dComp: -5,
+              tech: "Closes remote Administrator exposure immediately, but undocumented batch scripts fail overnight.",
+              human: "Specialist resigns in anger; shop floor sits idle for three days while consultants reverse-engineer configs.",
+              policy: "Violates Chapter 15 Rotate Admin Jobs principle and NIST RC.RP-04 operational continuity."
+            },
+            {
+              title: "Disable remote Administrator, enforce least-privilege RBAC + MFA, and fund paid cross-training",
+              cost: 16000,
+              dSec: +22, dMorale: +8, dComp: +25,
+              tech: "Eliminates remote Administrator access, enforces Separation of Duties, and documents system runbooks.",
+              human: "Pairing cross-training with a retention bonus turns a territorial admin into a mentor.",
+              policy: "Passes CMMC 2.0 Level 2, NIST SP 800-171, and Chapter 15 Job Rotation & Least Privilege."
+            }
+          ]
+        },
+        p2: {
+          speaker: "Subcontractor Supply-Chain Liaison",
+          quote: "Our overseas tooling partner wants plain FTP (TCP 20/21) opened through the firewall to upload turbine blueprints—our stateless router drops their passive high ports.",
+          policy: "Active Mandates: NIST CSF GV.SC (Supply Chain), CMMC CUI Transit Protection, China CSL Art. 35/37 contrast.",
+          options: [
+            {
+              title: "Open wide high-port ranges on a stateless ACL for plain-text FTP",
+              cost: 0,
+              dSec: -22, dMorale: +5, dComp: -25,
+              tech: "Exposes cleartext credentials and CUI blueprints while punch-holing ephemeral ports across the firewall.",
+              human: "Vendors upload files quickly until proprietary CAD files surface on a competitor's server.",
+              policy: "Severe DFARS/CMMC CUI breach; violates NIST PR.DS-02 data-in-transit protection."
+            },
+            {
+              title: "Use a DMZ IP/NAT proxy with stateful packet filtering and SFTP (TCP 22)",
+              cost: 19000,
+              dSec: +22, dMorale: +5, dComp: +24,
+              tech: "Replaces FTP with SSH-encrypted SFTP (TCP 22) inside a segmented DMZ, tracked by a stateful state table.",
+              human: "IT provides a 1-page SFTP script template so suppliers migrate in one afternoon.",
+              policy: "Meets NIST SP 800-171 FIPS-validated transit security and NIST GV.SC-05 vendor controls."
+            },
+            {
+              title: "Block all external file transfers and require mailed physical optical discs",
+              cost: 5000,
+              dSec: +15, dMorale: -22, dComp: +5,
+              tech: "Eliminates network ingress vectors completely.",
+              human: "Engineers sneak blueprints onto personal USB sticks and home email to hit production deadlines.",
+              policy: "Drives unmonitored shadow IT and physical media loss risks."
+            }
+          ]
+        }
+      },
+      {
+        id: "utilities",
+        name: "Utilities (Electric Power Grid)",
+        summary: "NIST SP 800-82 (OT/ICS), NIST CSF 2.0, China CSL CII Rules",
+        p1: {
+          speaker: "Substation Field Operations Supervisor",
+          quote: "Remote relay technicians still use Telnet (TCP 23) and SNMPv1 over cellular links, and the substation fence gate keypad has been stuck unlocked for two weeks.",
+          policy: "Active Mandates: NIST SP 800-82 OT Security, NIST CSF PR.AA-06 / PR.DS-02, China CSL Art. 31–34 CII benchmark.",
+          options: [
+            {
+              title: "Leave Telnet/SNMPv1 and gate keypad as-is to avoid field crew delays",
+              cost: 0,
+              dSec: -22, dMorale: +5, dComp: -22,
+              tech: "Cleartext SNMPv1 community strings and Telnet passwords can be sniffed; unlocked gate invites physical tampering.",
+              human: "Field crews enjoy fast entry, unaware that adversary groups target exposed grid edge gear.",
+              policy: "Fails NIST SP 800-82 physical/protocol baselines and CII synchronous-security standards."
+            },
+            {
+              title: "Repair physical gate lock, deploy VPN Concentrator + SSH/SNMPv3 jump hosts",
+              cost: 24000,
+              dSec: +24, dMorale: +5, dComp: +24,
+              tech: "Secures physical perimeter and tunnels legacy substation polling inside IPSec VPNs with SSH and SNMPv3.",
+              human: "Crews receive ruggedized MFA tokens and a single unified jump-host dashboard.",
+              policy: "Satisfies NIST SP 800-82, NIST CSF PR.AA/PR.DS, and CII encryption/physical mandates."
+            },
+            {
+              title: "Disable all remote substation telemetry and require manual truck rolls",
+              cost: 8000,
+              dSec: +14, dMorale: -25, dComp: 0,
+              tech: "Removes remote attack surface at the cost of real-time grid visibility.",
+              human: "Overtime burnout spikes as crews drive hours across desert substations for routine voltage checks.",
+              policy: "Degrades grid resilience under NIST PR.IR-03."
+            }
+          ]
+        },
+        p2: {
+          speaker: "Grid Vendor Engineering Lead (Overseas)",
+          quote: "We need a direct, always-on tunnel bypassing your DMZ firewall to debug relay firmware—and we want raw grid logs exported to our overseas lab.",
+          policy: "Active Mandates: NIST CSF GV.SC-07, China CSL Art. 37 CII Data Localization & Security Assessment.",
+          options: [
+            {
+              title: "Grant persistent unproxied vendor access and allow raw cross-border log exports",
+              cost: 0,
+              dSec: -25, dMorale: +5, dComp: -25,
+              tech: "Bypasses perimeter firewall inspection and creates a permanent third-party pivot into OT relays.",
+              human: "Vendor engineers resolve tickets quickly while holding unrestricted access to critical infrastructure.",
+              policy: "Violates NIST GV.SC-05/07 and mirrors China CSL Art. 37/66 CII localization violations (RMB 1M–10M fines)."
+            },
+            {
+              title: "Enforce time-boxed MFA VPN into a DMZ bastion host with sanitized local log storage",
+              cost: 18000,
+              dSec: +22, dMorale: +5, dComp: +24,
+              tech: "Vendor connects only during approved change windows into a monitored DMZ jump host; raw logs stay localized.",
+              human: "Clear SLA rules eliminate ad-hoc midnight phone arguments between IT and vendor engineers.",
+              policy: "Meets NIST CSF GV.SC-08, CSL Art. 21 (6-month local logs), and CSL Art. 37 localization rules."
+            },
+            {
+              title: "Terminate vendor support contract immediately without a replacement",
+              cost: 4000,
+              dSec: +5, dMorale: -20, dComp: -10,
+              tech: "Leaves specialized grid relays without firmware security patches.",
+              human: "Internal engineers panic when proprietary relay alarms fire with no vendor escalation path.",
+              policy: "Violates NIST ID.RA-08 vulnerability management and GV.SC-10 exit planning."
+            }
+          ]
+        }
+      },
+      {
+        id: "logistics",
+        name: "Logistics & Maritime Port",
+        summary: "EU GDPR Art. 28/32/44, California CCPA § 1798.100(d), China CSL Art. 31/37",
+        p1: {
+          speaker: "Port Gate & Terminal Operations Manager",
+          quote: "Idle container ships cost tens of thousands per hour! Re-open anonymous FTP (TCP 20/21) and email unencrypted courier manifest spreadsheets so trucks keep rolling.",
+          policy: "Active Mandates: GDPR Art. 28/32 Processor Security, CCPA § 1798.100(d) Vendor Contracts, NIST CSF PR.DS-02.",
+          options: [
+            {
+              title: "Re-enable anonymous FTP and send unencrypted HTTP/email manifests",
+              cost: 0,
+              dSec: -22, dMorale: +8, dComp: -24,
+              tech: "Exposes manifest credentials and driver/customer PII in cleartext over public links.",
+              human: "Gate clerks praise the speed until ransomware locks the Terminal Operating System (ToS).",
+              policy: "Triggers CCPA § 1798.150 breach liability and mirrors Cyfrowy Polsat's €250k GDPR courier fine."
+            },
+            {
+              title: "Deploy SFTP (TCP 22) in a DMZ proxy with outbound DLP keyword scanning",
+              cost: 20000,
+              dSec: +22, dMorale: +6, dComp: +24,
+              tech: "Automates encrypted SFTP manifest ingestion and scans outbound SMTP/HTTP proxies for passport/PII strings.",
+              human: "IT runs a 48-hour parallel bridge so customs brokers switch scripts without halting gate traffic.",
+              policy: "Satisfies GDPR Art. 32, CCPA § 1798.100(d) vendor safeguards, and NIST PR.DS-02."
+            },
+            {
+              title: "Shut down all electronic EDI/FTP feeds and process manifests manually on paper",
+              cost: 6000,
+              dSec: +12, dMorale: -28, dComp: -5,
+              tech: "Cuts network exposure while creating massive physical paper bottlenecks.",
+              human: "Truck queues spill onto highways; dispatchers snap photos of manifests on personal phones.",
+              policy: "Fails NIST GV.OC-04 stakeholder service continuity and creates shadow-IT photo leaks."
+            }
+          ]
+        },
+        p2: {
+          speaker: "International Customs Compliance Officer",
+          quote: "Our Rotterdam and Shenzhen hubs sync EU and Chinese customer shipping records into one unsegmented US database with no retention limits.",
+          policy: "Active Mandates: GDPR Art. 44–46 Cross-Border Transfers, China CSL Art. 37 Localization, CCPA § 1798.100(a)(3).",
+          options: [
+            {
+              title: "Keep a single global database with unrestricted cross-border replication",
+              cost: 0,
+              dSec: -15, dMorale: +5, dComp: -25,
+              tech: "Unsegmented data stores allow any regional compromise to expose global PII simultaneously.",
+              human: "Analysts enjoy single-query convenience without realizing cross-border transfer laws were broken.",
+              policy: "Risks GDPR Art. 83(5) fines (up to €20M / 4% turnover) and China CSL Art. 66 license suspension."
+            },
+            {
+              title: "Partition regional VLAN/database zones with GDPR SCCs and mainland PRC storage",
+              cost: 23000,
+              dSec: +20, dMorale: +4, dComp: +25,
+              tech: "Enforces regional zone isolation, pseudonymized analytics, and encrypted cross-border API gateways.",
+              human: "Clear data-routing rules protect local managers from personal regulatory fines.",
+              policy: "Complies with GDPR Art. 46 SCCs, China CSL Art. 37 localization, and CCPA retention limits."
+            },
+            {
+              title: "Delete all international shipping records older than 7 days",
+              cost: 3000,
+              dSec: +10, dMorale: -20, dComp: -18,
+              tech: "Wipes active customs and tax audit trails prematurely.",
+              human: "Customs inspectors fine the port when mandatory multi-year bill-of-lading records vanish.",
+              policy: "Violates statutory recordkeeping exemptions under GDPR Art. 17(3)(b) and CCPA § 1798.105(d)(8)."
+            }
+          ]
+        }
+      },
+      {
+        id: "education",
+        name: "Education (Higher Ed & K–12)",
+        summary: "BCC Computer Use / BP 3720, Campus Security Act, FERPA, CIPA E-Rate, COPPA",
+        p1: {
+          speaker: "Student Lab Coordinator & Dual-Enrollment Faculty",
+          quote: "Students keep leaving backpacks and unlocked workstations unattended in the networking lab, and someone pasted classmates' graded lab files into a free public AI site.",
+          policy: "Active Mandates: BCC Computer Use Policy, Campus Security Act (Clery), FERPA, CA Ed Code § 49073.1, COPPA (2026).",
+          options: [
+            {
+              title: "Leave lab PCs unlocked for convenience and ignore unvetted AI uploads",
+              cost: 0,
+              dSec: -18, dMorale: +6, dComp: -22,
+              tech: "Unlocked terminals invite crimes of opportunity, local tampering, and unauthorized PII harvesting.",
+              human: "Students appreciate fast login-free access until graded work is stolen or exposed publicly.",
+              policy: "Violates BCC Computer Use, Campus Security Act prevention duties, and FERPA record protection."
+            },
+            {
+              title: "Enforce 5-minute workstation auto-lock, cable locks, and allowlist vetted ed-tech AI",
+              cost: 15000,
+              dSec: +20, dMorale: +8, dComp: +24,
+              tech: "Combines physical workstation locks, VLAN isolation between student/admin subnets, and DNS/proxy allowlisting.",
+              human: "Students get an approved, privacy-vetted campus AI sandbox while learning FERPA data hygiene.",
+              policy: "Aligns with BCC policies, FERPA, CA Ed Code § 49073.1, and 2026 FTC COPPA vendor rules."
+            },
+            {
+              title: "Disable campus Wi-Fi in all labs and ban every AI and cloud domain",
+              cost: 2000,
+              dSec: +8, dMorale: -26, dComp: -5,
+              tech: "Shuts down campus network access while leaving endpoints unmonitored.",
+              human: "Students immediately tether to personal cellular hotspots, creating 100% unmonitored shadow IT.",
+              policy: "Undermines BCC Open Class / ADA accessibility goals and fails to stop off-network data leaks."
+            }
+          ]
+        },
+        p2: {
+          speaker: "District E-Rate & Library Coordinator",
+          quote: "High school dual-enrollment students are using campus terminals to bypass web filters, while a nursing instructor says the content filter blocked a legitimate medical anatomy site.",
+          policy: "Active Mandates: Children's Internet Protection Act (CIPA), BCC Sexual Harassment / Title IX Policy, Section 504/ADA.",
+          options: [
+            {
+              title: "Turn off HTTPS content filtering campus-wide to stop faculty complaints",
+              cost: 0,
+              dSec: -16, dMorale: +5, dComp: -25,
+              tech: "Removes Technology Protection Measures (TPM) across campus networks.",
+              human: "Help-desk unblock tickets drop to zero until explicit content appears on public lab monitors.",
+              policy: "Forfeits federal CIPA E-Rate discounts and invites BCC Title IX / hostile-environment liability."
+            },
+            {
+              title: "Keep strict CIPA filtering for minors + issue faculty PIN override for adult research",
+              cost: 14000,
+              dSec: +20, dMorale: +10, dComp: +24,
+              tech: "Enforces CIPA-compliant URL/content filtering on student VLANs with logged faculty override credentials.",
+              human: "Instructors unlock legitimate medical/academic resources in seconds without weakening minor protections.",
+              policy: "Satisfies CIPA statutory adult-research rules, Title IX, and Section 504/ADA access."
+            },
+            {
+              title: "Require written board approval for every single blocked URL request",
+              cost: 1000,
+              dSec: +12, dMorale: -22, dComp: +5,
+              tech: "Maintains rigid static blocklists.",
+              human: "Instructors abandon campus computers mid-semester and tell students to use personal phones.",
+              policy: "Creates instructional bottlenecks and drives shadow cellular usage."
+            }
+          ]
+        }
+      },
+      {
+        id: "mining",
+        name: "Mining & Aggregates",
+        summary: "MSHA 30 CFR 56.23003, NIST SP 800-82, California CCPA Employee/GPS Rules",
+        p1: {
+          speaker: "High-Desert Quarry Superintendent",
+          quote: "We're miles out in the Mojave Desert—nobody is hiking out here to hack a rock crusher! Leave the scale-house router cabinet unlocked so clerks can reboot it.",
+          policy: "Active Mandates: NIST CSF PR.AA-06 Physical Access, NIST SP 800-82, MSHA 30 CFR 56.23003 Haul-Road Safety.",
+          options: [
+            {
+              title: "Leave scale-house cabinet unlocked with default router passwords taped inside",
+              cost: 0,
+              dSec: -20, dMorale: +6, dComp: -20,
+              tech: "Any delivery driver or visitor can plug into switch ports or read taped credentials.",
+              human: "Scale clerks love quick manual reboots until a rogue device disrupts haul-truck dispatch.",
+              policy: "Fails NIST physical barrier controls and mirrors 52% OT default-credential breach patterns."
+            },
+            {
+              title: "Install dust-filtered locked NEMA cabinets with badge/key logs & remote power PDU",
+              cost: 17000,
+              dSec: +22, dMorale: +8, dComp: +20,
+              tech: "Enforces physical security barriers while letting IT cycle power remotely via authenticated PDUs.",
+              human: "Clerks no longer climb behind dusty racks, and equipment stays protected from desert grit and tampering.",
+              policy: "Meets Chapter 15 Physical Security Zones and NIST PR.IR-02 environmental protection."
+            },
+            {
+              title: "Weld cabinets shut and require a 4-hour headquarters technician drive for every reset",
+              cost: 4000,
+              dSec: +14, dMorale: -24, dComp: +5,
+              tech: "Secures hardware physically but destroys mean-time-to-recovery (MTTR).",
+              human: "Scale clerks prop open doors or cut locks after waiting hours with idling haul trucks.",
+              policy: "Fails NIST RC.RP-01 timely recovery standards."
+            }
+          ]
+        },
+        p2: {
+          speaker: "Fleet Telemetry & Dispatch Lead",
+          quote: "Haul-truck collision sensors and worker GPS badges send cleartext SNMPv1 (UDP 161) over cellular links, and the crusher vendor has 24/7 unmonitored remote access.",
+          policy: "Active Mandates: MSHA Surface Haul-Road Safety, California CCPA (Employee/GPS PII), NIST CSF GV.SC.",
+          options: [
+            {
+              title: "Keep cleartext SNMPv1 and 24/7 unmonitored equipment-dealer access",
+              cost: 0,
+              dSec: -22, dMorale: +5, dComp: -22,
+              tech: "Cleartext SNMPv1 community strings and persistent vendor tunnels expose safety telemetry and worker GPS.",
+              human: "Dealer mechanics troubleshoot unannounced until spoofed telemetry triggers false haul-road alerts.",
+              policy: "Jeopardizes MSHA safety compliance and exposes employee geolocation PII under CCPA § 1798.150."
+            },
+            {
+              title: "Upgrade to SNMPv3 + IPSec VPN Concentrator, OT VLANs, and ticketed vendor access",
+              cost: 21000,
+              dSec: +22, dMorale: +5, dComp: +24,
+              tech: "Encrypts telemetry with SNMPv3 inside an IPSec VPN, isolates haul-road safety VLANs, and gates vendor sessions.",
+              human: "IT issues CCPA worker privacy notices and gives dealers a 1-click scheduled support portal.",
+              policy: "Satisfies MSHA safety integrity, CCPA § 1798.100/150, and NIST SP 800-82."
+            },
+            {
+              title: "Shut off cellular telemetry and revert to clipboard paper scale tickets",
+              cost: 3000,
+              dSec: +10, dMorale: -25, dComp: -10,
+              tech: "Eliminates wireless links while blinding real-time surface haul-road monitoring.",
+              human: "Drivers queue at the scale-house and text photos of scale sheets on personal phones.",
+              policy: "Undermines MSHA 30 CFR 56.23003 safety monitoring and creates personal-device PII leaks."
+            }
+          ]
+        }
+      },
+      {
+        id: "environmental",
+        name: "Environmental (Water & Wastewater)",
+        summary: "EPA Safe Drinking Water Act (AWIA § 1433), GAO-26 Wastewater Rules, NIST SP 800-82",
+        p1: {
+          speaker: "On-Call Water Distribution Operator",
+          quote: "We put our Rockwell PLC directly on a public IP with the factory password so I can check wellhead pump pressure from my personal iPad at home!",
+          policy: "Active Mandates: EPA AWIA § 1433 RRA & ERP (2026 Recertification), FBI/EPA/CISA Water Advisories, NIST CSF PR.IR-01.",
+          options: [
+            {
+              title: "Leave the PLC on the public internet with default credentials for convenience",
+              cost: 0,
+              dSec: -28, dMorale: +6, dComp: -28,
+              tech: "Publicly reachable PLC with default credentials allows direct malicious CIP command injection.",
+              human: "Operator enjoys effortless home checks until attackers drop system pressure and trigger boil-water notices.",
+              policy: "Places utility among the >70% EPA non-compliant systems and mirrors 2026 multi-state water attacks."
+            },
+            {
+              title: "Pull PLC behind a stateful firewall/DMZ, rotate credentials, and issue MFA VPN tablet",
+              cost: 22000,
+              dSec: +25, dMorale: +6, dComp: +26,
+              tech: "Removes public PLC exposure, enforces default-deny ACLs, and authenticates remote SCADA via VPN Concentrator.",
+              human: "Operator gets a pre-configured district tablet with biometric MFA—fast home access without public exposure.",
+              policy: "Satisfies EPA AWIA § 1433, EPA Top Cyber Actions, and NIST SP 800-82."
+            },
+            {
+              title: "Cut all SCADA connectivity permanently and staff wellheads 24/7 in person",
+              cost: 12000,
+              dSec: +14, dMorale: -28, dComp: -8,
+              tech: "Isolates PLCs completely while eliminating automated telemetry and leak alarms.",
+              human: "Lean municipal staff burn out driving between remote wells around the clock.",
+              policy: "Fails AWIA § 1433 Emergency Response Plan resilience standards."
+            }
+          ]
+        },
+        p2: {
+          speaker: "Environmental GIS & Watershed Director",
+          quote: "The firewall's antivirus scanning service times out my 60 MB watershed GIS maps! Turn on 'deferred scanning' for files over 50 MB right now.",
+          policy: "Active Mandates: Chapter 15 Scanning Services (Table 15.1), NIST CSF DE.CM / PR.DS, EPA ERP Continuity.",
+          options: [
+            {
+              title: "Enable deferred scanning so >50 MB files bypass inline malware inspection",
+              cost: 0,
+              dSec: -20, dMorale: +6, dComp: -18,
+              tech: "Deferred scanning speeds large downloads by allowing unverified binaries inside the perimeter before scanning.",
+              human: "GIS maps download fast until a trojanized archive compromises the environmental compliance server.",
+              policy: "Directly triggers Chapter 15's deferred-scanning security warning and NIST PR.PS-05 gaps."
+            },
+            {
+              title: "Keep inline scanning strict on HTTP and move large GIS datasets to scanned SFTP batching",
+              cost: 15000,
+              dSec: +20, dMorale: +5, dComp: +22,
+              tech: "Preserves inline firewall scanning on web traffic while offloading large GIS transfers to an authenticated SFTP queue.",
+              human: "GIS analysts get reliable, resumable 60+ MB transfers without weakening perimeter malware defenses.",
+              policy: "Balances Chapter 15 Scanning Services, SFTP security, and NIST CSF PR.DS-02."
+            },
+            {
+              title: "Block all file downloads larger than 15 MB across every protocol",
+              cost: 1000,
+              dSec: +12, dMorale: -24, dComp: +4,
+              tech: "Prevents oversized transfers through the firewall.",
+              human: "Analysts bring personal USB drives from home to transfer GIS layers, bypassing network inspection entirely.",
+              policy: "Creates unmonitored removable-media malware vectors."
+            }
+          ]
+        }
+      },
+      {
+        id: "public_safety",
+        name: "Public Safety (Sheriff & Dispatch)",
+        summary: "FBI CJIS Security Policy v6.0, CCPA § 1798.145 Law Enforcement Holds, NIST CSF 2.0",
+        p1: {
+          speaker: "Patrol Watch Commander",
+          quote: "Routing cruiser Mobile Data Terminal (MDT) VPN traffic through the headquarters firewall adds lag during plate checks—bypass the firewall on our VPN concentrator and let partners share one cruiser login!",
+          policy: "Active Mandates: FBI CJIS Security Policy v6.0, Chapter 15 VPN Concentrator Architecture, NIST CSF PR.AA-01/03.",
+          options: [
+            {
+              title: "Bypass firewall inspection on the VPN concentrator and enable shared cruiser logins",
+              cost: 0,
+              dSec: -24, dMorale: +8, dComp: -26,
+              tech: "Unfiltered VPN termination grants direct LAN access; shared logins destroy individual CJIS audit attribution.",
+              human: "Deputies save 15 seconds at shift change until a stolen cruiser laptop compromises criminal databases.",
+              policy: "Severe FBI CJIS v6.0 audit violation risking loss of NCIC/state database access."
+            },
+            {
+              title: "Route VPN Concentrator through tuned stateful firewall ACLs + smartcard/biometric MFA",
+              cost: 23000,
+              dSec: +24, dMorale: +6, dComp: +26,
+              tech: "Applies hardware-accelerated stateful ACLs to VPN traffic and binds each session to an individual officer token.",
+              human: "Shift-length session tokens keep plate lookups sub-second without mid-stop re-authentication.",
+              policy: "Meets FBI CJIS v6.0 encryption/MFA mandates and Chapter 15 VPN Concentrator best practices."
+            },
+            {
+              title: "Enforce 2-minute idle screen locks requiring 16-character passwords mid-traffic-stop",
+              cost: 2000,
+              dSec: +10, dMorale: -30, dComp: +5,
+              tech: "Locks screens rapidly on paper.",
+              human: "Deputies tape passwords onto MDT bezels during high-stress roadside stops, creating physical safety hazards.",
+              policy: "Classic human-factors failure where rigid controls undermine field safety and credential hygiene."
+            }
+          ]
+        },
+        p2: {
+          speaker: "Major Crimes Detective",
+          quote: "We have an active fraud case—freeze deletion on a suspect's cloud records for 90 days, and also pull emergency geolocation data without a warrant on a reproductive-care clinic search.",
+          policy: "Active Mandates: California CCPA § 1798.145(a)(1)(B)–(D) (90-Day Preservation & Reproductive Care Exclusion).",
+          options: [
+            {
+              title: "Approve both requests informally without case numbers or statutory screening",
+              cost: 0,
+              dSec: -10, dMorale: +5, dComp: -28,
+              tech: "Bypasses legal-hold authorization workflows and audit logging.",
+              human: "Detectives get immediate data but taint admissibility in court.",
+              policy: "CCPA § 1798.145(a)(1)(D)(ii) explicitly bars emergency access for contraception/reproductive care searches."
+            },
+            {
+              title: "Enforce RBAC legal-hold workflows: honor 90-day case-numbered hold, reject invalid emergency request",
+              cost: 14000,
+              dSec: +18, dMorale: +4, dComp: +26,
+              tech: "Uses tamper-evident RBAC audit logs and automated 90-day WORM retention holds tied to active case numbers.",
+              human: "Clear statutory checklists protect detectives and IT staff from civil rights and suppression challenges.",
+              policy: "Complies strictly with CCPA § 1798.145(a)(1)(B)–(D), CJIS audit rules, and NIST RS.AN-06."
+            },
+            {
+              title: "Purge all server logs every 30 days regardless of active law-enforcement holds",
+              cost: 1000,
+              dSec: +5, dMorale: -18, dComp: -22,
+              tech: "Destroys evidentiary records mid-investigation.",
+              human: "Prosecutors lose key digital evidence and issue contempt warnings.",
+              policy: "Violates CCPA § 1798.145(a)(1)(B) preservation mandates and NIST RS.AN-07."
+            }
+          ]
+        }
+      },
+      {
+        id: "small_business",
+        name: "Small Business (28-Staff Firm)",
+        summary: "NIST SP 1300 Small Business QSG, CA Civil Code § 1798.81.5, Cyber Insurance",
+        p1: {
+          speaker: "Founder & Managing Owner",
+          quote: "We're a 28-person shop—hackers want big banks, not us! Everyone already has Windows Firewall turned on, so skip the dedicated hardware firewall and MFA.",
+          policy: "Active Mandates: CA Civil Code § 1798.81.5 (Size-Blind), CCPA § 1798.100(d) Client Flow-Down, Cyber Insurance.",
+          options: [
+            {
+              title: "Rely solely on host-based Windows Firewall and skip MFA/hardware firewall",
+              cost: 0,
+              dSec: -24, dMorale: +6, dComp: -25,
+              tech: "Flattens network perimeter; compromising one host firewall exposes shared payroll and client CAD drives.",
+              human: "Owner saves upfront cash until ransomware hits and the cyber insurer denies the claim for missing MFA.",
+              policy: "Fails CA Civil Code § 1798.81.5 reasonable security and voids cyber insurance warranties."
+            },
+            {
+              title: "Deploy an SMB 'black-box' hardware firewall (default-deny), VPN + MFA, and locked closet",
+              cost: 16000,
+              dSec: +24, dMorale: +6, dComp: +24,
+              tech: "Establishes true network-based perimeter separation, default-deny ACLs, and MFA-protected remote access.",
+              human: "A 30-minute lunch-and-learn shows staff how MFA protects their own W-2 and direct-deposit data.",
+              policy: "Implements NIST CSF 2.0 Small Business QSG (SP 1300) and preserves insurance & enterprise client contracts."
+            },
+            {
+              title: "Plug in an unconfigured retail router and ban all remote work permanently",
+              cost: 2500,
+              dSec: +4, dMorale: -25, dComp: -12,
+              tech: "Default-allow consumer NAT router lacks stateful ACLs, VLANs, or audit logs.",
+              human: "Bookkeeper misses payroll deadlines and staff haul company laptops onto public coffee-shop Wi-Fi.",
+              policy: "Fails enterprise client vendor audits under CCPA § 1798.100(d)."
+            }
+          ]
+        },
+        p2: {
+          speaker: "Office Bookkeeper & HR Coordinator",
+          quote: "I log into our local payroll portal over plain HTTP (TCP 80) from home using a shared 'Admin' password, and we store customer records on a public cloud folder.",
+          policy: "Active Mandates: Chapter 15 HTTP vs. HTTPS & Least Privilege, GDPR Art. 30(5) Risk Caveat, NIST SP 1300.",
+          options: [
+            {
+              title: "Keep plain HTTP payroll and shared Admin credentials so nobody forgets passwords",
+              cost: 0,
+              dSec: -20, dMorale: +5, dComp: -22,
+              tech: "Exposes payroll session cookies and SSNs in cleartext; shared Admin prevents accountability.",
+              human: "Convenient until credential stuffing drains company payroll accounts.",
+              policy: "Loses CCPA § 1798.150 encryption safe harbor and triggers GDPR Art. 30(5)/32 exposure for EU client data."
+            },
+            {
+              title: "Migrate payroll to HTTPS (TCP 443), enforce individual RBAC accounts, and test offline backups",
+              cost: 14000,
+              dSec: +22, dMorale: +6, dComp: +24,
+              tech: "Encrypts web sessions via CA-signed TLS certificates, enforces least privilege, and verifies immutable backups.",
+              human: "Password manager rollout makes unique logins easier than remembering shared passwords.",
+              policy: "Satisfies NIST SP 1300, CA Civil Code § 1798.81.5, and GDPR Art. 32."
+            },
+            {
+              title: "Delete all backup drives to save cloud storage fees",
+              cost: 0,
+              dSec: -25, dMorale: 0, dComp: -20,
+              tech: "Eliminates recovery capability (NIST RECOVER Function) in the event of hardware failure or ransomware.",
+              human: "Minor monthly bill reduction masks existential business-continuity risk.",
+              policy: "Violates GDPR Art. 32(1)(c) timely restoration and NIST PR.DS-11 backup testing."
+            }
+          ]
+        }
+      },
+      {
+        id: "real_estate",
+        name: "Real Estate & Property Management",
+        summary: "FBI IC3 BEC Wire Controls ($275M Loss Trend), CCPA §§ 1798.105/.150, GDPR Art. 5/32",
+        p1: {
+          speaker: "Top-Producing Escrow & Relocation Agent",
+          quote: "Clients want weekend closing packets fast! I email driver's licenses and wire instructions through my personal Gmail and post rental applications on an open web link.",
+          policy: "Active Mandates: FBI IC3 BEC Controls, GDPR Art. 32 (Sergic €400k Precedent), CCPA § 1798.150 Breach Liability.",
+          options: [
+            {
+              title: "Allow personal webmail and open unauthenticated URLs for weekend closings",
+              cost: 0,
+              dSec: -24, dMorale: +8, dComp: -25,
+              tech: "Unauthenticated URLs expose applicant IDs publicly (mirroring Sergic's €400k GDPR fine); personal email invites BEC spoofing.",
+              human: "Agents close deals fast until a spoofed escrow wire diverts $380,000 of a buyer's down payment.",
+              policy: "Triggers CCPA § 1798.150 statutory damages ($107–$799/victim) and GDPR Art. 32 fines."
+            },
+            {
+              title: "Deploy SMTP proxy anti-BEC filtering, MFA HTTPS client portals, and verbal wire verification",
+              cost: 19000,
+              dSec: +24, dMorale: +5, dComp: +25,
+              tech: "Screens inbound/outbound SMTP proxies for wire-change keywords and enforces HTTPS (TCP 443) portal authentication.",
+              human: "Mobile-friendly client portal lets agents share packets in two taps without personal Gmail.",
+              policy: "Mitigates FBI IC3 real estate wire fraud and establishes CCPA/GDPR encryption safe harbors."
+            },
+            {
+              title: "Block all PDF email attachments across the brokerage without providing a client portal",
+              cost: 2000,
+              dSec: +10, dMorale: -28, dComp: -8,
+              tech: "Halts SMTP PDF attachments while leaving agents with no sanctioned file-exchange channel.",
+              human: "100% of agents move closings onto personal text messages and consumer chat apps (shadow IT).",
+              policy: "Destroys auditability and violates CCPA § 1798.100(e) data governance."
+            }
+          ]
+        },
+        p2: {
+          speaker: "VP of Residential Leasing",
+          quote: "Never delete anything from our shared drive! Keep all 12 years of unencrypted rejected rental applications—what if an applicant comes back to rent someday?",
+          policy: "Active Mandates: GDPR Art. 5(1)(e) Storage Limitation & Art. 17 Erasure (Deutsche Wohnen €14.5M), CCPA § 1798.105.",
+          options: [
+            {
+              title: "Keep 12 years of unencrypted applicant PII indefinitely on an open shared drive",
+              cost: 0,
+              dSec: -20, dMorale: +4, dComp: -28,
+              tech: "Massive unencrypted PII hoard maximizes blast radius during any credential compromise.",
+              human: "Leasing staff treat old files as harmless clutter until a breach exposes 50,000 former applicants.",
+              policy: "Mirrors Deutsche Wohnen's €14.5M GDPR storage-limitation fine and violates CCPA § 1798.100(a)(3)."
+            },
+            {
+              title: "Encrypt active lease vaults, enforce RBAC, and automate retention purges with legal-hold exceptions",
+              cost: 17000,
+              dSec: +22, dMorale: +6, dComp: +26,
+              tech: "Applies AES encryption at rest, Role-Based Access Control, and automated deletion schedules honoring tax/legal holds.",
+              human: "Fulfilling CCPA 45-day deletion requests (§ 1798.130) becomes a 1-click workflow instead of a manual hunt.",
+              policy: "Complies with GDPR Art. 5(1)(e)/17, CCPA §§ 1798.105/.130/.150, and NIST PR.DS-01."
+            },
+            {
+              title: "Wipe the entire leasing server immediately, including active tax and escrow records",
+              cost: 1000,
+              dSec: +8, dMorale: -22, dComp: -22,
+              tech: "Erases active contractual and statutory records indiscriminately.",
+              human: "Accounting and legal teams halt operations when active lease contracts disappear.",
+              policy: "Violates CCPA § 1798.105(d)(1)/(8) contract and legal-obligation retention exceptions."
+            }
+          ]
+        }
+      }
+    ];
+
+    // Cross-sector Phase 3 & Phase 4 universal leadership challenges enriched by industry context
+    function getPhaseData(industryObj, phaseIndex) {
+      if (phaseIndex === 0) {
+        return {
+          tag: "Phase 1 of 4 • Physical Perimeter & Access Control",
+          title: `${industryObj.name}: Physical Barriers & Privilege Boundaries`,
+          speaker: industryObj.p1.speaker,
+          quote: industryObj.p1.quote,
+          policy: industryObj.p1.policy,
+          options: industryObj.p1.options
+        };
+      }
+      if (phaseIndex === 1) {
+        return {
+          tag: "Phase 2 of 4 • Firewalls, ACLs & Protocol Encryption",
+          title: `${industryObj.name}: Network Segmentation & Cleartext Migration`,
+          speaker: industryObj.p2.speaker,
+          quote: industryObj.p2.quote,
+          policy: industryObj.p2.policy,
+          options: industryObj.p2.options
+        };
+      }
+      if (phaseIndex === 2) {
+        return {
+          tag: "Phase 3 of 4 • IDS/IPS Alert Fatigue & Shadow IT Surge",
+          title: `${industryObj.name}: SOC Desensitization vs. Automated IPS Lockouts`,
+          speaker: "Night-Shift SOC Analyst & Department Managers",
+          quote: "Our NIDS console fired 2,992 alerts today—mostly benign triggers from legacy internal scripts. I'm exhausted and ready to either click 'Shun/Ignore All' or turn on aggressive IPS auto-blocking on every port!",
+          policy: "Active Mandates: Chapter 15 NIDS/HIDS & IPS Modes (Logging, Notification, Shunning), NIST CSF DE.CM / DE.AE, China CSL Art. 21(3) 6-Month Logs.",
+          options: [
+            {
+              title: "Click 'Ignore All' on NIDS alerts and leave shadow AI/SaaS apps unmonitored",
+              cost: 0,
+              dSec: -22, dMorale: +4, dComp: -20,
+              tech: "Alert fatigue (70%–99% false positives) causes analysts to miss real lateral movement buried in benign noise.",
+              human: "Analysts stop opening tickets because they no longer trust the NIDS console.",
+              policy: "Fails NIST DE.AE-02/03 anomaly correlation and risks missing breach detection windows."
+            },
+            {
+              title: "Enable hair-trigger IPS automatic session termination & port-80 blocks across all subnets",
+              cost: 6000,
+              dSec: +8, dMorale: -26, dComp: -6,
+              tech: "Active IPS false positives shut down legitimate production traffic and disconnect critical workflows.",
+              human: "Operations leaders demand immediate IPS shutdown after a benign script triggers a 60-second outage.",
+              policy: "Demonstrates Chapter 15 warning on uncalibrated active IPS disruption."
+            },
+            {
+              title: "Tune AD-IDS baselines against benign triggers, keep 6-month SIEM logs, and launch 48-hr Shadow-IT fast-track review",
+              cost: 18000,
+              dSec: +22, dMorale: +10, dComp: +22,
+              tech: "Suppresses noisy benign signatures while preserving full 6-month immutable logs and targeted IPS signatures.",
+              human: "SOC alert volume drops by >60%, ending burnout, while staff use a fast 48-hour tool-vetting lane instead of rogue hotspots.",
+              policy: "Satisfies NIST DE.CM/DE.AE, China CSL Art. 21(3) 6-month log retention, and GDPR Art. 32(1)(d) testing."
+            }
+          ]
+        };
+      }
+      return {
+        tag: "Phase 4 of 4 • Cross-Border Incident & Breach Notification Triage",
+        title: `${industryObj.name}: Phished Vendor Credential & Regulatory Clock`,
+        speaker: "General Counsel & Incident Response Lead",
+        quote: "An attacker just used a compromised contractor credential to exfiltrate a backup archive containing California, EU, and mainland China records. How do we execute containment and statutory reporting?",
+        policy: "Active Mandates: GDPR Art. 33 (72-Hr) & Art. 34 (Encryption Exemption), China CSL (4-Hr Major Incident), CCPA § 1798.150 Safe Harbor, NIST RS.CO.",
+        options: [
+          {
+            title: "Delay disclosure for 3 weeks while quietly rebuilding servers without notifying regulators",
+            cost: 2000,
+            dSec: -15, dMorale: -10, dComp: -30,
+            tech: "Wiping servers destroys forensic provenance (NIST RS.AN-06/07) and leaves stolen credentials active.",
+            human: "Whistleblowers or dark-web leaks expose the cover-up, destroying executive and public trust.",
+            policy: "Triggers maximum intentional fines under CCPA ($7,988/violation), GDPR Art. 83(5) (4% turnover), and China CSL (2026 personal manager fines)."
+          },
+          {
+            title: "Verify AES-256/TLS encryption keys were untouched, revoke VPN tokens, and file phased 4-hr CSL / 72-hr GDPR & CCPA notices",
+            cost: 15000,
+            dSec: +22, dMorale: +8, dComp: +26,
+            tech: "Revokes compromised VPN certificates, isolates affected zone, and proves data-at-rest encryption remained intact.",
+            human: "Transparent, calm NIST Fig. 5 communication aligns practitioners, managers, and legal counsel.",
+            policy: "Invokes CCPA § 1798.150 & GDPR Art. 34 encryption safe harbors while meeting 4-hr CSL and 72-hr GDPR timelines."
+          },
+          {
+            title: "Pay the extortion demand secretly in cryptocurrency without revoking VPN concentrator sessions",
+            cost: 35000,
+            dSec: -25, dMorale: -15, dComp: -28,
+            tech: "Leaves attacker backdoors and active VPN tokens open for a second extortion wave.",
+            human: "Drains IT budget while staff panic over recurring system lockups.",
+            policy: "Violates statutory breach notification laws and fails NIST RS.MI-01/02 containment & eradication."
+          }
+        ]
+      };
+    }
+
+    // TIMESTAMP FORMATTING WITH MILLISECONDS (YYYY-MM-DD HH:MM:SS.mmm)
+    function formatTimestampWithMs(epochMs) {
+      const d = new Date(epochMs);
+      const pad = (n, len = 2) => String(n).padStart(len, "0");
+      const year = d.getFullYear();
+      const month = pad(d.getMonth() + 1);
+      const day = pad(d.getDate());
+      const hours = pad(d.getHours());
+      const mins = pad(d.getMinutes());
+      const secs = pad(d.getSeconds());
+      const ms = pad(d.getMilliseconds(), 3);
+      return `${year}-${month}-${day} ${hours}:${mins}:${secs}.${ms}`;
+    }
+
+    // DURATION MATH (Minutes and Seconds, e.g., "12m 34s")
+    function formatDuration(startMs, endMs) {
+      const diffMs = Math.max(0, endMs - startMs);
+      const totalSeconds = Math.floor(diffMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}m ${seconds}s`;
+    }
+
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    function updateHUD() {
+      document.getElementById("hud-industry").textContent = labState.chosenIndustry
+        ? labState.chosenIndustry.name.split("&")[0].trim()
+        : "Unassigned";
+      document.getElementById("hud-budget").textContent = `$${labState.budget.toLocaleString()}`;
+      document.getElementById("hud-sec").textContent = `${labState.security}%`;
+      document.getElementById("hud-morale").textContent = `${labState.morale}%`;
+      document.getElementById("hud-comp").textContent = `${labState.compliance}%`;
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      document.getElementById(screenId).classList.add("active");
+    }
+
+    // Populate Industry Cards
+    const industryGrid = document.getElementById("industry-grid");
+    const btnStartLab = document.getElementById("btn-start-lab");
+
+    INDUSTRIES.forEach(ind => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "ind-card";
+      card.innerHTML = `<h3>${ind.name}</h3><p>${ind.summary}</p>`;
+      card.addEventListener("click", () => {
+        document.querySelectorAll(".ind-card").forEach(c => c.classList.remove("selected"));
+        card.classList.add("selected");
+        labState.chosenIndustry = ind;
+        btnStartLab.disabled = false;
+        updateHUD();
+      });
+      industryGrid.appendChild(card);
+    });
+
+    // Start Lab Click Handler -> Record startTime in ms
+    btnStartLab.addEventListener("click", () => {
+      if (!labState.chosenIndustry) return;
+      labState.startTime = Date.now();
+      labState.startFormatted = formatTimestampWithMs(labState.startTime);
+      labState.currentPhase = 0;
+      document.getElementById("session-start-badge").textContent = `Session Start: ${labState.startFormatted}`;
+      renderPhase();
+      showScreen("screen-sim");
+    });
+
+    function renderPhase() {
+      const pData = getPhaseData(labState.chosenIndustry, labState.currentPhase);
+      document.getElementById("phase-tag").textContent = pData.tag;
+      document.getElementById("phase-title").textContent = pData.title;
+      document.getElementById("dialogue-speaker").textContent = pData.speaker;
+      document.getElementById("dialogue-quote").textContent = `"${pData.quote}"`;
+      document.getElementById("policy-alert").textContent = pData.policy;
+
+      const debriefPanel = document.getElementById("debrief-panel");
+      debriefPanel.classList.remove("visible");
+
+      const stack = document.getElementById("options-stack");
+      stack.innerHTML = "";
+
+      pData.options.forEach((opt, idx) => {
+        const div = document.createElement("div");
+        div.className = "choice-card";
+        div.innerHTML = `
+          <div class="choice-top">
+            <span class="choice-title">Option ${String.fromCharCode(65 + idx)}: ${opt.title}</span>
+            <span class="choice-cost">Cost: $${opt.cost.toLocaleString()}</span>
+          </div>
+          <p class="choice-desc">Click to deploy this architectural &amp; policy decision.</p>
+        `;
+        div.addEventListener("click", () => handleChoice(opt, div));
+        stack.appendChild(div);
+      });
+
+      const nextBtn = document.getElementById("btn-next-phase");
+      nextBtn.textContent = labState.currentPhase < 3
+        ? "Proceed to Next Phase →"
+        : "Complete Simulation & Proceed to Certification →";
+    }
+
+    function handleChoice(opt, selectedCard) {
+      document.querySelectorAll(".choice-card").forEach(c => c.classList.add("disabled"));
+      selectedCard.classList.add("chosen");
+
+      labState.budget -= opt.cost;
+      labState.security = clamp(labState.security + opt.dSec, 0, 100);
+      labState.morale = clamp(labState.morale + opt.dMorale, 0, 100);
+      labState.compliance = clamp(labState.compliance + opt.dComp, 0, 100);
+      labState.history.push(opt.title);
+      updateHUD();
+
+      document.getElementById("debrief-tech").textContent = opt.tech;
+      document.getElementById("debrief-human").textContent = opt.human;
+      document.getElementById("debrief-policy").textContent = opt.policy;
+      document.getElementById("debrief-panel").classList.add("visible");
+    }
+
+    document.getElementById("btn-next-phase").addEventListener("click", () => {
+      if (labState.currentPhase < 3) {
+        labState.currentPhase += 1;
+        renderPhase();
+      } else {
+        labState.completed = true;
+        const avg = Math.round((labState.security + labState.morale + labState.compliance) / 3);
+        document.getElementById("final-summary-text").textContent =
+          `Sector: ${labState.chosenIndustry.name} | Remaining Budget: $${labState.budget.toLocaleString()} | Security: ${labState.security}% | Staff Morale: ${labState.morale}% | Compliance: ${labState.compliance}% (Composite Leadership Score: ${avg}%).`;
+        showScreen("screen-cert");
+      }
+    });
+
+    // Generate Certificate & Time Math
+    document.getElementById("btn-generate-cert").addEventListener("click", () => {
+      const first = document.getElementById("input-first").value.trim();
+      const last = document.getElementById("input-last").value.trim();
+      if (!first || !last) {
+        alert("Please enter both your First Name and Last Name to generate your certificate.");
+        return;
+      }
+
+      labState.endTime = Date.now();
+      labState.endFormatted = formatTimestampWithMs(labState.endTime);
+      labState.totalTimeFormatted = formatDuration(labState.startTime, labState.endTime);
+
+      const fullName = `${first} ${last}`;
+      const composite = Math.round((labState.security + labState.morale + labState.compliance) / 3);
+      let tierRank = "Tier 1: Partial Posture";
+      if (composite >= 80 && labState.budget >= 0) tierRank = "Tier 4: Adaptive Governance";
+      else if (composite >= 60) tierRank = "Tier 3: Repeatable Posture";
+      else if (composite >= 45) tierRank = "Tier 2: Risk-Informed";
+
+      document.getElementById("cert-student-name").textContent = fullName;
+      document.getElementById("cert-industry").textContent = labState.chosenIndustry.name;
+      document.getElementById("cert-start").textContent = labState.startFormatted;
+      document.getElementById("cert-end").textContent = labState.endFormatted;
+      document.getElementById("cert-total").textContent = labState.totalTimeFormatted;
+      document.getElementById("cert-budget").textContent = `$${labState.budget.toLocaleString()}`;
+      document.getElementById("cert-scores").textContent = `Sec ${labState.security}% | Comp ${labState.compliance}%`;
+      document.getElementById("cert-rank").textContent = tierRank;
+
+      document.getElementById("cert-wrapper").classList.add("visible");
+    });
+
+    // Download Certificate as PNG via html2canvas
+    document.getElementById("btn-download-png").addEventListener("click", async () => {
+      const certNode = document.getElementById("certificate-node");
+      const nameEl = document.getElementById("cert-student-name");
+      const first = document.getElementById("input-first").value.trim() || "Student";
+      const last = document.getElementById("input-last").value.trim() || "Certificate";
+
+      // Temporarily toggle solid color rendering so html2canvas captures text cleanly
+      nameEl.classList.add("export-safe");
+      try {
+        const canvas = await html2canvas(certNode, {
+          scale: 2,
+          backgroundColor: "#0b1324",
+          useCORS: true
+        });
+        const link = document.createElement("a");
+        link.download = `CBIS15_Ch15_Certificate_${first}_${last}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      } finally {
+        nameEl.classList.remove("export-safe");
+      }
+    });
+  </script>
+</body>
+</html>

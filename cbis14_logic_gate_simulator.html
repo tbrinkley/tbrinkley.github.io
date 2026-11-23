@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBIS 14: Logic Gate Simulator | Barstow Community College</title>
+    <meta name="description" content="Interactive CBIS 14 digital logic gate circuit simulator for Barstow Community College featuring draggable AND, OR, NOT, and XOR gates, live toggle switches, bezier wiring, and signal propagation.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2'%3E%3Cpath d='M6 5v14h6a7 7 0 0 0 0-14H6z' fill='%233b82f6' fill-opacity='0.25'/%3E%3Cline x1='2' y1='8' x2='6' y2='8'/%3E%3Cline x1='2' y1='16' x2='6' y2='16'/%3E%3Cline x1='19' y1='12' x2='22' y2='12'/%3E%3C/svg%3E">
+    <!-- Google Analytics 4 (EDDI) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-73MT2SKH8F"></script>
+    <script src="js/analytics.js"></script>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-color: #2a2a2a;
+            --accent-color: #3b82f6;
+            --text-color: #e5e5e5;
+            --grid-color: #333;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 215px;
+            background-color: var(--panel-color);
+            border-right: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+            z-index: 10;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .home-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 11px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            background-color: #18181b;
+            border: 1px solid #444;
+            color: #fcd34d;
+            text-decoration: none;
+            font-size: 0.78rem;
+            font-weight: 700;
+            width: fit-content;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .home-link:hover {
+            background-color: #27272a;
+            border-color: #fcd34d;
+        }
+
+        .course-tag {
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #9ca3af;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .component-btn {
+            background-color: #333;
+            border: 1px solid #444;
+            color: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+            user-select: none;
+            font-size: 0.92rem;
+        }
+
+        .component-btn:hover {
+            background-color: #444;
+            border-color: var(--accent-color);
+        }
+
+        .component-btn:active {
+            cursor: grabbing;
+        }
+
+        .btn-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        /* Main Canvas Area */
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(var(--grid-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* Controls */
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background-color: var(--panel-color);
+            border: 1px solid #444;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .action-btn:hover {
+            background-color: #444;
+        }
+
+        .action-btn.danger {
+            color: #ef4444;
+            border-color: #7f1d1d;
+        }
+        
+        .action-btn.danger:hover {
+            background-color: #450a0a;
+        }
+
+        /* Tooltip/Help */
+        #help-text {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            color: #9ca3af;
+            font-size: 0.88rem;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <a href="index.html#bcc-classes" class="home-link">&larr; Back to Home</a>
+        <div class="course-tag">BCC CBIS 14 &bull; Digital Logic</div>
+        <h1 style="margin-top: 0; font-size: 1.15rem; margin-bottom: 1.25rem;">Components</h1>
+        
+        <div class="component-btn" draggable="true" data-type="AND">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 5v14h6a7 7 0 0 0 0-14H6z" fill="#3b82f6" fill-opacity="0.2" stroke="#3b82f6"/>
+                <line x1="2" y1="8" x2="6" y2="8" />
+                <line x1="2" y1="16" x2="6" y2="16" />
+                <line x1="19" y1="12" x2="22" y2="12" />
+            </svg>
+            AND Gate
+        </div>
+
+        <div class="component-btn" draggable="true" data-type="OR">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 5v14c6 0 9-4 13-7-4-3-7-7-13-7z" fill="#10b981" fill-opacity="0.2" stroke="#10b981"/>
+                <line x1="2" y1="8" x2="5" y2="8" />
+                <line x1="2" y1="16" x2="5" y2="16" />
+                <line x1="18" y1="12" x2="22" y2="12" />
+            </svg>
+            OR Gate
+        </div>
+
+        <div class="component-btn" draggable="true" data-type="NOT">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 5l12 7-12 7V5z" fill="#ef4444" fill-opacity="0.2" stroke="#ef4444"/>
+                <circle cx="20" cy="12" r="2" stroke="#ef4444"/>
+                <line x1="2" y1="12" x2="6" y2="12" />
+                <line x1="22" y1="12" x2="24" y2="12" />
+            </svg>
+            NOT Gate
+        </div>
+
+        <div class="component-btn" draggable="true" data-type="XOR">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 5v14c6 0 9-4 13-7-4-3-7-7-13-7z" fill="#8b5cf6" fill-opacity="0.2" stroke="#8b5cf6"/>
+                <path d="M2 5v14c6 0 9-4 13-7-4-3-7-7-13-7z" fill="none" stroke="#8b5cf6" style="transform: translateX(-5px)"/>
+                <line x1="20" y1="12" x2="23" y2="12" />
+            </svg>
+            XOR Gate
+        </div>
+
+        <div class="component-btn" draggable="true" data-type="INPUT">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="4" y="4" width="16" height="16" rx="4" fill="#eab308" fill-opacity="0.2" stroke="#eab308"/>
+                <text x="12" y="16" text-anchor="middle" fill="#eab308" stroke="none" font-size="10">1/0</text>
+            </svg>
+            Switch (Input)
+        </div>
+
+        <div class="component-btn" draggable="true" data-type="OUTPUT">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="8" fill="#ec4899" fill-opacity="0.2" stroke="#ec4899"/>
+                <path d="M12 7v10" stroke="#ec4899"/>
+                <path d="M8 12h8" stroke="#ec4899"/>
+            </svg>
+            Light (Output)
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="circuit-canvas"></canvas>
+        <div id="controls">
+            <button class="action-btn" onclick="clearBoard()">Clear Board</button>
+            <button class="action-btn danger" onclick="deleteSelected()">Delete Selected (Del)</button>
+        </div>
+        <div id="help-text">Drag or click components from sidebar. Click &amp; drag between circles to wire. Click switches to toggle (or drag to move).</div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        const canvas = document.getElementById('circuit-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        let components = [];
+        let wires = [];
+        let nextId = 1;
+        
+        // Interaction State
+        let isDragging = false;
+        let dragTarget = null; // Component being moved
+        let dragOffset = { x: 0, y: 0 };
+        let dragStartPos = { x: 0, y: 0 };
+        let dragMoved = false;
+        
+        let isWiring = false;
+        let wireStartNode = null; // { id, type: 'in'|'out', index, x, y }
+        let wireEndPos = { x: 0, y: 0 }; // For drawing the line while dragging
+
+        let selectedComponentId = null;
+
+        // Constants
+        const GRID_SIZE = 20;
+        const COMP_WIDTH = 80;
+        const COMP_HEIGHT = 60;
+        const NODE_RADIUS = 6;
+
+        // --- Component Definitions ---
+        class Component {
+            constructor(type, x, y) {
+                this.id = nextId++;
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.width = (type === 'INPUT' || type === 'OUTPUT') ? 60 : COMP_WIDTH;
+                this.height = (type === 'INPUT' || type === 'OUTPUT') ? 40 : COMP_HEIGHT;
+                this.inputs = [];
+                this.outputs = [];
+                this.state = false; // Logic level (true/false)
+
+                // Initialize Inputs/Outputs based on type
+                if (type === 'AND' || type === 'OR' || type === 'XOR') {
+                    this.inputs = [false, false];
+                    this.outputs = [false];
+                } else if (type === 'NOT') {
+                    this.inputs = [false];
+                    this.outputs = [false];
+                } else if (type === 'INPUT') {
+                    this.inputs = [];
+                    this.outputs = [false];
+                } else if (type === 'OUTPUT') {
+                    this.inputs = [false];
+                    this.outputs = [];
+                }
+            }
+
+            evaluate() {
+                // Fetch values from incoming wires
+                const myInputValues = this.inputs.map((_, index) => {
+                    const wire = wires.find(w => w.to.id === this.id && w.to.index === index);
+                    return wire ? wire.value : false;
+                });
+
+                if (this.type === 'AND') {
+                    this.state = myInputValues[0] && myInputValues[1];
+                } else if (this.type === 'OR') {
+                    this.state = myInputValues[0] || myInputValues[1];
+                } else if (this.type === 'XOR') {
+                    this.state = myInputValues[0] !== myInputValues[1];
+                } else if (this.type === 'NOT') {
+                    this.state = !myInputValues[0];
+                } else if (this.type === 'INPUT') {
+                    // State is toggled manually by click, preserved here
+                } else if (this.type === 'OUTPUT') {
+                    this.state = myInputValues[0];
+                }
+
+                // Push state to outgoing wires
+                if (this.outputs.length > 0) {
+                    wires.forEach(w => {
+                        if (w.from.id === this.id) {
+                            w.value = this.state;
+                        }
+                    });
+                }
+            }
+
+            getNodes() {
+                const nodes = [];
+                // Input Nodes (Left side)
+                const inputSpacing = this.height / (this.inputs.length + 1);
+                this.inputs.forEach((_, i) => {
+                    nodes.push({
+                        id: this.id,
+                        type: 'in',
+                        index: i,
+                        x: this.x,
+                        y: this.y + inputSpacing * (i + 1)
+                    });
+                });
+
+                // Output Nodes (Right side)
+                const outputSpacing = this.height / (this.outputs.length + 1);
+                this.outputs.forEach((_, i) => {
+                    nodes.push({
+                        id: this.id,
+                        type: 'out',
+                        index: i,
+                        x: this.x + this.width,
+                        y: this.y + outputSpacing * (i + 1)
+                    });
+                });
+                return nodes;
+            }
+
+            isHit(x, y) {
+                return x >= this.x && x <= this.x + this.width &&
+                       y >= this.y && y <= this.y + this.height;
+            }
+        }
+
+        // --- Core Loop ---
+
+        function updateLogic() {
+            // Iterative propagation scaled to circuit depth so multi-stage circuits settle
+            const passes = Math.min(32, Math.max(4, components.length + 1));
+            for (let i = 0; i < passes; i++) {
+                components.forEach(c => c.evaluate());
+            }
+        }
+
+        function draw() {
+            // Clear
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Wires
+            drawWires();
+
+            // Draw Components
+            components.forEach(c => drawComponent(c));
+
+            // Draw Active Wiring Line
+            if (isWiring && wireStartNode) {
+                ctx.beginPath();
+                ctx.moveTo(wireStartNode.x, wireStartNode.y);
+                ctx.lineTo(wireEndPos.x, wireEndPos.y);
+                ctx.strokeStyle = '#aaa';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
+        // --- Drawing Helpers ---
+
+        function drawWires() {
+            wires.forEach(wire => {
+                const fromComp = components.find(c => c.id === wire.from.id);
+                const toComp = components.find(c => c.id === wire.to.id);
+                
+                if (!fromComp || !toComp) return; // Cleanup check
+
+                // Recalculate positions based on component location
+                const startNode = fromComp.getNodes().find(n => n.type === 'out' && n.index === wire.from.index);
+                const endNode = toComp.getNodes().find(n => n.type === 'in' && n.index === wire.to.index);
+
+                if (startNode && endNode) {
+                    ctx.beginPath();
+                    
+                    // Curvy wire using bezier
+                    const cp1x = startNode.x + 50;
+                    const cp1y = startNode.y;
+                    const cp2x = endNode.x - 50;
+                    const cp2y = endNode.y;
+
+                    ctx.moveTo(startNode.x, startNode.y);
+                    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endNode.x, endNode.y);
+
+                    ctx.strokeStyle = wire.value ? '#4ade80' : '#555'; // Green if true, gray if false
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = wire.value ? 5 : 0;
+                    ctx.shadowColor = '#4ade80';
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function drawComponent(c) {
+            ctx.save();
+            
+            // Selection highlight
+            if (c.id === selectedComponentId) {
+                ctx.shadowColor = '#3b82f6';
+                ctx.shadowBlur = 10;
+            } else if (c.state && c.type === 'OUTPUT') {
+                ctx.shadowColor = '#ec4899';
+                ctx.shadowBlur = 14;
+            }
+
+            // Body
+            if (c.type === 'OUTPUT' && c.state) {
+                ctx.fillStyle = '#500724';
+                ctx.strokeStyle = '#ec4899';
+            } else if (c.type === 'INPUT' && c.state) {
+                ctx.fillStyle = '#14532d';
+                ctx.strokeStyle = '#4ade80';
+            } else {
+                ctx.fillStyle = '#333';
+                ctx.strokeStyle = '#555';
+            }
+            ctx.lineWidth = 2;
+
+            if (c.type === 'INPUT' || c.type === 'OUTPUT') {
+                // Rounded rect for IO
+                roundRect(ctx, c.x, c.y, c.width, c.height, 8);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                // Logic Gates Shapes
+                drawGateShape(ctx, c);
+            }
+
+            // Label / Symbol
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 14px sans-serif';
+            let label = c.type;
+            if (c.type === 'INPUT') label = c.state ? '1' : '0';
+            if (c.type === 'OUTPUT') label = c.state ? 'ON' : 'OFF';
+            
+            // Adjust label position for gates vs IO
+            const centerX = c.type === 'NOT' ? c.x + c.width / 2 - 8 : c.x + c.width / 2;
+            const centerY = c.y + c.height / 2;
+            ctx.fillText(label, centerX, centerY);
+
+            // Nodes
+            const nodes = c.getNodes();
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, NODE_RADIUS, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                
+                // Color node if hovered during wiring
+                if (isWiring && wireStartNode) {
+                    const valid = (wireStartNode.type !== node.type) && (wireStartNode.id !== node.id);
+                    if (valid && Math.hypot(node.x - wireEndPos.x, node.y - wireEndPos.y) < 15) {
+                        ctx.fillStyle = '#4ade80';
+                    }
+                }
+                
+                ctx.fill();
+                ctx.stroke();
+            });
+
+            ctx.restore();
+        }
+
+        function drawGateShape(ctx, c) {
+            ctx.beginPath();
+            const x = c.x;
+            const y = c.y;
+            const w = c.width;
+            const h = c.height;
+
+            if (c.type === 'AND') {
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + w/2, y);
+                ctx.arc(x + w/2, y + h/2, h/2, -Math.PI/2, Math.PI/2);
+                ctx.lineTo(x, y + h);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            } else if (c.type === 'OR') {
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(x + w/2, y, x + w, y + h/2);
+                ctx.quadraticCurveTo(x + w/2, y + h, x, y + h);
+                ctx.quadraticCurveTo(x + w/4, y + h/2, x, y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            } else if (c.type === 'NOT') {
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + w - 12, y + h/2);
+                ctx.lineTo(x, y + h);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                // Inversion bubble
+                ctx.beginPath();
+                ctx.arc(x + w - 7, y + h/2, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            } else if (c.type === 'XOR') {
+                // Gate body
+                ctx.moveTo(x + 7, y);
+                ctx.quadraticCurveTo(x + w/2 + 5, y, x + w, y + h/2);
+                ctx.quadraticCurveTo(x + w/2 + 5, y + h, x + 7, y + h);
+                ctx.quadraticCurveTo(x + w/4 + 7, y + h/2, x + 7, y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                // Trailing XOR curve
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(x + w/4, y + h/2, x, y + h);
+                ctx.stroke();
+            }
+        }
+
+        function roundRect(ctx, x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+
+        // --- Event Listeners ---
+
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            draw();
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function addComponentAt(type, x, y) {
+            if (!type) return null;
+            const snappedX = Math.max(20, Math.round(x / GRID_SIZE) * GRID_SIZE);
+            const snappedY = Math.max(20, Math.round(y / GRID_SIZE) * GRID_SIZE);
+            const comp = new Component(type, snappedX, snappedY);
+            components.push(comp);
+            selectedComponentId = comp.id;
+            updateLogic();
+            draw();
+            return comp;
+        }
+
+        // Drag and Drop (plus click-to-add fallback) from sidebar
+        document.querySelectorAll('.component-btn').forEach(btn => {
+            btn.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('type', btn.dataset.type);
+            });
+            btn.addEventListener('click', () => {
+                const offset = (components.length % 6) * 20;
+                const cx = Math.max(80, canvas.width / 2 - 40 + offset);
+                const cy = Math.max(80, canvas.height / 2 - 30 + offset);
+                addComponentAt(btn.dataset.type, cx, cy);
+            });
+        });
+
+        container.addEventListener('dragover', (e) => e.preventDefault());
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('type');
+            if (!type) return;
+            const rect = canvas.getBoundingClientRect();
+            addComponentAt(type, e.clientX - rect.left - 30, e.clientY - rect.top - 20);
+        });
+
+        // Mouse Interactions
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // 1. Check for Nodes (Wiring)
+            let clickedNode = null;
+            for (let c of components) {
+                const nodes = c.getNodes();
+                for (let n of nodes) {
+                    if (Math.hypot(x - n.x, y - n.y) < 10) {
+                        clickedNode = n;
+                        break;
+                    }
+                }
+                if (clickedNode) break;
+            }
+
+            if (clickedNode) {
+                isWiring = true;
+                wireStartNode = clickedNode;
+                wireEndPos = { x, y };
+                return;
+            }
+
+            // 2. Check for Components (Drag / Toggle)
+            // Reverse iterate to grab top component first
+            for (let i = components.length - 1; i >= 0; i--) {
+                const c = components[i];
+                if (c.isHit(x, y)) {
+                    selectedComponentId = c.id;
+                    isDragging = true;
+                    dragTarget = c;
+                    dragOffset = { x: x - c.x, y: y - c.y };
+                    dragStartPos = { x, y };
+                    dragMoved = false;
+                    draw();
+                    return;
+                }
+            }
+
+            // Clicked empty space
+            selectedComponentId = null;
+            draw();
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (isDragging && dragTarget) {
+                if (Math.hypot(x - dragStartPos.x, y - dragStartPos.y) > 4) {
+                    dragMoved = true;
+                }
+                if (dragMoved) {
+                    // Snap to grid
+                    const rawX = x - dragOffset.x;
+                    const rawY = y - dragOffset.y;
+                    dragTarget.x = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
+                    dragTarget.y = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
+                    draw(); // Wires update automatically in draw loop
+                }
+            }
+
+            if (isWiring) {
+                wireEndPos = { x, y };
+                draw();
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (isDragging && dragTarget && dragTarget.type === 'INPUT' && !dragMoved) {
+                dragTarget.state = !dragTarget.state;
+                updateLogic();
+            }
+
+            if (isWiring) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Check valid drop target
+                let targetNode = null;
+                for (let c of components) {
+                    const nodes = c.getNodes();
+                    for (let n of nodes) {
+                        if (Math.hypot(x - n.x, y - n.y) < 15) {
+                            targetNode = n;
+                            break;
+                        }
+                    }
+                    if (targetNode) break;
+                }
+
+                if (targetNode && wireStartNode) {
+                    // Validation: Must be In->Out or Out->In
+                    if (wireStartNode.type !== targetNode.type && wireStartNode.id !== targetNode.id) {
+                        // Normalize: From = Out, To = In
+                        const source = wireStartNode.type === 'out' ? wireStartNode : targetNode;
+                        const dest = wireStartNode.type === 'in' ? wireStartNode : targetNode;
+
+                        // Remove existing wire to this input if any (one wire per input)
+                        wires = wires.filter(w => !(w.to.id === dest.id && w.to.index === dest.index));
+
+                        wires.push({
+                            from: { id: source.id, index: source.index },
+                            to: { id: dest.id, index: dest.index },
+                            value: false
+                        });
+                        updateLogic();
+                    }
+                }
+            }
+
+            isDragging = false;
+            dragTarget = null;
+            dragMoved = false;
+            isWiring = false;
+            wireStartNode = null;
+            draw();
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                deleteSelected();
+            }
+        });
+
+        // --- Toolbar Actions ---
+
+        function deleteSelected() {
+            if (selectedComponentId) {
+                // Remove wires connected to this component
+                wires = wires.filter(w => w.from.id !== selectedComponentId && w.to.id !== selectedComponentId);
+                // Remove component
+                components = components.filter(c => c.id !== selectedComponentId);
+                selectedComponentId = null;
+                updateLogic();
+                draw();
+            }
+        }
+
+        function clearBoard() {
+            components = [];
+            wires = [];
+            selectedComponentId = null;
+            updateLogic();
+            draw();
+        }
+
+    </script>
+</body>
+</html>

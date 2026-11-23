@@ -53,7 +53,29 @@
         href.includes('atan2_explorer.html') ||
         href.includes('uptime-zero.html') ||
         href.includes('sausage_pizza_subnetting_lab.html') ||
-        href.includes('aztec-map-app.html')
+        href.includes('network_ports_switch_lab.html') ||
+        href.includes('qam_communications_simulator.html') ||
+        href.includes('qam_sync_transmission_simulator.html') ||
+        href.includes('qam_phase_shift_audio_demo.html') ||
+        href.includes('qam_waveform_mapper.html') ||
+        href.includes('physical_hardware_security_lab.html') ||
+        href.includes('cbis13_rad_api_lab.html') ||
+        href.includes('cbis13_agile_pivot_simulator.html') ||
+        href.includes('cbis13_blockchain_smart_contracts_lab.html') ||
+        href.includes('cbis13_competitive_advantage_simulator.html') ||
+        href.includes('cbis13_ai_strategy_simulator.html') ||
+        href.includes('cbis13_ar_vision_picking_lab.html') ||
+        href.includes('cbis14_osint_high_desert_link.html') ||
+        href.includes('cbis14_silent_echo_lab.html') ||
+        href.includes('cbis14_xor_visualizer.html') ||
+        href.includes('cbis14_logic_gate_simulator.html') ||
+        href.includes('cbis14_cia_triad_balancer.html') ||
+        href.includes('aztec-map-app.html') ||
+        href.includes('static_electricity_simulator.html') ||
+        href.includes('cvc_word_lab.html') ||
+        href.includes('hosted.app') ||
+        href.includes('web.app') ||
+        href.includes('ai.studio')
       ) {
         gtag('event', 'interactive_lab_click', {
           lab_label: label,

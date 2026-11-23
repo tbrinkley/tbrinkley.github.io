@@ -717,6 +717,7 @@
     margin-block-start: 0.75rem;
     display: flex;
     flex-wrap: wrap;
+    flex-wrap: balance;
     justify-content: center;
     gap: 0.75rem;
     inline-size: 100%;
@@ -829,9 +830,63 @@
   .quest-lab-links {
     display: flex;
     flex-wrap: wrap;
+    flex-wrap: balance;
     gap: 0.65rem;
     margin-block-start: 0.5rem;
     padding-block-start: 0.85rem;
+    border-block-start: 2px dashed var(--border-pixel);
+  }
+
+  .quest-more-labs {
+    margin-block-start: 0.35rem;
+    background-color: var(--ink-night);
+    border: 2px dashed var(--border-pixel);
+    padding: 0.75rem 0.9rem;
+  }
+
+  .quest-more-labs[open] {
+    border-style: solid;
+    border-color: var(--cyan-700);
+  }
+
+  .quest-more-labs summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: safe center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--accent-secondary);
+    letter-spacing: 0.04em;
+    min-block-size: 2rem;
+  }
+
+  .quest-more-labs summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .quest-more-labs summary::after {
+    content: "[+]";
+    font-family: var(--font-pixel);
+    font-size: 0.65rem;
+    color: var(--accent-primary);
+    flex-shrink: 0;
+  }
+
+  .quest-more-labs[open] summary::after {
+    content: "[-]";
+  }
+
+  .quest-more-labs-body {
+    display: flex;
+    flex-wrap: wrap;
+    flex-wrap: balance;
+    gap: 0.55rem;
+    margin-block-start: 0.75rem;
+    padding-block-start: 0.75rem;
     border-block-start: 2px dashed var(--border-pixel);
   }
 
@@ -1209,16 +1264,161 @@
   /* --------------------------------------------------------------------------
      WORLD 1-4: INTERACTIVE LABS, ATAN2 & PUBLISHED WORKS
      -------------------------------------------------------------------------- */
+  .interactive-stack {
+    display: grid;
+    gap: var(--space-5);
+  }
+
   .labs-pubs-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
     gap: var(--space-4);
-    align-items: start;
+    align-items: stretch;
   }
 
-  .lab-column {
+  .lab-column,
+  .pubs-column {
     display: grid;
     gap: var(--space-3);
+    align-content: start;
+  }
+
+  .lab-library-section,
+  .featured-projects-section {
+    display: grid;
+    gap: 1.25rem;
+    scroll-margin-block-start: calc(var(--hud-height) + 2rem);
+  }
+
+  .featured-projects-section {
+    content-visibility: auto;
+    contain-intrinsic-size: auto none auto 620px;
+  }
+
+  .lab-library-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: safe center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .lab-library-header .subsection-heading {
+    margin-block-end: 0;
+  }
+
+  .lab-count-badge {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--accent-success);
+    background-color: var(--ink-void);
+    border: 2px solid var(--emerald-600);
+    padding-block: 0.25rem;
+    padding-inline: 0.65rem;
+  }
+
+  .lab-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: safe center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    background-color: var(--bg-card);
+    border: 3px solid var(--border-pixel);
+    box-shadow:
+      inset 3px 3px 0 var(--bevel-light),
+      inset -3px -3px 0 var(--bevel-dark),
+      0 5px 0 var(--pixel-drop);
+    padding: 0.9rem 1rem;
+  }
+
+  .lab-filter-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    flex-wrap: balance;
+    gap: 0.5rem;
+  }
+
+  .lab-filter-btn {
+    min-block-size: 2.35rem;
+    padding-block: 0.35rem;
+    padding-inline: 0.8rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--text-secondary);
+    background-color: var(--ink-void);
+    border: 2px solid var(--border-pixel);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .lab-filter-btn:hover {
+    border-color: var(--accent-secondary);
+    color: var(--pixel-white);
+  }
+
+  .lab-filter-btn[aria-pressed="true"] {
+    background-color: var(--accent-primary);
+    color: var(--ink-void);
+    border-color: var(--pixel-drop);
+  }
+
+  .lab-search-wrap {
+    flex: 1 1 15rem;
+    max-inline-size: 24rem;
+    min-inline-size: 0;
+  }
+
+  .lab-search-input {
+    inline-size: 100%;
+    min-block-size: 2.35rem;
+    padding-block: 0.4rem;
+    padding-inline: 0.85rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--pixel-white);
+    background-color: var(--ink-void);
+    border: 2px solid var(--border-pixel);
+  }
+
+  .lab-search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .lab-search-input:focus-visible {
+    outline: 3px solid var(--accent-secondary);
+    outline-offset: 2px;
+    border-color: var(--accent-secondary);
+  }
+
+  .lab-filter-status {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .lab-empty-state {
+    background-color: var(--ink-indigo);
+    border: 3px dashed var(--border-pixel);
+    padding: 1.75rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .lab-empty-state[hidden] {
+    display: none;
+  }
+
+  .app-status-note {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--accent-primary);
+    align-self: end;
   }
 
   .atan2-card {
@@ -1245,28 +1445,49 @@
 
   .sub-labs-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr));
+    gap: 1.15rem;
+    align-items: stretch;
   }
 
   .mini-cartridge {
+    grid-row: span 4;
+    display: grid;
+    /* Same-cascade fallback when subgrid is unsupported */
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-rows: subgrid;
+    gap: 0.65rem;
     background-color: var(--ink-indigo);
     border: 3px solid var(--border-pixel);
     box-shadow: 0 5px 0 var(--pixel-drop);
     padding: 1.15rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
+    min-inline-size: 0;
+    transition: border-color 0.15s ease, transform 0.15s steps(2);
+  }
+
+  .mini-cartridge:hover {
+    border-color: var(--accent-secondary);
+    transform: translateY(-2px);
+  }
+
+  .mini-cartridge[hidden] {
+    display: none !important;
   }
 
   .mini-cartridge h4 {
     color: var(--accent-primary);
+    align-self: start;
   }
 
   .mini-cartridge p {
     font-size: var(--text-sm);
     color: var(--text-muted);
-    margin-block-end: auto;
+    align-self: start;
+  }
+
+  .mini-cartridge > .pixel-btn {
+    align-self: end;
+    justify-self: start;
   }
 
   .pubs-list {
@@ -1990,6 +2211,11 @@
   }
 
   @media (max-width: 960px) {
+    .lab-library-section,
+    .featured-projects-section {
+      scroll-margin-block-start: 8.5rem;
+    }
+
     .hud-menu-btn {
       display: inline-flex;
     }
@@ -2053,6 +2279,9 @@
     .hud-nav-link,
     .hud-chip-btn,
     .crt-channel-btn,
+    .lab-filter-btn,
+    .lab-search-input,
+    .quest-more-labs summary,
     .cartridge-link,
     .pixel-btn {
       min-block-size: 2.75rem;
@@ -2069,6 +2298,7 @@
 
     .pixel-panel,
     .quest-card,
+    .quest-more-labs,
     .crt-bezel,
     .crt-viewport,
     .arcade-cabinet,
@@ -2078,6 +2308,9 @@
     .pixel-btn,
     .hud-chip-btn,
     .crt-channel-btn,
+    .lab-toolbar,
+    .lab-filter-btn,
+    .lab-search-input,
     .cartridge-link,
     .aztec-card,
     .mini-cartridge,
@@ -2088,6 +2321,7 @@
 
     .quest-step.is-active .quest-card,
     .crt-channel-btn.is-active,
+    .lab-filter-btn[aria-pressed="true"],
     .hud-nav-link[aria-current="location"] {
       border-color: Highlight;
       outline: 2px solid Highlight;
