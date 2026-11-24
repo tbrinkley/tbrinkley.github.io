@@ -602,7 +602,7 @@
               }
 
               // Even Modulated QAM Carrier Wave (3 full cycles per half = 6 even cycles across channel)
-              // DATA transmits 2 symbols (1000 -> 0110); ACK transmits a single uniform symbol (1101)
+              // DATA transmits 2 equal-amplitude symbols (1000 -> 0010); ACK transmits a single uniform symbol (1101)
               drawSymmetricalQamWave(ctx, {
                 waveStart,
                 waveLen,
@@ -610,7 +610,7 @@
                 ampScale: 3.8,
                 i1: isAck ? 3 : 3,
                 q1: isAck ? -1 : -3,
-                i2: isAck ? 3 : -1,
+                i2: isAck ? 3 : -3,
                 q2: isAck ? -1 : 3,
                 cyclesPerSymbol: 3,
                 timePhase: isAck ? time * 2.2 : -time * 2.2,
@@ -621,7 +621,7 @@
               });
 
               // Moving Packet / Frame Box above the wave (auto-sized to text)
-              const pktText = isAck ? '◀ ACK FRAME (1101)' : 'DATA: 1000 0110 ▶';
+              const pktText = isAck ? '◀ ACK FRAME (1101)' : 'DATA: 1000 0010 ▶';
               ctx.font = 'bold 9.5px monospace';
               const pillW = Math.max(126, Math.ceil(ctx.measureText(pktText).width) + 20);
               const pillH = 24;
@@ -654,7 +654,7 @@
                 ctx.fillStyle = '#c084fc';
                 ctx.fillText('Symbol 1: X=3, Y=-3 (1000)', waveStart + waveLen * 0.25, midY + 58);
                 ctx.fillStyle = '#38bdf8';
-                ctx.fillText('Symbol 2: X=-1, Y=3 (0110)', waveStart + waveLen * 0.75, midY + 58);
+                ctx.fillText('Symbol 2: X=-3, Y=3 (0010)', waveStart + waveLen * 0.75, midY + 58);
               }
 
             } else {
@@ -676,14 +676,14 @@
               ctx.beginPath(); ctx.moveTo(w / 2, topY - 18); ctx.lineTo(w / 2, botY + 18); ctx.stroke();
               ctx.setLineDash([]);
 
-              // Top Lane: Downlink TX Wave (Purple, moving Left -> Right, 3 cycles/symbol)
+              // Top Lane: Downlink TX Wave (Purple, moving Left -> Right, 3 cycles/symbol, uniform amplitude)
               drawSymmetricalQamWave(ctx, {
                 waveStart,
                 waveLen,
                 centerY: topY,
-                ampScale: 2.6,
+                ampScale: 2.5,
                 i1: 3, q1: -3,
-                i2: -1, q2: 3,
+                i2: -3, q2: 3,
                 cyclesPerSymbol: 3,
                 timePhase: -time * 2.2,
                 smoothTransition,
@@ -692,14 +692,14 @@
                 lineWidth: 2.2
               });
 
-              // Bottom Lane: Uplink RX Wave (Green, moving Right -> Left simultaneously, 3.5 cycles/symbol)
+              // Bottom Lane: Uplink RX Wave (Green, moving Right -> Left simultaneously, 3.5 cycles/symbol, uniform amplitude)
               drawSymmetricalQamWave(ctx, {
                 waveStart,
                 waveLen,
                 centerY: botY,
-                ampScale: 2.6,
-                i1: 3, q1: -1,
-                i2: 1, q2: 3,
+                ampScale: 2.5,
+                i1: 3, q1: -3,
+                i2: 3, q2: 3,
                 cyclesPerSymbol: 3.5,
                 timePhase: time * 2.2,
                 smoothTransition,
@@ -1461,9 +1461,9 @@
                         </button>
                       </div>
 
-                      {/* Why does the wave change shape box */}
+                      {/* How symbols travel on a carrier wave box */}
                       <div className="w-full mt-4 p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/80 text-xs text-slate-300 leading-relaxed">
-                        <strong className="text-purple-300">Why does the wave change height and rhythm in the middle?</strong> Each 4-bit chunk of data (a <em>Symbol</em>) has its own <strong>(X, Y)</strong> coordinate, which changes the wave's amplitude and phase. In textbooks, jumping from Symbol 1 to Symbol 2 causes a sharp break in the wave; in real hardware, a <strong>Pulse-Shaping Filter</strong> smoothly blends the transition!
+                        <strong className="text-purple-300">How does one radio wave carry multiple symbols?</strong> Each 4-bit chunk of data (a <em>Symbol</em>) has its own <strong>(X, Y)</strong> coordinate on the 16-QAM grid, setting the wave's amplitude and phase. In textbooks, jumping from Symbol 1 to Symbol 2 causes a sharp break at the center line; in real hardware, a <strong>Pulse-Shaping Filter</strong> keeps the carrier wave smooth and even!
                       </div>
                     </div>
 
